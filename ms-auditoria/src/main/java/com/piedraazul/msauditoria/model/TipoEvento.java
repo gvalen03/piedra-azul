@@ -1,0 +1,14 @@
+package com.piedraazul.msauditoria.model;
+
+public enum TipoEvento {
+    USUARIO_CREADO,
+    USUARIO_DESACTIVADO,
+    LOGIN_EXITOSO,
+    LOGIN_FALLIDO,
+    PACIENTE_REGISTRADO,
+    CITA_AGENDADA,
+    CITA_CANCELADA,
+    CITA_REAGENDADA,
+    HISTORIAL_CREADO,
+    HISTORIAL_MODIFICADO
+}

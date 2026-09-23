@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.piedraazul.mshistorial.ui.HistorialController">
+    <top>
+        <VBox spacing="10">
+            <padding>
+                <Insets top="12" right="12" bottom="12" left="12" />
+            </padding>
+            <HBox spacing="10">
+                <Label text="Paciente ID:" />
+                <TextField fx:id="txtPacienteId" promptText="Ej. 123" />
+                <Button text="Cargar paciente" onAction="#cargarPorPaciente" />
+                <Label text="Cita ID:" />
+                <TextField fx:id="txtCitaId" promptText="Ej. 456" />
+                <Button text="Cargar cita" onAction="#cargarPorCita" />
+            </HBox>
+            <HBox spacing="10">
+                <Label text="Buscar texto:" />
+                <TextField fx:id="txtBusqueda" promptText="Filtrar resultados..." HBox.hgrow="ALWAYS" />
+                <Button text="Filtrar" onAction="#buscarRegistros" />
+                <Button text="Limpiar" onAction="#limpiarBusqueda" />
+            </HBox>
+            <Separator />
+            <TitledPane text="Crear nuevo registro" expanded="true">
+                <GridPane hgap="10" vgap="10">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10" />
+                    </padding>
+                    <Label text="Paciente ID:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <TextField fx:id="txtPacienteIdNew" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+                    <Label text="Médico ID:" GridPane.rowIndex="0" GridPane.columnIndex="2" />
+                    <TextField fx:id="txtMedicoId" GridPane.rowIndex="0" GridPane.columnIndex="3" />
+
+                    <Label text="Cita ID:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <TextField fx:id="txtCitaIdNew" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+
+                    <Label text="Tipo de registro:" GridPane.rowIndex="1" GridPane.columnIndex="2" />
+                    <ComboBox fx:id="cmbTipoRegistro" GridPane.rowIndex="1" GridPane.columnIndex="3" />
+
+                    <Label text="Descripción:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                    <TextArea fx:id="txtDescripcion" prefRowCount="2" GridPane.rowIndex="2" GridPane.columnIndex="1" GridPane.columnSpan="3" />
+
+                    <Label text="Diagnóstico:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                    <TextArea fx:id="txtDiagnostico" prefRowCount="2" GridPane.rowIndex="3" GridPane.columnIndex="1" GridPane.columnSpan="3" />
+
+                    <Label text="Tratamiento:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                    <TextArea fx:id="txtTratamiento" prefRowCount="2" GridPane.rowIndex="4" GridPane.columnIndex="1" GridPane.columnSpan="3" />
+
+                    <Label text="Registrado por:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                    <TextField fx:id="txtRegistradoPor" GridPane.rowIndex="5" GridPane.columnIndex="1" />
+
+                    <Button text="Guardar registro" onAction="#crearRegistro" GridPane.rowIndex="5" GridPane.columnIndex="3" />
+                </GridPane>
+            </TitledPane>
+        </VBox>
+    </top>
+    <center>
+        <TableView fx:id="tablaRegistros" prefHeight="420.0" prefWidth="1080.0">
+            <columns>
+                <TableColumn fx:id="colId" text="ID" prefWidth="70" />
+                <TableColumn fx:id="colPacienteId" text="Paciente ID" prefWidth="100" />
+                <TableColumn fx:id="colMedicoId" text="Médico ID" prefWidth="100" />
+                <TableColumn fx:id="colCitaId" text="Cita ID" prefWidth="100" />
+                <TableColumn fx:id="colTipoRegistro" text="Tipo" prefWidth="120" />
+                <TableColumn fx:id="colDescripcion" text="Descripción" prefWidth="240" />
+                <TableColumn fx:id="colFechaRegistro" text="Fecha" prefWidth="140" />
+                <TableColumn fx:id="colRegistradoPor" text="Registrado por" prefWidth="130" />
+            </columns>
+        </TableView>
+    </center>
+    <bottom>
+        <HBox spacing="10">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10" />
+            </padding>
+            <Label fx:id="lblTotal" text="Registros mostrados: 0" />
+            <Label fx:id="lblFeedback" style="-fx-text-fill: #333333;" />
+        </HBox>
+    </bottom>
+</BorderPane>
