@@ -1,0 +1,6 @@
+export const EstadoCita = Object.freeze({
+  PROGRAMADA: "PROGRAMADA",
+  CONFIRMADA: "CONFIRMADA",
+  ATENDIDA: "ATENDIDA",
+  CANCELADA: "CANCELADA"
+});
