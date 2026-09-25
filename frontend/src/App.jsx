@@ -1,4 +1,5 @@
 import { createSignal, onMount, For, Show } from "solid-js";
+import DisponibilidadForm from "./DisponibilidadForm.jsx";
 
 function App() {
   const [medicos, setMedicos] = createSignal([]);
@@ -63,6 +64,7 @@ function App() {
           </ul>
         </Show>
       </Show>
+<DisponibilidadForm />
     </main>
   );
 }
