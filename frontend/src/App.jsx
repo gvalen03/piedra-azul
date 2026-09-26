@@ -7,6 +7,7 @@ import {
 
 import LoginPage from "./pages/auth/LoginPage.jsx";
 import { useAuth } from "./stores/auth.store.js";
+import DisponibilidadForm from "./DisponibilidadForm.jsx";
 
 const initialForm = {
   nombre: "",
@@ -496,6 +497,8 @@ function App() {
             </Show>
           </div>
         </section>
+
+        <DisponibilidadForm />
       </main>
     </Show>
   );

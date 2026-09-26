@@ -1,11 +1,23 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 
+import { db }
+  from "./shared/db/database.js";
+
+import { authPlugin }
+  from "./modules/auth/plugins/auth.js";
+
 import { medicoRoutes }
   from "./modules/medicos/web/medico.routes.js";
 
 import { MedicoRepository }
   from "./modules/medicos/infrastructure/medico.repository.js";
+
+import { MedicoService }
+  from "./modules/medicos/application/medico.service.js";
+
+import { crearMedicoController }
+  from "./modules/medicos/web/medico.controller.js";
 
 import { pacienteRoutes }
   from "./modules/pacientes/web/paciente.routes.js";
@@ -25,19 +37,56 @@ import { AuditoriaRepository }
 import { AuditoriaService }
   from "./auditoria/application/auditoria.service.js";
 
-import { authPlugin }
-  from "./modules/auth/plugins/auth.js";
+import { disponibilidadRoutes }
+  from "./modules/disponibilidad/web/disponibilidad.routes.js";
 
-import { db }
-  from "./shared/db/database.js";
+import { DisponibilidadRepository }
+  from "./modules/disponibilidad/infrastructure/disponibilidad.repository.js";
+
+import { DisponibilidadService }
+  from "./modules/disponibilidad/application/disponibilidad.service.js";
+
+import { crearDisponibilidadController }
+  from "./modules/disponibilidad/web/disponibilidad.controller.js";
+
+import { CitaRepository }
+  from "./modules/citas/infrastructure/cita.repository.js";
 
 export async function buildApp() {
   const app = Fastify({
     logger: true
   });
 
+  // =========================
+  // Médicos
+  // =========================
+
   const medicoRepository =
     new MedicoRepository(db);
+
+  const medicoService =
+    new MedicoService({
+      medicoRepository
+    });
+
+  const medicoController =
+    crearMedicoController({
+      medicoService
+    });
+
+  app.decorate(
+    "medicoRepository",
+    medicoRepository
+  );
+
+  app.decorate(
+    "medicoController",
+    medicoController
+  );
+
+  // =========================
+  // Pacientes
+  // =========================
 
   const pacienteRepository =
     new PacienteRepository(db);
@@ -62,11 +111,6 @@ export async function buildApp() {
     });
 
   app.decorate(
-    "medicoRepository",
-    medicoRepository
-  );
-
-  app.decorate(
     "pacienteRepository",
     pacienteRepository
   );
@@ -74,6 +118,32 @@ export async function buildApp() {
   app.decorate(
     "pacienteController",
     pacienteController
+  );
+
+  // =========================
+  // Disponibilidad
+  // =========================
+
+  const citaRepository =
+    new CitaRepository(db);
+
+  const disponibilidadRepository =
+    new DisponibilidadRepository(db);
+
+  const disponibilidadService =
+    new DisponibilidadService({
+      disponibilidadRepository,
+      citaRepository
+    });
+
+  const disponibilidadController =
+    crearDisponibilidadController({
+      disponibilidadService
+    });
+
+  app.decorate(
+    "disponibilidadController",
+    disponibilidadController
   );
 
   // =========================
@@ -93,6 +163,13 @@ export async function buildApp() {
   await app.register(medicoRoutes, {
     prefix: "/api/medicos"
   });
+
+  await app.register(
+    disponibilidadRoutes,
+    {
+      prefix: "/api/disponibilidad"
+    }
+  );
 
   await app.register(pacienteRoutes, {
     prefix: "/api/pacientes"
