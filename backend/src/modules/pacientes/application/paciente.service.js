@@ -1,5 +1,4 @@
 import { PacienteFactory } from "../domain/paciente.factory.js";
-import { EstadoPaciente } from "./estado-paciente.js";
 
 export class PacienteService {
   constructor({ pacienteRepository, auditoriaService }) {
@@ -7,7 +6,7 @@ export class PacienteService {
     this.auditoriaService = auditoriaService;
   }
 
-  async registrar(dto, origen) {
+  async registrar(dto, origen = "SISTEMA") {
     const existeDocumento =
       await this.pacienteRepository.existePorDocumento(
         dto.numeroDocumento
@@ -31,7 +30,6 @@ export class PacienteService {
     }
 
     const paciente = PacienteFactory.crearDesdeDTO(dto);
-
     const guardado =
       await this.pacienteRepository.guardar(paciente);
 
@@ -40,9 +38,21 @@ export class PacienteService {
       descripcion:
         `Se registró el paciente ${guardado.nombre} ${guardado.apellido}`,
       entidadId: String(guardado.id),
-      realizadoPor: origen
+      realizadoPor: origen,
+      moduloOrigen: "PACIENTES"
     });
 
     return guardado;
+  }
+
+  async buscarPorDocumento(documento) {
+    const paciente =
+      await this.pacienteRepository.buscarPorDocumento(documento);
+
+    if (!paciente) {
+      throw new Error("Paciente no encontrado");
+    }
+
+    return paciente;
   }
 }

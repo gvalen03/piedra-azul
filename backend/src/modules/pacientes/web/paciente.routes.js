@@ -1,3 +1,5 @@
+import { registrarPacienteSchema } from "../schemas/paciente.schema.js";
+
 export async function pacienteRoutes(fastify) {
   fastify.post(
     "/",
