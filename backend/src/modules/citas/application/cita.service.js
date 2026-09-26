@@ -86,4 +86,40 @@ export class CitaService {
 
     return guardada;
   }
+
+    async confirmar(id) {
+    const cita =
+      await this.citaRepository.buscarPorId(id);
+
+    if (!cita) {
+      throw new Error("Cita no encontrada");
+    }
+
+    if (cita.estado === EstadoCita.CONFIRMADA) {
+      throw new Error(
+        "La cita ya se encuentra confirmada"
+      );
+    }
+
+    if (cita.estado !== EstadoCita.PROGRAMADA) {
+      throw new Error(
+        "Solo se pueden confirmar citas programadas"
+      );
+    }
+
+    const actualizada =
+      await this.citaRepository.actualizarEstado(
+        id,
+        EstadoCita.CONFIRMADA
+      );
+
+    if (this.eventBus) {
+      this.eventBus.emit(
+        "cita.confirmada",
+        actualizada
+      );
+    }
+
+    return actualizada;
+  }
 }

@@ -1,6 +1,7 @@
 import {
   consultarCitasSchema,
-  agendarCitaSchema
+  agendarCitaSchema,
+  confirmarCitaSchema
 } from "../schemas/cita.schema.js";
 
 export async function citaRoutes(fastify) {
@@ -19,5 +20,12 @@ export async function citaRoutes(fastify) {
       schema: agendarCitaSchema
     },
     fastify.citaController.agendar
+  );
+    fastify.patch(
+    "/:id/confirmar",
+    {
+      schema: confirmarCitaSchema
+    },
+    fastify.citaController.confirmar
   );
 }

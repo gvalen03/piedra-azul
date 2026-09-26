@@ -51,3 +51,15 @@ export const agendarCitaSchema = {
     }
   }
 };
+
+export const confirmarCitaSchema = {
+  params: {
+    type: "object",
+    required: ["id"],
+    properties: {
+      id: {
+        type: "integer"
+      }
+    }
+  }
+};

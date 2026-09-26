@@ -55,6 +55,49 @@ export function crearCitaController({ citaService }) {
           error: mensaje
         });
       }
+    },
+
+    confirmar: async (request, reply) => {
+      try {
+        const { id } = request.params;
+
+        const cita =
+          await citaService.confirmar(id);
+
+        return reply.send(cita);
+
+      } catch (error) {
+        const mensaje =
+          error.message ||
+          "Error al confirmar la cita";
+
+        if (
+          mensaje.includes(
+            "Cita no encontrada"
+          )
+        ) {
+          return reply.code(404).send({
+            error: mensaje
+          });
+        }
+
+        if (
+          mensaje.includes(
+            "ya se encuentra confirmada"
+          ) ||
+          mensaje.includes(
+            "Solo se pueden confirmar"
+          )
+        ) {
+          return reply.code(409).send({
+            error: mensaje
+          });
+        }
+
+        return reply.code(500).send({
+          error: mensaje
+        });
+      }
     }
   };
 }
