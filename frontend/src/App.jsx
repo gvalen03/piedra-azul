@@ -1,4 +1,7 @@
+import { onMount } from "solid-js";
 import { Route } from "@solidjs/router";
+
+import { useAuth } from "./stores/auth.store.js";
 
 import LoginPage from "./pages/auth/LoginPage.jsx";
 import PacientePage from "./pages/pacientes/PacientePage.jsx";
@@ -7,19 +10,74 @@ import CitasPage from "./pages/citas/CitasPage.jsx";
 import DisponibilidadPage from "./pages/disponibilidad/DisponibilidadPage.jsx";
 import AdminPage from "./pages/admin/AdminPage.jsx";
 
+import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
+
 function App() {
+  const auth = useAuth();
+
+  onMount(() => {
+    auth.restaurarSesion();
+  });
+
   return (
-    <Route>
+    <>
       <Route path="/" component={LoginPage} />
-      <Route path="/paciente" component={PacientePage} />
-      <Route path="/medico" component={MedicoPage} />
-      <Route path="/citas" component={CitasPage} />
+
+      <Route
+        path="/paciente"
+        component={() => (
+          <ProtectedRoute
+            allowedRoles={["PACIENTE"]}
+          >
+            <PacientePage />
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/medico"
+        component={() => (
+          <ProtectedRoute
+            allowedRoles={["MEDICO_TERAPISTA"]}
+          >
+            <MedicoPage />
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/citas"
+        component={() => (
+          <ProtectedRoute
+            allowedRoles={["AGENDADOR"]}
+          >
+            <CitasPage />
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/admin"
+        component={() => (
+          <ProtectedRoute
+            allowedRoles={["ADMINISTRADOR"]}
+          >
+            <AdminPage />
+          </ProtectedRoute>
+        )}
+      />
+
       <Route
         path="/disponibilidad"
-        component={DisponibilidadPage}
+        component={() => (
+          <ProtectedRoute
+            allowedRoles={["ADMINISTRADOR"]}
+          >
+            <DisponibilidadPage />
+          </ProtectedRoute>
+        )}
       />
-      <Route path="/admin" component={AdminPage} />
-    </Route>
+    </>
   );
 }
 

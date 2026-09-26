@@ -36,6 +36,7 @@ function LoginPage() {
 
       auth.iniciarSesion(data);
 
+      //no olvidarse de quitar lo console.log
       console.log("Inicio de sesión correcto");
       console.log("Usuario:", data.nombre);
       console.log("Rol:", data.rol);
