@@ -32,15 +32,23 @@ export class CitaService {
     horaInicio,
     motivo
   }) {
-    const disponible =
-      await this.disponibilidadService.esHorarioDisponible({
-        medicoId,
-        fecha,
-        horaInicio
-      });
+    const franjasDisponibles =
+      await this.disponibilidadService
+        .obtenerFranjasDisponibles({
+          medicoId,
+          fecha
+        });
 
-    if (!disponible) {
-      throw new Error("El horario seleccionado no está disponible");
+    const franjaSeleccionada =
+      franjasDisponibles.find(
+        (franja) =>
+          franja.horaInicio === horaInicio
+      );
+
+    if (!franjaSeleccionada) {
+      throw new Error(
+        "El horario seleccionado no está disponible"
+      );
     }
 
     const ocupada =
@@ -51,7 +59,9 @@ export class CitaService {
       );
 
     if (ocupada) {
-      throw new Error("El horario ya se encuentra reservado");
+      throw new Error(
+        "El horario ya se encuentra reservado"
+      );
     }
 
     const cita = new Cita({
@@ -59,6 +69,7 @@ export class CitaService {
       medicoId,
       fecha,
       horaInicio,
+      horaFin: franjaSeleccionada.horaFin,
       estado: EstadoCita.PROGRAMADA,
       motivo
     });
@@ -66,7 +77,12 @@ export class CitaService {
     const guardada =
       await this.citaRepository.guardar(cita);
 
-    this.eventBus.emit("cita.creada", guardada);
+    if (this.eventBus) {
+      this.eventBus.emit(
+        "cita.creada",
+        guardada
+      );
+    }
 
     return guardada;
   }

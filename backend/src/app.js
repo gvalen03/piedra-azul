@@ -52,6 +52,18 @@ import { crearDisponibilidadController }
 import { CitaRepository }
   from "./modules/citas/infrastructure/cita.repository.js";
 
+import { CitaService }
+  from "./modules/citas/application/cita.service.js";
+
+import { crearCitaController }
+  from "./modules/citas/web/cita.controller.js";
+
+import { citaRoutes }
+  from "./modules/citas/web/cita.routes.js";
+
+import { eventBus }
+  from "./shared/event-bus.js";
+
 export async function buildApp() {
   const app = Fastify({
     logger: true
@@ -147,6 +159,27 @@ export async function buildApp() {
   );
 
   // =========================
+  // Citas
+  // =========================
+
+  const citaService =
+    new CitaService({
+      citaRepository,
+      disponibilidadService,
+      eventBus
+    });
+
+  const citaController =
+    crearCitaController({
+      citaService
+    });
+
+  app.decorate(
+    "citaController",
+    citaController
+  );
+
+  // =========================
   // Plugins
   // =========================
 
@@ -170,6 +203,10 @@ export async function buildApp() {
       prefix: "/api/disponibilidad"
     }
   );
+
+  await app.register(citaRoutes, {
+    prefix: "/api/citas"
+  });
 
   await app.register(pacienteRoutes, {
     prefix: "/api/pacientes"
