@@ -1,29 +1,103 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 
+import { db } from "./shared/db/database.js";
+
+import { authPlugin }
+  from "./modules/auth/plugins/auth.js";
+
 import { medicoRoutes }
   from "./modules/medicos/web/medico.routes.js";
 
 import { MedicoRepository }
   from "./modules/medicos/infrastructure/medico.repository.js";
 
-import { authPlugin }
-  from "./modules/auth/plugins/auth.js";
+import { MedicoService }
+  from "./modules/medicos/application/medico.service.js";
 
-import { db }
-  from "./shared/db/database.js";
+import { crearMedicoController }
+  from "./modules/medicos/web/medico.controller.js";
+
+import { disponibilidadRoutes }
+  from "./modules/disponibilidad/web/disponibilidad.routes.js";
+
+import { DisponibilidadRepository }
+  from "./modules/disponibilidad/infrastructure/disponibilidad.repository.js";
+
+import { DisponibilidadService }
+  from "./modules/disponibilidad/application/disponibilidad.service.js";
+
+import { crearDisponibilidadController }
+  from "./modules/disponibilidad/web/disponibilidad.controller.js";
+
+import { CitaRepository }
+  from "./modules/citas/infrastructure/cita.repository.js";
+
 
 export async function buildApp() {
   const app = Fastify({
     logger: true
   });
 
+  // =========================
+  // Repositories
+  // =========================
+
   const medicoRepository =
     new MedicoRepository(db);
+
+  const citaRepository =
+    new CitaRepository(db);
+
+  const disponibilidadRepository =
+    new DisponibilidadRepository(db);
+
+  // =========================
+  // Services
+  // =========================
+
+  const medicoService =
+    new MedicoService({
+      medicoRepository
+    });
+
+  const disponibilidadService =
+    new DisponibilidadService({
+      disponibilidadRepository,
+      citaRepository
+    });
+
+  // =========================
+  // Controllers
+  // =========================
+
+  const medicoController =
+    crearMedicoController({
+      medicoService
+    });
+
+  const disponibilidadController =
+    crearDisponibilidadController({
+      disponibilidadService
+    });
+
+  // =========================
+  // Decorators
+  // =========================
 
   app.decorate(
     "medicoRepository",
     medicoRepository
+  );
+
+  app.decorate(
+    "medicoController",
+    medicoController
+  );
+
+  app.decorate(
+    "disponibilidadController",
+    disponibilidadController
   );
 
   // =========================
@@ -43,6 +117,13 @@ export async function buildApp() {
   await app.register(medicoRoutes, {
     prefix: "/api/medicos"
   });
+
+  await app.register(
+    disponibilidadRoutes,
+    {
+      prefix: "/api/disponibilidad"
+    }
+  );
 
   // =========================
   // Health
@@ -71,7 +152,6 @@ export async function buildApp() {
           database:
             "PostgreSQL conectado"
         };
-
       } catch (error) {
         request.log.error(error);
 

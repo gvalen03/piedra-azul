@@ -7,6 +7,7 @@ const PORT = Number(process.env.PORT || 3000);
 
 const app = await buildApp();
 
+
 try {
   // Verificar PostgreSQL antes de arrancar
   await db.query("SELECT 1");
