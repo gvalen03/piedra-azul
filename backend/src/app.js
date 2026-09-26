@@ -3,8 +3,34 @@ import cors from "@fastify/cors";
 
 import { db } from "./shared/db/database.js";
 
+// =========================
+// AUTH
+// =========================
+
 import { authPlugin }
   from "./modules/auth/plugins/auth.js";
+
+import { authRoutes }
+  from "./modules/auth/web/auth.routes.js";
+
+import { UsuarioRepository }
+  from "./modules/auth/infrastructure/usuario.repository.js";
+
+import { AuthService }
+  from "./modules/auth/application/auth.service.js";
+
+import { crearAuthController }
+  from "./modules/auth/web/auth.controller.js";
+
+import { JwtService }
+  from "./shared/security/jwt.service.js";
+
+import { PasswordService }
+  from "./shared/security/password.service.js";
+
+// =========================
+// MEDICOS
+// =========================
 
 import { medicoRoutes }
   from "./modules/medicos/web/medico.routes.js";
@@ -18,6 +44,10 @@ import { MedicoService }
 import { crearMedicoController }
   from "./modules/medicos/web/medico.controller.js";
 
+// =========================
+// DISPONIBILIDAD
+// =========================
+
 import { disponibilidadRoutes }
   from "./modules/disponibilidad/web/disponibilidad.routes.js";
 
@@ -30,8 +60,19 @@ import { DisponibilidadService }
 import { crearDisponibilidadController }
   from "./modules/disponibilidad/web/disponibilidad.controller.js";
 
+// =========================
+// CITAS
+// =========================
+
 import { CitaRepository }
   from "./modules/citas/infrastructure/cita.repository.js";
+
+// =========================
+// PACIENTES
+// =========================
+
+import { PacienteRepository }
+  from "./modules/pacientes/infrastructure/paciente.repository.js";
 
 
 export async function buildApp() {
@@ -43,6 +84,9 @@ export async function buildApp() {
   // Repositories
   // =========================
 
+  const usuarioRepository =
+    new UsuarioRepository(db);
+
   const medicoRepository =
     new MedicoRepository(db);
 
@@ -52,9 +96,32 @@ export async function buildApp() {
   const disponibilidadRepository =
     new DisponibilidadRepository(db);
 
+  const pacienteRepository =
+    new PacienteRepository(db);
+
+  // =========================
+  // Shared services
+  // =========================
+
+  const jwtService =
+    new JwtService({
+      secret: process.env.JWT_SECRET,
+      expiresIn: process.env.JWT_EXPIRES_IN
+    });
+
+  const passwordService =
+    new PasswordService();
+
   // =========================
   // Services
   // =========================
+
+  const authService =
+    new AuthService({
+      usuarioRepository,
+      jwtService,
+      passwordService
+    });
 
   const medicoService =
     new MedicoService({
@@ -71,6 +138,11 @@ export async function buildApp() {
   // Controllers
   // =========================
 
+  const authController =
+    crearAuthController({
+      authService
+    });
+
   const medicoController =
     crearMedicoController({
       medicoService
@@ -84,6 +156,11 @@ export async function buildApp() {
   // =========================
   // Decorators
   // =========================
+
+  app.decorate(
+    "authController",
+    authController
+  );
 
   app.decorate(
     "medicoRepository",
@@ -113,6 +190,10 @@ export async function buildApp() {
   // =========================
   // Routes
   // =========================
+
+  await app.register(authRoutes, {
+    prefix: "/api/auth"
+  });
 
   await app.register(medicoRoutes, {
     prefix: "/api/medicos"

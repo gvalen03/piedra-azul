@@ -1,3 +1,4 @@
+import { authorize } from "../../../shared/security/authorize.js";
 import {
   configurarDisponibilidadSchema
 } from "../schemas/disponibilidad.schema.js";
@@ -7,9 +8,17 @@ export async function disponibilidadRoutes(fastify) {
   fastify.post(
     "/",
     {
-      schema: configurarDisponibilidadSchema
+      preHandler: [
+        fastify.authenticate,
+        authorize("ADMINISTRADOR")
+      ]
     },
-    fastify.disponibilidadController.configurar
+    async (request, reply) => {
+      return fastify.disponibilidadController.crear(
+        request,
+        reply
+      );
+    }
   );
 
   fastify.get(
