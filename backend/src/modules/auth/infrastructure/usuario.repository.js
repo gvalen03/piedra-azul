@@ -3,35 +3,136 @@ export class UsuarioRepository {
     this.db = db;
   }
 
+  mapearUsuario(row) {
+    if (!row) {
+      return null;
+    }
+
+    return {
+      id: row.id,
+      username: row.username,
+      password: row.password,
+      nombre: row.nombre,
+      email: row.email,
+      rol: row.rol,
+      activo: row.activo,
+      medicoId: row.medico_id,
+      pacienteId: row.paciente_id,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
   async buscarPorUsername(username) {
-    // consulta BD
+    const resultado = await this.db.query(
+      `
+      SELECT
+        id,
+        username,
+        password,
+        nombre,
+        email,
+        rol,
+        activo,
+        medico_id,
+        paciente_id,
+        created_at,
+        updated_at
+      FROM usuarios
+      WHERE username = $1
+      LIMIT 1
+      `,
+      [username]
+    );
+
+    return this.mapearUsuario(resultado.rows[0]);
   }
 
   async listarPorRol(rol) {
-    // consulta BD
+    const resultado = await this.db.query(
+      `
+      SELECT *
+      FROM usuarios
+      WHERE rol = $1
+      `,
+      [rol]
+    );
+
+    return resultado.rows.map((row) =>
+      this.mapearUsuario(row)
+    );
   }
 
   async existePorUsername(username) {
-    // consulta BD
+    const resultado = await this.db.query(
+      `
+      SELECT EXISTS(
+        SELECT 1
+        FROM usuarios
+        WHERE username = $1
+      ) AS existe
+      `,
+      [username]
+    );
+
+    return resultado.rows[0].existe;
   }
 
   async existePorEmail(email) {
-    // consulta BD
+    const resultado = await this.db.query(
+      `
+      SELECT EXISTS(
+        SELECT 1
+        FROM usuarios
+        WHERE email = $1
+      ) AS existe
+      `,
+      [email]
+    );
+
+    return resultado.rows[0].existe;
   }
 
   async buscarPorPacienteId(pacienteId) {
-    // consulta BD
+    const resultado = await this.db.query(
+      `
+      SELECT *
+      FROM usuarios
+      WHERE paciente_id = $1
+      LIMIT 1
+      `,
+      [pacienteId]
+    );
+
+    return this.mapearUsuario(resultado.rows[0]);
   }
 
   async existePorPacienteId(pacienteId) {
-    // consulta BD
+    const resultado = await this.db.query(
+      `
+      SELECT EXISTS(
+        SELECT 1
+        FROM usuarios
+        WHERE paciente_id = $1
+      ) AS existe
+      `,
+      [pacienteId]
+    );
+
+    return resultado.rows[0].existe;
   }
 
   async buscarPorId(id) {
-    // consulta BD
-  }
+    const resultado = await this.db.query(
+      `
+      SELECT *
+      FROM usuarios
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [id]
+    );
 
-  async guardar(usuario) {
-    // insert/update
+    return this.mapearUsuario(resultado.rows[0]);
   }
 }
