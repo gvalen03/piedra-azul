@@ -36,6 +36,16 @@ function CitasForm() {
   const [guardando, setGuardando] =
     createSignal(false);
 
+  const [citas, setCitas] =
+  createSignal([]);
+
+  const [cantidadCitas, setCantidadCitas] =
+  createSignal(0);
+
+  const [consultandoCitas, setConsultandoCitas] =
+createSignal(false);
+
+
   onMount(async () => {
     try {
       const response = await fetch(
@@ -139,6 +149,83 @@ function CitasForm() {
     }
   };
 
+  const consultarCitas = async () => {
+  setMensaje("");
+
+  if (!medicoId()) {
+    setMensaje(
+      "Seleccione un médico"
+    );
+    return;
+  }
+
+  if (!fecha()) {
+    setMensaje(
+      "Seleccione una fecha"
+    );
+    return;
+  }
+
+  setConsultandoCitas(true);
+
+  try {
+    const response = await fetch(
+      `http://localhost:3000/api/citas?medicoId=${medicoId()}&fecha=${fecha()}`
+    );
+
+    const data = await response
+      .json()
+      .catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+        "No se pudieron consultar las citas"
+      );
+    }
+
+    setCitas(data.citas || []);
+    setCantidadCitas(data.cantidad || 0);
+
+  } catch (error) {
+    setMensaje(error.message);
+
+  } finally {
+    setConsultandoCitas(false);
+  }
+};
+  const confirmarCita = async (citaId) => {
+  setMensaje("");
+
+  try {
+    const response = await fetch(
+      `http://localhost:3000/api/citas/${citaId}/confirmar`,
+      {
+        method: "PATCH"
+      }
+    );
+
+    const data = await response
+      .json()
+      .catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+        "No se pudo confirmar la cita"
+      );
+    }
+
+    await consultarCitas();
+
+    setMensaje(
+      "Cita confirmada correctamente."
+    );
+
+  } catch (error) {
+    setMensaje(error.message);
+  }
+};
   const agendarCita = async () => {
     setMensaje("");
 
@@ -373,6 +460,76 @@ function CitasForm() {
           ? "Agendando..."
           : "Agendar cita"}
       </button>
+
+    <hr />
+
+<h3>Citas del médico</h3>
+
+<button
+  type="button"
+  onClick={consultarCitas}
+  disabled={consultandoCitas()}
+>
+  {consultandoCitas()
+    ? "Consultando..."
+    : "Consultar citas"}
+</button>
+
+<p>
+  Cantidad de citas:{" "}
+  <strong>{cantidadCitas()}</strong>
+</p>
+
+<Show
+  when={citas().length > 0}
+  fallback={
+    <p>
+      No hay citas cargadas para mostrar.
+    </p>
+  }
+>
+  <ul>
+    <For each={citas()}>
+      {(cita) => (
+        <li>
+          <p>
+            Horario:{" "}
+            {cita.hora_inicio?.slice(0, 5)}
+            {" - "}
+            {cita.hora_fin?.slice(0, 5)}
+          </p>
+
+          <p>
+            Estado:{" "}
+            <strong>
+              {cita.estado}
+            </strong>
+          </p>
+
+          <p>
+            Motivo:{" "}
+            {cita.motivo || "Sin motivo"}
+          </p>
+
+          <Show
+            when={
+              cita.estado === "PROGRAMADA"
+            }
+          >
+            <button
+              type="button"
+              onClick={() =>
+                confirmarCita(cita.id)
+              }
+            >
+              Confirmar cita
+            </button>
+          </Show>
+        </li>
+      )}
+    </For>
+  </ul>
+</Show>
 
       <Show when={mensaje()}>
         <p>{mensaje()}</p>
