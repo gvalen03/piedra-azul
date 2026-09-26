@@ -2,7 +2,7 @@ import { createSignal, onMount, For } from "solid-js";
 
 const DIAS = ["LUNES","MARTES","MIERCOLES","JUEVES","VIERNES","SABADO","DOMINGO"];
 
-function DisponibilidadForm() {
+function DisponibilidadPage() {
   const [medicos, setMedicos] = createSignal([]);
   const [medicoId, setMedicoId] = createSignal("");
   const [diaSemana, setDiaSemana] = createSignal(DIAS[0]);
@@ -64,4 +64,4 @@ function DisponibilidadForm() {
   );
 }
 
-export default DisponibilidadForm;
+export default DisponibilidadPage;

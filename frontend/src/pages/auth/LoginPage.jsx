@@ -2,14 +2,17 @@ import { createSignal } from "solid-js";
 
 import { login } from "../../services/auth.service.js";
 import { useAuth } from "../../stores/auth.store.js";
+import { useNavigate } from "@solidjs/router";
 
 import "../../styles/modules/auth.css";
+
 
 function LoginPage() {
   const [username, setUsername] = createSignal("");
   const [password, setPassword] = createSignal("");
   const [error, setError] = createSignal("");
   const [loading, setLoading] = createSignal(false);
+  const navigate = useNavigate();
 
   const auth = useAuth();
 
@@ -37,8 +40,26 @@ function LoginPage() {
       console.log("Usuario:", data.nombre);
       console.log("Rol:", data.rol);
 
-      // Más adelante aquí haremos la redirección
-      // según el rol del usuario.
+      switch (data.rol) {
+        case "PACIENTE":
+          navigate("/paciente");
+          break;
+
+        case "MEDICO_TERAPISTA":
+          navigate("/medico");
+          break;
+
+        case "AGENDADOR":
+          navigate("/citas");
+          break;
+
+        case "ADMINISTRADOR":
+          navigate("/admin");
+          break;
+
+        default:
+          setError("Rol no reconocido");
+      }
 
     } catch (error) {
       setError(error.message);
