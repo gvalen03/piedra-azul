@@ -1,5 +1,8 @@
 export function crearCitaController({ citaService }) {
   return {
+    cancelar: async (request, reply) => reply.send(await citaService.cancelar(request.params.id, request.user.sub)),
+    reprogramar: async (request, reply) => reply.send(await citaService.reprogramar(request.params.id, request.body, request.user.sub)),
+    franjasReprogramacion: async (request, reply) => reply.send(await citaService.franjasReprogramacion(request.params.id, request.query.fecha)),
     consultarPorMedicoYFecha: async (request, reply) => {
       try {
         const { medicoId, fecha } = request.query;
@@ -62,14 +65,13 @@ export function crearCitaController({ citaService }) {
         const { id } = request.params;
 
         const cita =
-          await citaService.confirmar(id);
+          await citaService.confirmar(id, request.user.sub);
 
         return reply.send(cita);
 
       } catch (error) {
-        const mensaje =
-          error.message ||
-          "Error al confirmar la cita";
+        const mensaje = error.message || "Error al confirmar la cita";
+        if (error.statusCode) return reply.code(error.statusCode).send({ error: mensaje });
 
         if (
           mensaje.includes(

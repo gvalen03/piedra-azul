@@ -14,7 +14,7 @@ export class CitaService {
 
   async consultarPorMedicoYFecha(medicoId, fecha) {
     const citas =
-      await this.citaRepository.listarPorMedicoYFecha(
+      await this.citaRepository.listarAgendaMedico(
         medicoId,
         fecha
       );
@@ -87,7 +87,22 @@ export class CitaService {
     return guardada;
   }
 
-    async confirmar(id) {
+  async cancelar(id, actor) {
+    return this.citaRepository.actualizarEstado(id, EstadoCita.CANCELADA, actor);
+  }
+
+  async reprogramar(id, datos, actor) {
+    return this.citaRepository.reprogramar(id, datos, actor);
+  }
+
+  async franjasReprogramacion(id, fecha) {
+    const cita = await this.citaRepository.buscarPorId(id);
+    if (!cita) throw Object.assign(new Error("Cita no encontrada"), { statusCode: 404 });
+    if (!["PROGRAMADA", "CONFIRMADA"].includes(cita.estado)) throw Object.assign(new Error("La cita ya no admite reprogramación"), { statusCode: 409 });
+    return this.disponibilidadService.obtenerFranjasDisponibles({ medicoId: cita.medico_id, fecha, excluirCitaId: id });
+  }
+
+    async confirmar(id, actor) {
     const cita =
       await this.citaRepository.buscarPorId(id);
 
@@ -110,7 +125,8 @@ export class CitaService {
     const actualizada =
       await this.citaRepository.actualizarEstado(
         id,
-        EstadoCita.CONFIRMADA
+        EstadoCita.CONFIRMADA,
+        actor
       );
 
     if (this.eventBus) {

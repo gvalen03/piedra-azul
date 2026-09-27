@@ -7,6 +7,9 @@ export class PacienteService {
   }
 
   async registrar(dto, origen = "SISTEMA") {
+    dto = Object.fromEntries(Object.entries(dto).map(([key, value]) => [key, typeof value === "string" ? value.trim() : value]));
+    const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
+    if (dto.fechaNacimiento > hoy) throw Object.assign(new Error("La fecha de nacimiento no puede estar en el futuro"), { statusCode: 400 });
     const existeDocumento =
       await this.pacienteRepository.existePorDocumento(
         dto.numeroDocumento
@@ -30,17 +33,7 @@ export class PacienteService {
     }
 
     const paciente = PacienteFactory.crearDesdeDTO(dto);
-    const guardado =
-      await this.pacienteRepository.guardar(paciente);
-
-    await this.auditoriaService.registrar({
-      tipoEvento: "PACIENTE_REGISTRADO",
-      descripcion:
-        `Se registró el paciente ${guardado.nombre} ${guardado.apellido}`,
-      entidadId: String(guardado.id),
-      realizadoPor: origen,
-      moduloOrigen: "PACIENTES"
-    });
+    const guardado = await this.pacienteRepository.registrarConAuditoria(paciente, origen);
 
     return guardado;
   }

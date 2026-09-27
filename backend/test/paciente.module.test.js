@@ -26,7 +26,7 @@ test("PacienteService registra un paciente y audita la acción", async () => {
   const pacienteRepository = {
     existePorDocumento: async () => false,
     existePorEmail: async () => false,
-    guardar: async (paciente) => ({
+    registrarConAuditoria: async (paciente) => ({
       ...paciente,
       id: 1
     })

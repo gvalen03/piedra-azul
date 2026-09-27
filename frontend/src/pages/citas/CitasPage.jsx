@@ -1,330 +1,66 @@
 import "../../styles/modules/citas.css";
-
 import { A, useNavigate } from "@solidjs/router";
-import { apiFetch } from "../../services/api.js";
+import { createSignal, onMount, For, Show } from "solid-js";
 import { useAuth } from "../../stores/auth.store.js";
-import {
-  createSignal,
-  onMount,
-  For,
-  Show
-} from "solid-js";
+import { apiJson } from "../../services/api-json.js";
+import RegistroPaciente from "../../components/pacientes/RegistroPaciente.jsx";
+import ReprogramarCita from "../../components/citas/ReprogramarCita.jsx";
 
 function CitasPage() {
-  const auth = useAuth();
-  const navigate = useNavigate();
-
-  const [documentoPaciente, setDocumentoPaciente] =
-    createSignal("");
-
-  const [paciente, setPaciente] =
-    createSignal(null);
-
-  const [medicos, setMedicos] =
-    createSignal([]);
-
-  const [medicoId, setMedicoId] =
-    createSignal("");
-
-  const [fecha, setFecha] =
-    createSignal("");
-
-  const [franjas, setFranjas] =
-    createSignal([]);
-
-  const [horaInicio, setHoraInicio] =
-    createSignal("");
-
-  const [motivo, setMotivo] =
-    createSignal("");
-
-  const [mensaje, setMensaje] =
-    createSignal("");
-
-  const [guardando, setGuardando] =
-    createSignal(false);
-
-  const [citas, setCitas] =
-    createSignal([]);
-
-  const [cantidadCitas, setCantidadCitas] =
-    createSignal(0);
-
-  const [consultandoCitas, setConsultandoCitas] =
-    createSignal(false);
-
-  onMount(async () => {
-    try {
-      const response = await apiFetch(
-        "/medicos"
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          "No se pudieron consultar los médicos"
-        );
-      }
-
-      const data = await response.json();
-
-      setMedicos(data);
-    } catch (error) {
-      setMensaje(error.message);
-    }
-  });
-
-  const buscarPaciente = async () => {
-    setMensaje("");
+  const auth = useAuth(), navigate = useNavigate();
+  const [documentoPaciente,setDocumentoPaciente] = createSignal(""), [paciente,setPaciente] = createSignal(null);
+  const [medicos,setMedicos] = createSignal([]), [medicoId,setMedicoId] = createSignal(""), [fecha,setFecha] = createSignal("");
+  const [franjas,setFranjas] = createSignal([]), [horaInicio,setHoraInicio] = createSignal(""), [motivo,setMotivo] = createSignal("");
+  const [horariosConsultados,setHorariosConsultados] = createSignal(false);
+  const [mensaje,setMensaje] = createSignal(""), [esError,setEsError] = createSignal(false), [ocupado,setOcupado] = createSignal(false);
+  const [guardando,setGuardando] = createSignal(false), [consultandoCitas,setConsultandoCitas] = createSignal(false);
+  const [citas,setCitas] = createSignal([]), [cantidadCitas,setCantidadCitas] = createSignal(0);
+  const [vista,setVista] = createSignal("citas"), [cancelarId,setCancelarId] = createSignal(null), [reprogramarId,setReprogramarId] = createSignal(null);
+  const pendiente = cita => ["PROGRAMADA", "CONFIRMADA"].includes(cita.estado) && new Date(`${cita.fecha.slice(0,10)}T${cita.hora_inicio.slice(0,8)}-05:00`) > new Date();
+  const ejecutar = async accion => {
+    if (ocupado()) return; setOcupado(true); setMensaje(""); setEsError(false);
+    try { await accion(); } catch(e) { setEsError(true); setMensaje(e.message); } finally { setOcupado(false); }
+  };
+  const cargarMedicos = async () => setMedicos((await apiJson("/medicos")).filter(m => m.activo));
+  onMount(() => ejecutar(cargarMedicos));
+  const validarSeleccion = () => { if (!medicoId() || !fecha()) throw new Error("Selecciona un médico y una fecha."); };
+  const cargarCitas = async () => {
+    validarSeleccion(); setConsultandoCitas(true); setCitas([]); setCantidadCitas(0);
+    try { const data = await apiJson(`/citas?medicoId=${medicoId()}&fecha=${fecha()}`); setCitas(data.citas); setCantidadCitas(data.cantidad); }
+    finally { setConsultandoCitas(false); }
+  };
+  const limpiarFranjas = () => { setFranjas([]); setHoraInicio(""); setHorariosConsultados(false); };
+  const limpiarSeleccion = () => { limpiarFranjas(); setCitas([]); setCantidadCitas(0); setCancelarId(null); setReprogramarId(null); };
+  const buscarPaciente = () => ejecutar(async () => {
     setPaciente(null);
-
-    if (!documentoPaciente().trim()) {
-      setMensaje(
-        "Ingrese el documento del paciente"
-      );
-      return;
-    }
-
-    try {
-      const response = await apiFetch(
-        `/pacientes/documento/${documentoPaciente()}`
-      );
-
-      const data = await response
-        .json()
-        .catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-          "Paciente no encontrado"
-        );
-      }
-
-      setPaciente(data);
-    } catch (error) {
-      setMensaje(error.message);
-    }
+    if (!documentoPaciente().trim()) throw new Error("Ingresa el documento del paciente.");
+    const data = await apiJson(`/pacientes/documento/${encodeURIComponent(documentoPaciente().trim())}`);
+    if (data.estado !== "ACTIVO") throw new Error("El paciente está inactivo. Contacta al administrador.");
+    setPaciente(data);
+  });
+  const consultarFranjas = () => ejecutar(async () => {
+    limpiarFranjas(); validarSeleccion();
+    const data = await apiJson(`/disponibilidad/franjas?medicoId=${medicoId()}&fecha=${fecha()}`);
+    setFranjas(data); setHorariosConsultados(true);
+  });
+  const consultarCitas = () => ejecutar(cargarCitas);
+  const refrescarTrasCambio = async texto => {
+    limpiarFranjas(); setCancelarId(null); setReprogramarId(null); setMensaje(texto); setEsError(false);
+    try { await cargarCitas(); } catch(e) { setEsError(true); setMensaje(`${texto} No se pudo actualizar la agenda: ${e.message}`); }
   };
-
-  const consultarFranjas = async () => {
-    setMensaje("");
-    setFranjas([]);
-    setHoraInicio("");
-
-    if (!medicoId()) {
-      setMensaje(
-        "Seleccione un médico"
-      );
-      return;
-    }
-
-    if (!fecha()) {
-      setMensaje(
-        "Seleccione una fecha"
-      );
-      return;
-    }
-
-    try {
-      const response = await apiFetch(
-        `/disponibilidad/franjas?medicoId=${medicoId()}&fecha=${fecha()}`
-      );
-
-      const data = await response
-        .json()
-        .catch(() => []);
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-          "No se pudieron consultar las franjas"
-        );
-      }
-
-      setFranjas(data);
-
-      if (data.length === 0) {
-        setMensaje(
-          "No hay franjas disponibles para esa fecha"
-        );
-      }
-    } catch (error) {
-      setMensaje(error.message);
-    }
-  };
-
-  const consultarCitas = async () => {
-    setMensaje("");
-
-    if (!medicoId()) {
-      setMensaje(
-        "Seleccione un médico"
-      );
-      return;
-    }
-
-    if (!fecha()) {
-      setMensaje(
-        "Seleccione una fecha"
-      );
-      return;
-    }
-
-    setConsultandoCitas(true);
-
-    try {
-      const response = await apiFetch(
-        `/citas?medicoId=${medicoId()}&fecha=${fecha()}`
-      );
-
-      const data = await response
-        .json()
-        .catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-          "No se pudieron consultar las citas"
-        );
-      }
-
-      setCitas(data.citas || []);
-      setCantidadCitas(data.cantidad || 0);
-    } catch (error) {
-      setMensaje(error.message);
-    } finally {
-      setConsultandoCitas(false);
-    }
-  };
-
-  const confirmarCita = async (citaId) => {
-    setMensaje("");
-
-    try {
-      const response = await apiFetch(
-        `/citas/${citaId}/confirmar`,
-        {
-          method: "PATCH"
-        }
-      );
-
-      const data = await response
-        .json()
-        .catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-          "No se pudo confirmar la cita"
-        );
-      }
-
-      await consultarCitas();
-
-      setMensaje(
-        "Cita confirmada correctamente."
-      );
-    } catch (error) {
-      setMensaje(error.message);
-    }
-  };
-
-  const agendarCita = async () => {
-    setMensaje("");
-
-    if (!paciente()) {
-      setMensaje(
-        "Primero debe buscar un paciente"
-      );
-      return;
-    }
-
-    if (!medicoId()) {
-      setMensaje(
-        "Seleccione un médico"
-      );
-      return;
-    }
-
-    if (!fecha()) {
-      setMensaje(
-        "Seleccione una fecha"
-      );
-      return;
-    }
-
-    if (!horaInicio()) {
-      setMensaje(
-        "Seleccione un horario disponible"
-      );
-      return;
-    }
-
+  const confirmarCita = id => ejecutar(async () => { await apiJson(`/citas/${id}/confirmar`, { method:"PATCH" }); await refrescarTrasCambio("Cita confirmada correctamente."); });
+  const cancelarCita = id => ejecutar(async () => { await apiJson(`/citas/${id}/cancelar`, { method:"PATCH" }); await refrescarTrasCambio("Cita cancelada. El horario vuelve a estar disponible."); });
+  const agendarCita = () => ejecutar(async () => {
+    validarSeleccion();
+    if (!paciente()) throw new Error("Busca o registra primero al paciente.");
+    if (!horaInicio()) throw new Error("Selecciona un horario disponible.");
     setGuardando(true);
-
     try {
-      const response = await apiFetch(
-        "/citas",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            pacienteId: Number(paciente().id),
-            medicoId: Number(medicoId()),
-            fecha: fecha(),
-            horaInicio: horaInicio(),
-            motivo: motivo().trim() || null
-          })
-        }
-      );
-
-      const data = await response
-        .json()
-        .catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-          "No se pudo agendar la cita"
-        );
-      }
-
-      const horaReservada =
-        horaInicio();
-
-      setFranjas((actuales) =>
-        actuales.filter(
-          (franja) =>
-            franja.horaInicio !== horaReservada
-        )
-      );
-
-      setHoraInicio("");
-      setMotivo("");
-
-      setMensaje(
-        "Cita agendada correctamente."
-      );
-    } catch (error) {
-      setMensaje(error.message);
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  const limpiarSeleccion = () => {
-    setFranjas([]);
-    setHoraInicio("");
-    setCitas([]);
-    setCantidadCitas(0);
-  };
-
-   const cerrarSesion = () => {
-    auth.cerrarSesion();
-    navigate("/", { replace: true });
-  };
+      await apiJson("/citas", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ pacienteId:Number(paciente().id), medicoId:Number(medicoId()), fecha:fecha(), horaInicio:horaInicio(), motivo:motivo().trim() || null }) });
+      setMotivo(""); await refrescarTrasCambio("Cita agendada correctamente.");
+    } catch(e) { limpiarFranjas(); throw e; } finally { setGuardando(false); }
+  });
+  const cerrarSesion = () => { auth.cerrarSesion(); navigate("/", { replace:true }); };
 
   return (
     <main class="citas-page">
@@ -348,6 +84,7 @@ function CitasPage() {
   <button
     type="button"
     class="btn citas-btn-outline"
+    disabled={ocupado()}
     onClick={cerrarSesion}
   >
     Cerrar sesión
@@ -370,16 +107,26 @@ function CitasPage() {
           </p>
         </div>
 
+        <nav class="agendador-tabs" aria-label="Secciones del agendador">
+          <button class="btn citas-btn-outline" disabled={ocupado()} aria-pressed={vista() === "citas"} onClick={() => setVista("citas")}>Gestión de citas</button>
+          <button class="btn citas-btn-outline" disabled={ocupado()} aria-pressed={vista() === "pacientes"} onClick={() => setVista("pacientes")}>Registrar paciente</button>
+        </nav>
         <Show when={mensaje()}>
           <div
             class="citas-notice"
-            role="status"
+            classList={{ "is-error": esError() }}
+            role={esError() ? "alert" : "status"}
             aria-live="polite"
           >
             {mensaje()}
           </div>
         </Show>
 
+        <Show when={esError()}><button class="btn citas-btn-outline" disabled={ocupado()} onClick={() => ejecutar(async () => { await cargarMedicos(); if (medicoId() && fecha()) await cargarCitas(); })}>Actualizar datos</button></Show>
+        <Show when={ocupado()}><p role="status">Procesando…</p></Show>
+        <Show when={vista() === "pacientes"}><RegistroPaciente documento={documentoPaciente()} onBusy={setOcupado} onCancel={() => setVista("citas")} onRegistered={p => { setPaciente(p); setDocumentoPaciente(p.numero_documento); setVista("citas"); setEsError(false); setMensaje("Paciente registrado y seleccionado. Ya puedes agendar su cita."); }} /></Show>
+        <Show when={vista() === "citas"}>
+        <fieldset class="agendador-workspace" disabled={ocupado()}>
         <div class="citas-layout">
           <section
             class="citas-card"
@@ -437,6 +184,7 @@ function CitasPage() {
                 </button>
               </div>
 
+              <button class="btn citas-btn-outline agendador-register" type="button" onClick={() => setVista("pacientes")}>Registrar un nuevo paciente</button>
               <Show when={paciente()}>
                 <div class="citas-patient">
                   <span aria-hidden="true">
@@ -526,6 +274,9 @@ function CitasPage() {
                 </span>
               </button>
 
+              <Show when={horariosConsultados() && franjas().length === 0}>
+                <p class="citas-notice" role="status">No hay horarios disponibles para este médico en la fecha seleccionada. Prueba con otra fecha o con otro médico.</p>
+              </Show>
               <Show when={franjas().length > 0}>
                 <fieldset class="citas-slots">
                   <legend>
@@ -731,6 +482,7 @@ function CitasPage() {
                           </span>
                         </div>
 
+                        <p><strong>{cita.paciente_nombre} {cita.paciente_apellido}</strong><br />Documento: {cita.paciente_documento}</p>
                         <p>
                           {cita.motivo ||
                             "Sin motivo registrado"}
@@ -738,8 +490,7 @@ function CitasPage() {
 
                         <Show
                           when={
-                            cita.estado ===
-                            "PROGRAMADA"
+                            cita.estado === "PROGRAMADA" && pendiente(cita)
                           }
                         >
                           <button
@@ -754,6 +505,9 @@ function CitasPage() {
                             Confirmar cita
                           </button>
                         </Show>
+                        <Show when={pendiente(cita)}><div class="agendador-actions"><button class="btn citas-btn-outline" type="button" onClick={() => { setReprogramarId(cita.id); setCancelarId(null); }}>Reprogramar</button><button class="btn citas-btn-outline" type="button" onClick={() => { setCancelarId(cita.id); setReprogramarId(null); }}>Cancelar cita</button></div></Show>
+                        <Show when={cancelarId() === cita.id}><div class="agendador-reprogramar"><p>¿Cancelar la cita de {cita.paciente_nombre}? El horario quedará libre.</p><button class="btn citas-btn-outline" onClick={() => cancelarCita(cita.id)}>Sí, cancelar cita</button> <button class="btn citas-btn-outline" onClick={() => setCancelarId(null)}>Conservar cita</button></div></Show>
+                        <Show when={reprogramarId() === cita.id}><ReprogramarCita cita={cita} onBusy={setOcupado} onClose={() => setReprogramarId(null)} onSaved={refrescarTrasCambio} /></Show>
                       </li>
                     )}
                   </For>
@@ -768,6 +522,8 @@ function CitasPage() {
           </aside>
         </div>
 
+        </fieldset>
+        </Show>
         <footer class="citas-footer">
           PiedraAzul
           <span>•</span>
