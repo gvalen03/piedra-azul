@@ -6,6 +6,7 @@ export async function pacienteRoutes(fastify) {
   fastify.post(
     "/",
     {
+      schema: registrarPacienteSchema,
       preHandler: [
         fastify.authenticate,
         authorize(
@@ -17,7 +18,7 @@ export async function pacienteRoutes(fastify) {
       ]
     },
     async (request, reply) => {
-      return fastify.citaController.crear(
+      return fastify.pacienteController.registrar(
         request,
         reply
       );

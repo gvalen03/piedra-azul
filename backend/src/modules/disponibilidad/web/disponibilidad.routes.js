@@ -8,13 +8,14 @@ export async function disponibilidadRoutes(fastify) {
   fastify.post(
     "/",
     {
+      schema: configurarDisponibilidadSchema,
       preHandler: [
         fastify.authenticate,
         authorize("ADMINISTRADOR")
       ]
     },
     async (request, reply) => {
-      return fastify.disponibilidadController.crear(
+      return fastify.disponibilidadController.configurar(
         request,
         reply
       );

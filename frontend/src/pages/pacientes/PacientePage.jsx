@@ -1,3 +1,4 @@
+import { apiFetch } from "../../services/api.js";
 import {
   createSignal,
   onMount,
@@ -41,8 +42,8 @@ function PacientePage() {
 
   onMount(async () => {
     try {
-      const response = await fetch(
-        "http://localhost:3000/api/medicos"
+      const response = await apiFetch(
+        "/medicos"
       );
 
       if (!response.ok) {
@@ -141,8 +142,8 @@ function PacientePage() {
           datos.eps.trim() || null
       };
 
-      const response = await fetch(
-        "http://localhost:3000/api/pacientes",
+      const response = await apiFetch(
+        "/pacientes",
         {
           method: "POST",
           headers: {

@@ -39,7 +39,7 @@ export async function citaRoutes(fastify) {
       ]
     },
     async (request, reply) => {
-      return fastify.citaController.crear(
+      return fastify.citaController.agendar(
         request,
         reply
       );

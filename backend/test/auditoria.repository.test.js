@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { AuditoriaRepository } from "../src/auditoria/infrastructure/auditoria.repository.js";
+import { AuditoriaRepository } from "../src/modules/auditoria/infrastructure/auditoria.repository.js";
 
 test("AuditoriaRepository usa la tabla y columnas reales de auditoria", async () => {
   const calls = [];
