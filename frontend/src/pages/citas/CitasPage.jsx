@@ -1,7 +1,8 @@
 import "../../styles/modules/citas.css";
 
-import { A } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import { apiFetch } from "../../services/api.js";
+import { useAuth } from "../../stores/auth.store.js";
 import {
   createSignal,
   onMount,
@@ -10,6 +11,9 @@ import {
 } from "solid-js";
 
 function CitasPage() {
+  const auth = useAuth();
+  const navigate = useNavigate();
+
   const [documentoPaciente, setDocumentoPaciente] =
     createSignal("");
 
@@ -317,6 +321,11 @@ function CitasPage() {
     setCantidadCitas(0);
   };
 
+   const cerrarSesion = () => {
+    auth.cerrarSesion();
+    navigate("/", { replace: true });
+  };
+
   return (
     <main class="citas-page">
       <header class="citas-header">
@@ -331,9 +340,19 @@ function CitasPage() {
           PiedraAzul
         </A>
 
-        <span class="citas-area">
-          Agenda médica
-        </span>
+        <div class="citas-header-actions">
+  <span class="citas-area">
+    Agenda médica
+  </span>
+
+  <button
+    type="button"
+    class="btn citas-btn-outline"
+    onClick={cerrarSesion}
+  >
+    Cerrar sesión
+  </button>
+</div>
       </header>
 
       <div class="citas-content">

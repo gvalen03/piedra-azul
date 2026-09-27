@@ -463,6 +463,12 @@
     font-size: 11px;
   }
 
+  .citas-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  }
+
   .citas-card-heading {
     padding: 20px;
   }
