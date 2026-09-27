@@ -3,6 +3,12 @@ export class PacienteRepository {
     this.db = db;
   }
 
+  async actualizarContacto(id, { email, telefono, direccion }) {
+    const result = await this.db.query(`UPDATE pacientes SET email=$2, telefono=$3, direccion=$4,
+      updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *`, [id, email, telefono, direccion]);
+    return result.rows[0] ?? null;
+  }
+
   async buscarPorDocumento(numeroDocumento) {
     const result = await this.db.query(
       "SELECT * FROM pacientes WHERE numero_documento = $1 LIMIT 1",

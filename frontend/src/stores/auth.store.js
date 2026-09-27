@@ -49,10 +49,17 @@ export function useAuth() {
       return;
     }
 
-    setToken(tokenGuardado);
-    setUser(
-      JSON.parse(usuarioGuardado)
-    );
+    try {
+      const usuario = JSON.parse(usuarioGuardado);
+      if (!usuario || typeof usuario.rol !== "string") {
+        cerrarSesion();
+        return;
+      }
+      setUser(usuario);
+      setToken(tokenGuardado);
+    } catch {
+      cerrarSesion();
+    }
   };
 
   const estaAutenticado = () => {

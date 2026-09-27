@@ -1,0 +1,25 @@
+.paciente-body { padding:24px; }
+.paciente-page fieldset { border:0; padding:0; margin:0; min-width:0; }
+.paciente-page form label { margin-bottom:20px; }
+.paciente-page form input, .paciente-page form select { margin-top:8px; }
+.paciente-page textarea { display:block; margin-top:8px; width:100%; border:1px solid #dce2e0; border-radius:8px; padding:12px; resize:vertical; font:inherit; font-size:14px; }
+.paciente-page textarea:focus-visible { outline:3px solid var(--color-secondary); outline-offset:3px; }
+.paciente-page .medico-tabs { flex-wrap:wrap; }
+.paciente-actions { display:flex; flex-wrap:wrap; align-items:end; gap:12px; }
+.paciente-actions label { margin:0; }
+.paciente-actions select { margin-top:8px; }
+.paciente-cita { padding:24px 0; border-bottom:1px solid #edf1ef; }
+.paciente-cita h3 { margin:14px 0 10px; font-size:18px; }
+.paciente-cita p { font-size:14px; }
+.paciente-cita small { font-size:12px; color:var(--color-text-secondary); }
+.paciente-motivo { white-space:pre-wrap; overflow-wrap:anywhere; color:var(--color-text-secondary); }
+.paciente-confirm { background:#f5f8f7; padding:16px; border-radius:10px; margin-top:16px; }
+.paciente-success { padding:16px; background:#e8f1ef; color:var(--color-primary); border-radius:10px; font-size:14px; }
+.paciente-status { color:var(--color-text-secondary); font-size:13px; }
+.paciente-info { color:var(--color-text-secondary); font-size:13px; line-height:1.8; }
+.paciente-profile { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:0 0 24px; }
+.paciente-profile dt { font-size:12px; color:var(--color-text-secondary); }
+.paciente-profile dd { margin:8px 0 0; font-size:15px; overflow-wrap:anywhere; }
+.paciente-contacto { max-width:540px; margin-top:28px; }
+.paciente-page form + form { margin-top:24px; border-top:1px solid #edf1ef; padding-top:24px; }
+@media(max-width:480px) { .paciente-body { padding:20px; } .paciente-profile { grid-template-columns:1fr; } }

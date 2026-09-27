@@ -120,13 +120,21 @@ export class CitaRepository {
     return result.rows[0].existe;
   }
 
+  async cambiarEstadoPaciente(id, pacienteId, estado) {
+    const result = await this.db.query(`UPDATE citas SET estado=$3, updated_at=CURRENT_TIMESTAMP
+      WHERE id=$1 AND paciente_id=$2
+      AND (fecha + hora_inicio) > (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')
+      AND (estado='PROGRAMADA' OR (estado='CONFIRMADA' AND $3='CANCELADA')) RETURNING *`, [id, pacienteId, estado]);
+    return result.rows[0] ?? null;
+  }
+
   async listarPorPaciente(pacienteId) {
     const result = await this.db.query(
       `
-      SELECT *
-      FROM citas
-      WHERE paciente_id = $1
-      ORDER BY fecha DESC, hora_inicio DESC
+      SELECT c.*, c.fecha::text AS fecha, m.nombre AS medico_nombre, m.apellido AS medico_apellido
+      FROM citas c JOIN medicos m ON m.id=c.medico_id
+      WHERE c.paciente_id = $1
+      ORDER BY c.fecha DESC, c.hora_inicio DESC
       `,
       [pacienteId]
     );
