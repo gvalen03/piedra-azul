@@ -1,8 +1,26 @@
 .login-page {
-  min-height: 100vh;
-  min-height: 100svh;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: var(--color-primary) #e8efec;
   background: #f5f8f7;
   color: var(--color-text);
+}
+.login-page:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.login-page::-webkit-scrollbar { width: 14px; }
+.login-page::-webkit-scrollbar-track { background: #e8efec; }
+.login-page::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border: 3px solid #e8efec;
+  border-radius: 10px;
+  min-height: 44px;
+}
+.login-page::-webkit-scrollbar-thumb:hover { background: var(--color-primary-hover); }
+/* Conserva la barra clásica también en navegadores con barras superpuestas. */
+@supports selector(::-webkit-scrollbar) {
+  .login-page { scrollbar-color: auto; }
 }
 .login-topbar { background: #fff; border-bottom: 1px solid #dfe5e3; }
 .login-topbar-inner {

@@ -76,7 +76,7 @@ function LoginPage() {
   };
 
   return (
-    <div class="login-page">
+    <div class="login-page" tabIndex={0} role="region" aria-label="Acceso a PiedraAzul, contenido desplazable">
       <header class="login-topbar">
         <div class="login-topbar-inner">
           <a class="login-brand" href="/" aria-label="PiedraAzul, inicio">
