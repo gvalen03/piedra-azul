@@ -24,6 +24,8 @@ export class CitaRepository {
       await client.query("BEGIN");
       const medico = await client.query("SELECT id FROM medicos WHERE id=$1 AND activo=TRUE FOR UPDATE", [cita.medicoId]);
       if (!medico.rows.length) throw new Error("El médico no está disponible");
+      const paciente = await client.query("SELECT id FROM pacientes WHERE id=$1 AND estado='ACTIVO' FOR SHARE", [cita.pacienteId]);
+      if (!paciente.rows.length) throw new Error("El paciente no está disponible");
       // Revalidar bajo el mismo bloqueo que los cambios de disponibilidad y otras reservas.
       const disponibilidad = new DisponibilidadService({
         disponibilidadRepository: new DisponibilidadRepository(client),

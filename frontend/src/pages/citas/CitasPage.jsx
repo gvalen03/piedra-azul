@@ -61,7 +61,7 @@ createSignal(false);
 
       const data = await response.json();
 
-      setMedicos(data);
+      setMedicos(data.filter(medico => medico.activo));
 
     } catch (error) {
       setMensaje(error.message);

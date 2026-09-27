@@ -17,6 +17,7 @@ export class UsuarioRepository {
       email: row.email,
       rol: row.rol,
       activo: row.activo,
+      perfilActivo: row.perfil_activo,
       medicoId: row.medico_id == null ? null : Number(row.medico_id),
       pacienteId: row.paciente_id == null ? null : Number(row.paciente_id),
       createdAt: row.created_at,
@@ -38,7 +39,10 @@ export class UsuarioRepository {
         medico_id,
         paciente_id,
         created_at,
-        updated_at
+        updated_at,
+        CASE WHEN rol='MEDICO_TERAPISTA' THEN EXISTS(SELECT 1 FROM medicos m WHERE m.id=usuarios.medico_id AND m.activo=TRUE)
+             WHEN rol='PACIENTE' THEN EXISTS(SELECT 1 FROM pacientes p WHERE p.id=usuarios.paciente_id AND p.estado='ACTIVO')
+             ELSE TRUE END AS perfil_activo
       FROM usuarios
       WHERE username = $1
       LIMIT 1

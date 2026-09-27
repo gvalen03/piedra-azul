@@ -61,7 +61,7 @@ test("la reserva revalida disponibilidad bajo bloqueo antes de insertar", async 
   const consultas = [];
   const client = { query: async sql => {
     consultas.push(sql);
-    if (sql.includes("FROM medicos")) return { rows: [{ id: 12 }] };
+    if (sql.includes("FROM medicos") || sql.includes("FROM pacientes")) return { rows: [{ id: 12 }] };
     return { rows: [] };
   }, release: () => consultas.push("release") };
   const repo = new CitaRepository({ connect: async () => client });
