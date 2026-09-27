@@ -1,12 +1,27 @@
+
 import { registrarPacienteSchema } from "../schemas/paciente.schema.js";
+import { authorize } from "../../../shared/security/authorize.js";
 
 export async function pacienteRoutes(fastify) {
   fastify.post(
     "/",
     {
-      schema: registrarPacienteSchema
+      preHandler: [
+        fastify.authenticate,
+        authorize(
+          "MEDICO_TERAPISTA",
+          "PACIENTE",
+          "AGENDADOR",
+          "ADMINISTRADOR"
+        )
+      ]
     },
-    fastify.pacienteController.registrar
+    async (request, reply) => {
+      return fastify.citaController.crear(
+        request,
+        reply
+      );
+    }
   );
 
   fastify.get(

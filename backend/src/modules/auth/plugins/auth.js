@@ -1,3 +1,6 @@
+import fp from "fastify-plugin";
+import jwt from "jsonwebtoken";
+
 import { UsuarioRepository }
   from "../infrastructure/usuario.repository.js";
 
@@ -19,28 +22,47 @@ import { jwtService }
 import { db }
   from "../../../shared/db/database.js";
 
-export async function authPlugin(fastify) {
-  const usuarioRepository =
-    new UsuarioRepository(db);
+export const authPlugin = fp(
+  async function authPlugin(fastify) {
 
-  const authService =
-    new AuthService({
-      usuarioRepository,
-      jwtService,
-      passwordService
-    });
+    fastify.decorate(
+      "authenticate",
+      async function (request, reply) {
+        try {
+          const authorization =
+            request.headers.authorization;
 
-  const authController =
-    crearAuthController({
-      authService
-    });
+          if (!authorization) {
+            return reply.code(401).send({
+              error: "Token requerido"
+            });
+          }
 
-  fastify.decorate(
-    "authController",
-    authController
-  );
+          const [tipo, token] =
+            authorization.split(" ");
 
-  await fastify.register(authRoutes, {
-    prefix: "/api/auth"
-  });
-}
+          if (
+            tipo !== "Bearer" ||
+            !token
+          ) {
+            return reply.code(401).send({
+              error: "Formato de token inválido"
+            });
+          }
+
+          const payload = jwt.verify(
+            token,
+            process.env.JWT_SECRET
+          );
+
+          request.user = payload;
+
+        } catch (error) {
+          return reply.code(401).send({
+            error: "Token inválido o expirado"
+          });
+        }
+      }
+    );
+  }
+);
