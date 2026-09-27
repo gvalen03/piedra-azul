@@ -1,30 +1,16 @@
 import { onMount } from "solid-js";
 import { Route } from "@solidjs/router";
 
-import { useAuth }
-  from "./stores/auth.store.js";
+import { useAuth } from "./stores/auth.store.js";
 
-import LoginPage
-  from "./pages/auth/LoginPage.jsx";
+import LoginPage from "./pages/auth/LoginPage.jsx";
+import PacientePage from "./pages/pacientes/PacientePage.jsx";
+import MedicoPage from "./pages/medicos/MedicoPage.jsx";
+import CitasPage from "./pages/citas/CitasPage.jsx";
+import DisponibilidadPage from "./pages/disponibilidad/DisponibilidadPage.jsx";
+import AdminPage from "./pages/admin/AdminPage.jsx";
 
-import PacientePage
-  from "./pages/pacientes/PacientePage.jsx";
-
-import MedicoPage
-  from "./pages/medicos/MedicoPage.jsx";
-
-import CitasPage
-  from "./pages/citas/CitasPage.jsx";
-
-import DisponibilidadPage
-  from "./pages/disponibilidad/DisponibilidadPage.jsx";
-
-import AdminPage
-  from "./pages/admin/AdminPage.jsx";
-
-import ProtectedRoute
-  from "./components/auth/ProtectedRoute.jsx";
-
+import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 
 function App() {
   const auth = useAuth();

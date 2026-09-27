@@ -3,7 +3,8 @@ import { authorize }
 
 import {
   consultarCitasSchema,
-  agendarCitaSchema
+  agendarCitaSchema,
+  confirmarCitaSchema
 } from "../schemas/cita.schema.js";
 
 export async function citaRoutes(fastify) {
@@ -43,5 +44,12 @@ export async function citaRoutes(fastify) {
         reply
       );
     }
+  );
+    fastify.patch(
+    "/:id/confirmar",
+    {
+      schema: confirmarCitaSchema
+    },
+    fastify.citaController.confirmar
   );
 }

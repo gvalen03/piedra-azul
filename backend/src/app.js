@@ -64,8 +64,17 @@ import { crearDisponibilidadController }
 // CITAS
 // =========================
 
+import { citaRoutes }
+  from "./modules/citas/web/cita.routes.js";
+
 import { CitaRepository }
   from "./modules/citas/infrastructure/cita.repository.js";
+
+import { CitaService }
+  from "./modules/citas/application/cita.service.js";
+
+import { crearCitaController }
+  from "./modules/citas/web/cita.controller.js";
 
 // =========================
 // PACIENTES
@@ -92,6 +101,13 @@ import { AuditoriaRepository }
 
 import { AuditoriaService }
   from "./modules/auditoria/application/auditoria.service.js";
+
+// =========================
+// SHARED
+// =========================
+
+import { eventBus }
+  from "./shared/event-bus.js";
 
 
 export async function buildApp() {
@@ -161,6 +177,13 @@ export async function buildApp() {
       citaRepository
     });
 
+  const citaService =
+    new CitaService({
+      citaRepository,
+      disponibilidadService,
+      eventBus
+    });
+
   const pacienteService =
     new PacienteService({
       pacienteRepository,
@@ -184,6 +207,11 @@ export async function buildApp() {
   const disponibilidadController =
     crearDisponibilidadController({
       disponibilidadService
+    });
+
+  const citaController =
+    crearCitaController({
+      citaService
     });
 
   const pacienteController =
@@ -213,6 +241,11 @@ export async function buildApp() {
   app.decorate(
     "disponibilidadController",
     disponibilidadController
+  );
+
+  app.decorate(
+    "citaController",
+    citaController
   );
 
   app.decorate(
@@ -253,6 +286,10 @@ export async function buildApp() {
       prefix: "/api/disponibilidad"
     }
   );
+
+  await app.register(citaRoutes, {
+    prefix: "/api/citas"
+  });
 
   await app.register(pacienteRoutes, {
     prefix: "/api/pacientes"
