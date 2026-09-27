@@ -9,15 +9,16 @@ export class UsuarioRepository {
     }
 
     return {
-      id: row.id,
+      // PostgreSQL devuelve BIGINT como texto; el dominio y el JWT usan números.
+      id: Number(row.id),
       username: row.username,
       password: row.password,
       nombre: row.nombre,
       email: row.email,
       rol: row.rol,
       activo: row.activo,
-      medicoId: row.medico_id,
-      pacienteId: row.paciente_id,
+      medicoId: row.medico_id == null ? null : Number(row.medico_id),
+      pacienteId: row.paciente_id == null ? null : Number(row.paciente_id),
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
