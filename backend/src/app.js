@@ -243,6 +243,8 @@ export async function buildApp() {
     disponibilidadController
   );
 
+  app.decorate("citaRepository", citaRepository);
+
   app.decorate(
     "citaController",
     citaController

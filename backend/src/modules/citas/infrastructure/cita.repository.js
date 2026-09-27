@@ -3,6 +3,18 @@ export class CitaRepository {
     this.db = db;
   }
 
+  async listarAgendaMedico(medicoId, fecha) {
+    const result = await this.db.query(`
+      SELECT c.*, p.nombre AS paciente_nombre, p.apellido AS paciente_apellido,
+             p.numero_documento AS paciente_documento
+      FROM citas c
+      JOIN pacientes p ON p.id = c.paciente_id
+      WHERE c.medico_id = $1 AND c.fecha = $2
+      ORDER BY c.hora_inicio ASC
+    `, [medicoId, fecha]);
+    return result.rows;
+  }
+
   async guardar(cita) {
     const result = await this.db.query(
       `
