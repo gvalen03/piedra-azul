@@ -7,7 +7,6 @@ import LoginPage from "./pages/auth/LoginPage.jsx";
 import PacientePage from "./pages/pacientes/PacientePage.jsx";
 import MedicoPage from "./pages/medicos/MedicoPage.jsx";
 import CitasPage from "./pages/citas/CitasPage.jsx";
-import DisponibilidadPage from "./pages/disponibilidad/DisponibilidadPage.jsx";
 import AdminPage from "./pages/admin/AdminPage.jsx";
 
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
@@ -78,18 +77,7 @@ function App() {
         )}
       />
 
-      <Route
-        path="/disponibilidad"
-        component={() => (
-          <ProtectedRoute
-            allowedRoles={[
-              "ADMINISTRADOR"
-            ]}
-          >
-            <DisponibilidadPage />
-          </ProtectedRoute>
-        )}
-      />
+
     </>
   );
 }

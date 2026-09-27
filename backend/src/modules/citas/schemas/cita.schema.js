@@ -46,7 +46,7 @@ export const agendarCitaSchema = {
       },
 
       motivo: {
-        type: "string"
+        type: ["string", "null"]
       }
     }
   }

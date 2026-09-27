@@ -3,6 +3,7 @@ import { useNavigate } from "@solidjs/router";
 import { apiFetch } from "../../services/api.js";
 import { useAuth } from "../../stores/auth.store.js";
 import "../../styles/modules/medico.css";
+import DisponibilidadMedico from "../../components/medicos/DisponibilidadMedico.jsx";
 
 const hoy = () => {
   const now = new Date();
@@ -13,6 +14,7 @@ const nombre = (cita) => `${cita.paciente_nombre} ${cita.paciente_apellido}`;
 const hora = (valor) => valor?.slice(0, 5) || "—";
 
 function MedicoPage() {
+  const [vista, setVista] = createSignal("agenda");
   const auth = useAuth();
   const navigate = useNavigate();
   const [fecha, setFecha] = createSignal(hoy());
@@ -57,6 +59,12 @@ function MedicoPage() {
       </div></header>
       <main class="medico-container medico-main">
         <div class="medico-heading"><div><span class="medico-eyebrow">ATENCIÓN Y BIENESTAR</span><h1>Mi agenda médica</h1><p>Organiza cada encuentro, cuida cada detalle.</p></div><span class="medico-label">Portal del médico</span></div>
+        <nav class="medico-tabs" aria-label="Secciones del panel">
+          <button class="medico-outline" aria-pressed={vista() === "agenda"} onClick={() => { setVista("agenda"); consultar(); }}>Mi agenda</button>
+          <button class="medico-outline" aria-pressed={vista() === "disponibilidad"} onClick={() => setVista("disponibilidad")}>Mi disponibilidad</button>
+        </nav>
+        <Show when={vista() === "disponibilidad"}><DisponibilidadMedico medicoId={auth.user()?.medicoId} /></Show>
+        <Show when={vista() === "agenda"}>
         <section class="medico-toolbar" aria-label="Fecha de la agenda">
           <div><label for="agenda-fecha">Fecha de consulta</label><input id="agenda-fecha" type="date" value={fecha()} onInput={e => cambiarFecha(e.currentTarget.value)} /></div>
           <div class="medico-day-controls"><button class="medico-outline" aria-label="Día anterior" onClick={() => moverDia(-1)}>←</button><button class="medico-outline" onClick={() => cambiarFecha(hoy())}>Hoy</button><button class="medico-outline" aria-label="Día siguiente" onClick={() => moverDia(1)}>→</button></div>
@@ -83,6 +91,7 @@ function MedicoPage() {
             <div aria-live="polite"><Show when={seleccion()} fallback={<div class="medico-empty"><span class="medico-icon" aria-hidden="true">▤</span><h3>Cada atención empieza aquí</h3><p>Selecciona una cita de tu agenda para ver la información del paciente.</p></div>}>{cita => <div class="medico-detail-body"><span class="medico-eyebrow">PACIENTE</span><h3>{nombre(cita())}</h3><dl><dt>Documento</dt><dd>{cita().paciente_documento}</dd><dt>Fecha</dt><dd>{new Intl.DateTimeFormat("es-CO", { dateStyle: "long" }).format(new Date(`${fecha()}T12:00:00`))}</dd><dt>Horario</dt><dd>{hora(cita().hora_inicio)} – {hora(cita().hora_fin)}</dd><dt>Estado</dt><dd>{estados[cita().estado] || cita().estado}</dd><dt>Motivo de consulta</dt><dd class="medico-reason">{cita().motivo || "No se registró un motivo de consulta."}</dd></dl><button class="medico-outline" onClick={() => setSeleccion(null)}>Cerrar detalle</button></div>}</Show></div>
           </aside>
         </div>
+        </Show>
         <footer class="medico-footer">PiedraAzul · Atención y bienestar</footer>
       </main>
     </div>

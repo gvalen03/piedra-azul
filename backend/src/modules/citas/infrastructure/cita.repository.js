@@ -1,3 +1,6 @@
+import { DisponibilidadRepository } from "../../disponibilidad/infrastructure/disponibilidad.repository.js";
+import { DisponibilidadService } from "../../disponibilidad/application/disponibilidad.service.js";
+
 export class CitaRepository {
   constructor(db) {
     this.db = db;
@@ -16,7 +19,21 @@ export class CitaRepository {
   }
 
   async guardar(cita) {
-    const result = await this.db.query(
+    const client = await this.db.connect();
+    try {
+      await client.query("BEGIN");
+      const medico = await client.query("SELECT id FROM medicos WHERE id=$1 AND activo=TRUE FOR UPDATE", [cita.medicoId]);
+      if (!medico.rows.length) throw new Error("El médico no está disponible");
+      // Revalidar bajo el mismo bloqueo que los cambios de disponibilidad y otras reservas.
+      const disponibilidad = new DisponibilidadService({
+        disponibilidadRepository: new DisponibilidadRepository(client),
+        citaRepository: new CitaRepository(client)
+      });
+      const franjas = await disponibilidad.obtenerFranjasDisponibles({ medicoId: cita.medicoId, fecha: cita.fecha });
+      if (!franjas.some(f => f.horaInicio === cita.horaInicio && f.horaFin === cita.horaFin)) {
+        throw new Error("El horario seleccionado no está disponible");
+      }
+      const result = await client.query(
       `
       INSERT INTO citas (
         paciente_id,
@@ -41,7 +58,10 @@ export class CitaRepository {
       ]
     );
 
-    return result.rows[0];
+      await client.query("COMMIT");
+      return result.rows[0];
+    } catch (error) { await client.query("ROLLBACK"); throw error; }
+    finally { client.release(); }
   }
 
   async buscarPorId(id) {

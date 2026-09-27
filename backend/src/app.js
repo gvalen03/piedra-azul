@@ -171,6 +171,8 @@ export async function buildApp() {
       medicoRepository
     });
 
+  app.decorate("disponibilidadRepository", disponibilidadRepository);
+
   const disponibilidadService =
     new DisponibilidadService({
       disponibilidadRepository,

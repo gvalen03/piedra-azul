@@ -74,3 +74,19 @@
   .medico-appointment { flex-wrap: wrap; gap: 12px; }
   .medico-patient { min-width: 55%; }
 }
+.medico-tabs { display:flex; gap:10px; margin-bottom:24px; }
+.medico-tabs button[aria-pressed="true"] { background:var(--color-primary); color:white; border-color:var(--color-primary); }
+.disponibilidad-form { padding:24px; }
+.disponibilidad-form fieldset { border:0; padding:0; margin:0; min-width:0; }
+.disponibilidad-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:22px; }
+.disponibilidad-hint { font-size:12px; color:var(--color-text-secondary); line-height:1.7; margin:20px 0; }
+.disponibilidad-block { border-bottom:1px solid #e7eeea; padding:20px 0; }
+.disponibilidad-block strong { font-size:11px; letter-spacing:1px; color:var(--color-primary); }
+.disponibilidad-block p { font-size:14px; margin:10px 0; }
+.disponibilidad-block small { color:var(--color-text-secondary); font-size:12px; }
+.disponibilidad-actions { display:flex; gap:8px; align-items:end; flex-wrap:wrap; margin-top:14px; }
+.disponibilidad-preview { margin-top:24px; }
+.disponibilidad-slots { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
+.disponibilidad-slots span, .disponibilidad-success { background:#e8f1ef; color:var(--color-primary); border-radius:8px; padding:12px; font-size:13px; }
+.disponibilidad-confirm { padding:12px; background:#f5f8f7; border-radius:8px; margin-top:12px; }
+@media(max-width:400px) { .disponibilidad-row { grid-template-columns:1fr; } }

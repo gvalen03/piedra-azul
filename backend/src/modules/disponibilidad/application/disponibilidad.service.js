@@ -2,15 +2,21 @@ import { Disponibilidad } from "../domain/disponibilidad.entity.js";
 import { FranjaHoraria } from "../domain/franja-horaria.js";
 
 export class DisponibilidadService {
-  constructor({ disponibilidadRepository, citaRepository }) {
+  constructor({ disponibilidadRepository, citaRepository, ahora = () => new Date() }) {
     this.disponibilidadRepository = disponibilidadRepository;
     this.citaRepository = citaRepository;
+    this.ahora = ahora;
   }
 
   async configurar(dto) {
-    if (dto.horaInicio >= dto.horaFin) throw new Error("La hora de inicio debe ser menor que la hora de fin");
-    if (dto.intervaloMinutos <= 0) throw new Error("El intervalo debe ser mayor que cero");
-    if (dto.semanasHabilitadas <= 0) throw new Error("Las semanas habilitadas deben ser mayor que cero");
+    const fallo = mensaje => { throw Object.assign(new Error(mensaje), { statusCode: 400 }); };
+    const hora = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!hora.test(dto.horaInicio) || !hora.test(dto.horaFin)) fallo("Usa horarios válidos en formato HH:mm");
+    if (dto.horaInicio >= dto.horaFin) fallo("La hora de inicio debe ser menor que la hora de fin");
+    if (!Number.isInteger(dto.intervaloMinutos) || dto.intervaloMinutos <= 0) fallo("El intervalo debe ser un entero mayor que cero");
+    if (!Number.isInteger(dto.semanasHabilitadas) || dto.semanasHabilitadas <= 0) fallo("Las semanas deben ser un entero mayor que cero");
+    const minutos = valor => Number(valor.slice(0,2)) * 60 + Number(valor.slice(3,5));
+    if (dto.intervaloMinutos > minutos(dto.horaFin) - minutos(dto.horaInicio)) fallo("La duración de la cita no cabe en el bloque");
 
     const disponibilidad = new Disponibilidad(dto);
     return await this.disponibilidadRepository.guardar(disponibilidad);
@@ -18,13 +24,20 @@ export class DisponibilidadService {
 
   async obtenerFranjasDisponibles({ medicoId, fecha }) {
     const diaSemana = this.obtenerDiaSemana(fecha);
-    const configuracion = await this.disponibilidadRepository.buscarPorMedicoYDia(medicoId, diaSemana);
-    if (!configuracion) return [];
-
-    const franjas = this.generarFranjas(configuracion);
+    const configuraciones = await this.disponibilidadRepository.buscarPorMedicoYDia(medicoId, diaSemana);
+    const partes = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+    }).formatToParts(this.ahora()).map(p => [p.type, p.value]));
+    const hoy = `${partes.year}-${partes.month}-${partes.day}`;
+    const horaActual = `${partes.hour}:${partes.minute}`;
+    const dias = (Date.parse(fecha) - Date.parse(hoy)) / 86400000;
+    const franjas = configuraciones.filter(c => dias >= 0 && dias < c.semanas_habilitadas * 7)
+      .flatMap(c => this.generarFranjas(c));
     const citas = (await this.citaRepository.listarPorMedicoYFecha(medicoId, fecha)) ?? [];
-
-    return franjas.filter(f => !citas.some(c => c.hora_inicio?.slice(0, 5) === f.horaInicio));
+    return franjas.filter(f => (fecha !== hoy || f.horaInicio > horaActual) && !citas.some(c =>
+      c.hora_inicio.slice(0,5) < f.horaFin && c.hora_fin.slice(0,5) > f.horaInicio
+    )).sort((a,b) => a.horaInicio.localeCompare(b.horaInicio));
   }
 
   generarFranjas(configuracion) {
@@ -35,6 +48,7 @@ export class DisponibilidadService {
     const fin = hFinH * 60 + hFinM;
     const intervalo = configuracion.intervalo_minutos;
 
+    if (!Number.isInteger(intervalo) || intervalo <= 0) return [];
     while (actual + intervalo <= fin) {
       franjas.push(new FranjaHoraria({
         horaInicio: this.minutosAHora(actual),
