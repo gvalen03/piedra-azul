@@ -13,6 +13,9 @@ function LoginPage() {
   const [error, setError] = createSignal("");
   const [loading, setLoading] = createSignal(false);
   const [showPassword, setShowPassword] = createSignal(false);
+  const [showContact, setShowContact] = createSignal(false);
+  const adminEmail = (import.meta.env.VITE_ADMIN_CONTACT_EMAIL || "administrador@piedraAzul.com").trim();
+  const contactHref = `mailto:${encodeURIComponent(adminEmail)}?subject=${encodeURIComponent("Ayuda para ingresar a PiedraAzul")}&body=${encodeURIComponent("Hola, necesito ayuda para ingresar a PiedraAzul.\n\nMi nombre es:\nEl problema que tengo es:\n")}`;
   const navigate = useNavigate();
 
   const auth = useAuth();
@@ -151,9 +154,29 @@ function LoginPage() {
             </form>
 
             <div class="login-help">
-              <span class="login-help-icon" aria-hidden="true">?</span>
+              <button
+                type="button"
+                class="login-help-icon"
+                aria-label="Contactar al administrador"
+                aria-expanded={showContact()}
+                aria-controls="login-contact"
+                onClick={() => setShowContact(!showContact())}
+              >?</button>
               <p>¿Necesitas ayuda para ingresar?<br /><span>Contacta al administrador de PiedraAzul.</span></p>
             </div>
+            <section id="login-contact" class="login-contact" hidden={!showContact()} aria-labelledby="login-contact-title">
+              <h3 id="login-contact-title">Contacto del administrador</h3>
+              {adminEmail ? (
+                <>
+                  <p>Cuéntanos qué sucede al intentar ingresar. No incluyas tu contraseña.</p>
+                  <a class="login-contact-email" href={contactHref}>{adminEmail}</a>
+                  <a class="btn btn-primary login-contact-action" href={contactHref}>Escribir un correo <span aria-hidden="true">↗</span></a>
+                  <p class="login-contact-note">Se abrirá tu aplicación de correo con el asunto preparado. También puedes usar la dirección en tu correo web.</p>
+                </>
+              ) : (
+                <p>El correo de soporte aún no está disponible. Solicita ayuda al personal de atención de PiedraAzul.</p>
+              )}
+            </section>
           </div>
         </section>
       </main>
