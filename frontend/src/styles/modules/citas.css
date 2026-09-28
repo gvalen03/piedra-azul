@@ -503,3 +503,20 @@
     padding: 20px;
   }
 }
+.citas-header-actions { display:flex; align-items:center; gap:16px; }
+.agendador-tabs,.agendador-actions { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; }
+.agendador-tabs button[aria-pressed="true"] { background:var(--color-primary); color:white; }
+.agendador-workspace,.agendador-form fieldset { border:0; padding:0; margin:0; min-width:0; }
+.agendador-form { padding:28px; }
+.agendador-form input,.agendador-form select,.agendador-reprogramar input,.agendador-reprogramar select { display:block; width:100%; margin-top:8px; }
+.agendador-form .citas-fields { margin-bottom:24px; }
+.agendador-register { margin-top:12px; }
+.citas-notice.is-error { background:#fff4f2; border-color:#edc5bf; color:#92372d; }
+.agendador-reprogramar { background:#f4f8f6; border:1px solid #dce7e2; border-radius:10px; padding:16px; margin-top:16px; }
+.agendador-reprogramar h3 { font-size:15px; }
+.agendador-reprogramar p { font-size:12px; line-height:1.7; color:var(--color-text-secondary); }
+.agendador-reprogramar form { margin-bottom:18px; }
+.agendador-reprogramar label { margin-bottom:12px; }
+@media(max-width:520px) { .citas-header { flex-wrap:wrap; gap:14px; } .agendador-form { padding:20px; } }
+
+.registro-fecha-error { display:block; margin-top:8px; color:#92372d; font-size:12px; line-height:1.5; }

@@ -7,7 +7,7 @@ test(
   "consultarPorMedicoYFecha retorna la cantidad y las citas",
   async () => {
     const citaRepository = {
-      listarPorMedicoYFecha: async () => [
+      listarAgendaMedico: async () => [
         { id: 1 },
         { id: 2 }
       ]

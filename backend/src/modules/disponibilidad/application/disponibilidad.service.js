@@ -22,7 +22,7 @@ export class DisponibilidadService {
     return await this.disponibilidadRepository.guardar(disponibilidad);
   }
 
-  async obtenerFranjasDisponibles({ medicoId, fecha }) {
+  async obtenerFranjasDisponibles({ medicoId, fecha, excluirCitaId }) {
     const diaSemana = this.obtenerDiaSemana(fecha);
     const configuraciones = await this.disponibilidadRepository.buscarPorMedicoYDia(medicoId, diaSemana);
     const partes = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
@@ -36,7 +36,7 @@ export class DisponibilidadService {
       .flatMap(c => this.generarFranjas(c));
     const citas = (await this.citaRepository.listarPorMedicoYFecha(medicoId, fecha)) ?? [];
     return franjas.filter(f => (fecha !== hoy || f.horaInicio > horaActual) && !citas.some(c =>
-      c.hora_inicio.slice(0,5) < f.horaFin && c.hora_fin.slice(0,5) > f.horaInicio
+      String(c.id) !== String(excluirCitaId ?? "") && c.hora_inicio.slice(0,5) < f.horaFin && c.hora_fin.slice(0,5) > f.horaInicio
     )).sort((a,b) => a.horaInicio.localeCompare(b.horaInicio));
   }
 

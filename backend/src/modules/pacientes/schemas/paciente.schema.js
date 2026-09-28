@@ -12,17 +12,17 @@ export const registrarPacienteSchema = {
     properties: {
       nombre: {
         type: "string",
-        minLength: 1
+        minLength: 1, pattern: "\\S", maxLength: 100
       },
 
       apellido: {
         type: "string",
-        minLength: 1
+        minLength: 1, pattern: "\\S", maxLength: 100
       },
 
       numeroDocumento: {
         type: "string",
-        minLength: 1
+        minLength: 1, pattern: "\\S", maxLength: 50
       },
 
       fechaNacimiento: {
@@ -32,19 +32,19 @@ export const registrarPacienteSchema = {
 
       email: {
         type: ["string", "null"],
-        format: "email"
+        format: "email", maxLength: 150
       },
 
       telefono: {
-        type: "string"
+        type: "string", minLength: 1, maxLength: 50, pattern: "\\S"
       },
 
       direccion: {
-        type: ["string", "null"]
+        type: ["string", "null"], maxLength: 255
       },
 
       eps: {
-        type: ["string", "null"]
+        type: ["string", "null"], maxLength: 150
       },
 
       genero: {
