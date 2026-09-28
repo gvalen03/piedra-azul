@@ -195,4 +195,5 @@ export class CitaRepository {
       if (e.code === "23505") throw fallo("El nuevo horario ya está reservado");
       throw e;
     } finally { client.release(); }
+  }
 }

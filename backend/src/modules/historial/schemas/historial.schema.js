@@ -1,15 +1,40 @@
-export const citaParams = { type: "object", required: ["citaId"], properties: { citaId: { type: "integer", minimum: 1 } } };
 export const registrarControlSchema = {
-  params: citaParams,
   body: {
-    type: "object", additionalProperties: false,
-    required: ["motivoConsulta", "observaciones"],
+    type: "object",
+    required: [
+      "pacienteId",
+      "citaId",
+      "medicoId",
+      "motivoConsulta",
+      "observaciones"
+    ],
     properties: {
-      motivoConsulta: { type: "string", minLength: 1, maxLength: 5000, pattern: "\\S" },
-      observaciones: { type: "string", minLength: 1, maxLength: 10000, pattern: "\\S" },
-      diagnostico: { type: ["string", "null"], maxLength: 10000 },
-      tratamiento: { type: ["string", "null"], maxLength: 10000 },
-      recomendaciones: { type: ["string", "null"], maxLength: 10000 }
+      pacienteId: {
+        type: "integer"
+      },
+      citaId: {
+        type: "integer"
+      },
+      medicoId: {
+        type: "integer"
+      },
+      motivoConsulta: {
+        type: "string",
+        minLength: 1
+      },
+      observaciones: {
+        type: "string",
+        minLength: 1
+      },
+      diagnostico: {
+        type: ["string", "null"]
+      },
+      tratamiento: {
+        type: ["string", "null"]
+      },
+      recomendaciones: {
+        type: ["string", "null"]
+      }
     }
   }
 };

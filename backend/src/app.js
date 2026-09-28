@@ -1,9 +1,3 @@
-import { AdminRepository } from "./modules/admin/infrastructure/admin.repository.js";
-import { AdminService } from "./modules/admin/application/admin.service.js";
-import { adminRoutes } from "./modules/admin/web/admin.routes.js";
-import { HistorialRepository } from "./modules/historial/infrastructure/historial.repository.js";
-import { HistorialService } from "./modules/historial/application/historial.service.js";
-import { historialRoutes } from "./modules/historial/web/historial.routes.js";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 
@@ -277,14 +271,6 @@ export async function buildApp() {
   });
 
   await app.register(authPlugin);
-  const adminRepository = new AdminRepository(db);
-  app.decorate("adminRepository", adminRepository);
-  app.decorate("adminService", new AdminService({ repository: adminRepository, passwordService }));
-  await app.register(adminRoutes, { prefix: "/api/admin" });
-  const historialRepository = new HistorialRepository(db);
-  app.decorate("historialRepository", historialRepository);
-  app.decorate("historialService", new HistorialService({ historialRepository }));
-  await app.register(historialRoutes, { prefix: "/api/historial" });
 
   // =========================
   // Routes
