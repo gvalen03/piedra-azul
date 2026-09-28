@@ -4,12 +4,14 @@ export function crearPacienteController({ pacienteService }) {
       try {
         const paciente = await pacienteService.registrar(
           request.body,
-          request.user?.username ?? "SISTEMA"
+          request.user?.username ?? request.user?.sub ?? "SISTEMA"
         );
 
         return reply.code(201).send(paciente);
       } catch (error) {
         const mensaje = error.message || "Error al registrar paciente";
+        if (error.statusCode) return reply.code(error.statusCode).send({ error: mensaje });
+        if (error.code === "23505") return reply.code(409).send({ error: "Ya existe un paciente con ese documento o correo" });
 
         if (
           mensaje.includes("Ya existe un paciente") ||

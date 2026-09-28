@@ -6,9 +6,10 @@ export class JwtService {
     this.expiresIn = expiresIn;
   }
 
-  generarToken({ username, rol, pacienteId, medicoId }) {
+  generarToken({ username, rol, pacienteId, medicoId, version }) {
     return jwt.sign(
       {
+        version,
         rol,
         pacienteId,
         medicoId

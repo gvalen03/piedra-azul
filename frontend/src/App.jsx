@@ -1,3 +1,4 @@
+import { onMount } from "solid-js";
 import { Route } from "@solidjs/router";
 
 import { useAuth } from "./stores/auth.store.js";
@@ -13,8 +14,9 @@ import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 function App() {
   const auth = useAuth();
 
-  // Recuperar la sesión antes de evaluar las rutas protegidas al recargar.
-  auth.restaurarSesion();
+  onMount(() => {
+    auth.restaurarSesion();
+  });
 
   return (
     <>
@@ -74,8 +76,6 @@ function App() {
           </ProtectedRoute>
         )}
       />
-
-
     </>
   );
 }

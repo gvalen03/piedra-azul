@@ -71,6 +71,19 @@ export class PacienteRepository {
     return result.rowCount > 0;
   }
 
+  async registrarConAuditoria(paciente, origen) {
+    const client = await this.db.connect();
+    try {
+      await client.query("BEGIN");
+      const guardado = await new PacienteRepository(client).guardar(paciente);
+      await client.query(`INSERT INTO auditorias (tipo_evento, descripcion, entidad_id, realizado_por, modulo_origen)
+        VALUES ('PACIENTE_REGISTRADO','Registro de paciente',$1,$2,'PACIENTES')`, [String(guardado.id), origen]);
+      await client.query("COMMIT");
+      return guardado;
+    } catch(e) { await client.query("ROLLBACK"); throw e; }
+    finally { client.release(); }
+  }
+
   async guardar(paciente) {
     if (paciente.id) {
       const result = await this.db.query(

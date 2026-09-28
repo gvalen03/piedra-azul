@@ -16,7 +16,7 @@ for (const [rol, medicoId, pacienteId] of [
     const usuarioRepository = new UsuarioRepository({
       query: async () => ({ rows: [{
         id: "5", username: "prueba", password: "hash-de-prueba",
-        nombre: "Usuario de prueba", rol, activo: true,
+        nombre: "Usuario de prueba", rol, activo: true, updated_at: "2026-09-27T10:00:00Z",
         medico_id: medicoId, paciente_id: pacienteId
       }] })
     });
@@ -40,6 +40,7 @@ for (const [rol, medicoId, pacienteId] of [
     assert.equal(body.medicoId, medicoId === null ? null : Number(medicoId));
     assert.equal(body.pacienteId, pacienteId === null ? null : Number(pacienteId));
     const claims = jwtService.validar(body.token);
+    assert.equal(claims.version, Date.parse("2026-09-27T10:00:00Z"));
     assert.equal(claims.medicoId, body.medicoId);
     assert.equal(claims.pacienteId, body.pacienteId);
   });

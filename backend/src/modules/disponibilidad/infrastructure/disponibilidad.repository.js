@@ -38,7 +38,7 @@ export class DisponibilidadRepository {
 
   async buscarPorMedicoYDia(medicoId, diaSemana) {
     const result = await this.db.query(
-      `SELECT * FROM disponibilidades WHERE medico_id=$1 AND dia_semana=$2 AND activo=TRUE ORDER BY hora_inicio`,
+      `SELECT * FROM disponibilidades WHERE medico_id=$1 AND dia_semana=$2 AND activo=TRUE AND EXISTS (SELECT 1 FROM medicos WHERE id=$1 AND activo=TRUE) ORDER BY hora_inicio`,
       [medicoId, diaSemana]
     );
     return result.rows;
