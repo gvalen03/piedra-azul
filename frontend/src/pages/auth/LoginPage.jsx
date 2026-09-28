@@ -2,7 +2,7 @@ import { createSignal } from "solid-js";
 
 import { login } from "../../services/auth.service.js";
 import { useAuth } from "../../stores/auth.store.js";
-import { useNavigate } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 
 import "../../styles/modules/auth.css";
 
@@ -79,14 +79,14 @@ function LoginPage() {
     <div class="login-page" tabIndex={0} role="region" aria-label="Acceso a PiedraAzul, contenido desplazable">
       <header class="login-topbar">
         <div class="login-topbar-inner">
-          <a class="login-brand" href="/" aria-label="PiedraAzul, inicio">
+          <A class="login-brand" href="/" aria-label="PiedraAzul, inicio">
             <span class="login-brand-mark" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" />
               </svg>
             </span>
             PiedraAzul
-          </a>
+          </A>
           <span class="login-topbar-label">Agenda médica</span>
         </div>
       </header>
