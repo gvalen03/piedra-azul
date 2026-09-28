@@ -1,5 +1,5 @@
 import { createSignal, createMemo, onMount, For, Show } from "solid-js";
-import { useNavigate } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import { useAuth } from "../../stores/auth.store.js";
 import { apiFetch } from "../../services/api.js";
 import AdminEditor, { roles } from "../../components/admin/AdminEditor.jsx";
@@ -46,7 +46,7 @@ export default function AdminPage() {
     const perfil = r.rol === "MEDICO_TERAPISTA" ? datos().medicos.find(m => String(m.id) === String(r.medico_id)) : r.rol === "PACIENTE" ? datos().pacientes.find(p => String(p.id) === String(r.paciente_id)) : null;
     return perfil ? `${perfil.nombre} ${perfil.apellido}` : "Sin perfil asociado";
   };
-  return <div class="medico-page admin-page"><header class="medico-topbar"><div class="medico-container medico-topbar-inner"><a class="medico-brand" href="/admin"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" /></svg></span>PiedraAzul</a><div class="medico-account"><span>{auth.user()?.nombre}<small>Administración</small></span><button class="medico-outline" disabled={busy()} onClick={() => { auth.cerrarSesion(); navigate("/", { replace:true }); }}>Cerrar sesión</button></div></div></header>
+  return <div class="medico-page admin-page"><header class="medico-topbar"><div class="medico-container medico-topbar-inner"><A class="medico-brand" href="/admin"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" /></svg></span>PiedraAzul</A><div class="medico-account"><span>{auth.user()?.nombre}<small>Administración</small></span><button class="medico-outline" disabled={busy()} onClick={() => { auth.cerrarSesion(); navigate("/", { replace:true }); }}>Cerrar sesión</button></div></div></header>
     <main class="medico-container medico-main"><div class="medico-heading"><div><span class="medico-eyebrow">ATENCIÓN Y BIENESTAR</span><h1>Administración</h1><p>Organiza cada encuentro, cuida cada detalle.</p></div><span class="medico-label">Gestión de personas y accesos</span></div>
       <div class="medico-stats"><For each={Object.entries(secciones)}>{([key,label]) => <div class="medico-stat"><span>{label} activos</span><strong>{listo() ? datos()[key].filter(activo).length : "—"}</strong><small>{listo() ? `${datos()[key].length} registros en total` : "Consultando registros"}</small></div>}</For></div>
       <nav class="medico-tabs" aria-label="Secciones de administración"><For each={Object.entries(secciones)}>{([key,label]) => <button class="medico-outline" disabled={busy()} aria-pressed={tipo() === key} onClick={() => cambiar(key)}>{label}</button>}</For></nav>
