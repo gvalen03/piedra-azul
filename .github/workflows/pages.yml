@@ -2,7 +2,7 @@ name: Publicar frontend en GitHub Pages
 
 on:
   push:
-    branches: ["feature/auth"]
+    branches: ["main"]
     paths:
       - "frontend/**"
       - ".github/workflows/pages.yml"

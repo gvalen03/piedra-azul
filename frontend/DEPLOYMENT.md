@@ -1,11 +1,11 @@
 # GitHub Pages
 
 El workflow `.github/workflows/pages.yml` compila y publica el frontend cuando
-se suben cambios del frontend a `feature/auth`. Esa es la rama publicada;
-si se traslada el desarrollo a otra rama, actualizar `on.push.branches`.
+se integran cambios del frontend en `main`. Los cambios se integran primero
+en `dev` y luego en `main`; la publicación se ejecuta al llegar a `main`.
 
 En GitHub, configurar **Settings → Pages → Source → GitHub Actions**.
-El entorno `github-pages` debe permitir despliegues desde `feature/auth`.
+El entorno `github-pages` debe permitir despliegues desde `main`.
 Consultar el resultado en **Actions → Publicar frontend en GitHub Pages**.
 
 La ruta base se obtiene de GitHub Pages. En ese despliegue se usa `HashRouter`
