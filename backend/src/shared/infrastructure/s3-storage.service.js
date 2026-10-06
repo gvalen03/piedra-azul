@@ -6,14 +6,22 @@ import {
 
 import s3Client from "./s3.client.js";
 
-const BUCKET = process.env.AWS_S3_BUCKET;
+const obtenerBucket = () => {
+  const bucket = process.env.AWS_S3_BUCKET;
+
+  if (!bucket) {
+    throw new Error("AWS_S3_BUCKET no está configurado");
+  }
+
+  return bucket;
+};
 
 export class S3StorageService {
 
   async subirArchivo({ key, contenido, contentType }) {
     await s3Client.send(
       new PutObjectCommand({
-        Bucket: BUCKET,
+        Bucket: obtenerBucket(),
         Key: key,
         Body: contenido,
         ContentType: contentType,
@@ -26,7 +34,7 @@ export class S3StorageService {
   async obtenerArchivo(key) {
     return s3Client.send(
       new GetObjectCommand({
-        Bucket: BUCKET,
+        Bucket: obtenerBucket(),
         Key: key,
       })
     );
@@ -35,7 +43,7 @@ export class S3StorageService {
   async eliminarArchivo(key) {
     await s3Client.send(
       new DeleteObjectCommand({
-        Bucket: BUCKET,
+        Bucket: obtenerBucket(),
         Key: key,
       })
     );

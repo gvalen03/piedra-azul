@@ -21,3 +21,12 @@ dist/
 backend/prueba-api.txt
 backend/prueba.pdf
 backend/prueba-grande.pdf
+
+# Entorno local de Floci
+floci-local/
+
+# Docker Compose local
+backend/compose.yaml
+
+# Configuración local AWS / Floci
+backend/task-definition.json
