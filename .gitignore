@@ -16,3 +16,8 @@ dist/
 # IDE
 .idea/
 .vscode/
+
+# Archivos temporales de pruebas S3
+backend/prueba-api.txt
+backend/prueba.pdf
+backend/prueba-grande.pdf
