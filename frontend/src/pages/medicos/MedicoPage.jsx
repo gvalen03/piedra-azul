@@ -4,7 +4,6 @@ import { A, useNavigate } from "@solidjs/router";
 import { apiFetch } from "../../services/api.js";
 import { useAuth } from "../../stores/auth.store.js";
 import "../../styles/modules/medico.css";
-import DisponibilidadMedico from "../../components/medicos/DisponibilidadMedico.jsx";
 
 const hoy = () => {
   const now = new Date();
@@ -65,9 +64,7 @@ function MedicoPage() {
         <Show when={aviso()}><p class="disponibilidad-success" role="status">{aviso()}</p></Show>
         <nav class="medico-tabs" aria-label="Secciones del panel">
           <button disabled={guardandoAtencion()} class="medico-outline" aria-pressed={vista() === "agenda"} onClick={() => { setVista("agenda"); consultar(); }}>Mi agenda</button>
-          <button disabled={guardandoAtencion()} class="medico-outline" aria-pressed={vista() === "disponibilidad"} onClick={() => setVista("disponibilidad")}>Mi disponibilidad</button>
         </nav>
-        <Show when={vista() === "disponibilidad"}><DisponibilidadMedico medicoId={auth.user()?.medicoId} /></Show>
         <Show when={vista() === "agenda"}>
         <section class="medico-toolbar" aria-label="Fecha de la agenda">
           <div><label for="agenda-fecha">Fecha de consulta</label><input disabled={guardandoAtencion()} id="agenda-fecha" type="date" value={fecha()} onInput={e => cambiarFecha(e.currentTarget.value)} /></div>
