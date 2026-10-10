@@ -2,6 +2,7 @@ import { createSignal, createMemo, onMount, For, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { useAuth } from "../../stores/auth.store.js";
 import { apiFetch } from "../../services/api.js";
+import DisponibilidadMedico from "../../components/medicos/DisponibilidadMedico.jsx";
 import AdminEditor, { roles } from "../../components/admin/AdminEditor.jsx";
 import "../../styles/modules/medico.css";
 import "../../styles/modules/admin.css";
@@ -9,11 +10,12 @@ const secciones = { usuarios: "Usuarios", medicos: "Médicos", pacientes: "Pacie
 const activo = r => r.activo ?? r.estado === "ACTIVO";
 export default function AdminPage() {
   const auth = useAuth(), navigate = useNavigate();
+  const [profesional, setProfesional] = createSignal("");
   const [tipo,setTipo] = createSignal("usuarios"), [datos,setDatos] = createSignal({ usuarios: [], medicos: [], pacientes: [] });
   const [busqueda,setBusqueda] = createSignal(""), [estado,setEstado] = createSignal(""), [rol,setRol] = createSignal("");
   const [editor,setEditor] = createSignal(null), [busy,setBusy] = createSignal(false), [error,setError] = createSignal(""), [mensaje,setMensaje] = createSignal("");
   const [listo,setListo] = createSignal(false);
-  const visibles = createMemo(() => datos()[tipo()].filter(r =>
+  const visibles = createMemo(() => (datos()[tipo()] || []).filter(r =>
     (!estado() || activo(r) === (estado() === "ACTIVO")) &&
     (tipo() !== "usuarios" || !rol() || r.rol === rol()) &&
     `${r.nombre} ${r.apellido || ""} ${r.username || ""} ${r.numero_documento || ""} ${r.email || ""}`.toLocaleLowerCase().includes(busqueda().trim().toLocaleLowerCase())
@@ -49,10 +51,24 @@ export default function AdminPage() {
   return <div class="medico-page admin-page"><header class="medico-topbar"><div class="medico-container medico-topbar-inner"><a class="medico-brand" href="/admin"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" /></svg></span>PiedraAzul</a><div class="medico-account"><span>{auth.user()?.nombre}<small>Administración</small></span><button class="medico-outline" disabled={busy()} onClick={() => { auth.cerrarSesion(); navigate("/", { replace:true }); }}>Cerrar sesión</button></div></div></header>
     <main class="medico-container medico-main"><div class="medico-heading"><div><span class="medico-eyebrow">ATENCIÓN Y BIENESTAR</span><h1>Administración</h1><p>Organiza cada encuentro, cuida cada detalle.</p></div><span class="medico-label">Gestión de personas y accesos</span></div>
       <div class="medico-stats"><For each={Object.entries(secciones)}>{([key,label]) => <div class="medico-stat"><span>{label} activos</span><strong>{listo() ? datos()[key].filter(activo).length : "—"}</strong><small>{listo() ? `${datos()[key].length} registros en total` : "Consultando registros"}</small></div>}</For></div>
-      <nav class="medico-tabs" aria-label="Secciones de administración"><For each={Object.entries(secciones)}>{([key,label]) => <button class="medico-outline" disabled={busy()} aria-pressed={tipo() === key} onClick={() => cambiar(key)}>{label}</button>}</For></nav>
+      <nav class="medico-tabs" aria-label="Secciones de administración"><For each={Object.entries(secciones)}>{([key,label]) => <button class="medico-outline" disabled={busy()} aria-pressed={tipo() === key} onClick={() => cambiar(key)}>{label}</button>}</For><button class="medico-outline" disabled={busy()} aria-pressed={tipo() === "disponibilidad"} onClick={() => cambiar("disponibilidad")}>Disponibilidad</button></nav>
       <Show when={error()}><div class="medico-error" role="alert">{error()}<button class="medico-outline" disabled={busy()} onClick={actualizar}>Reintentar</button></div></Show>
       <Show when={mensaje()}><p class="admin-success" role="status">{mensaje()}</p></Show>
       <Show when={busy()}><p class="admin-help" role="status">Procesando…</p></Show>
+      <Show when={tipo() === "disponibilidad"}>
+        <section class="medico-card"><div class="medico-detail-body">
+          <h2>Disponibilidad por médico o terapeuta</h2>
+          <p>Selecciona un profesional para configurar sus días, horarios, intervalo y semanas de reserva.</p>
+          <label for="admin-profesional">Médico o terapeuta</label>
+          <select id="admin-profesional" disabled={busy()} value={profesional()} onChange={e => setProfesional(e.currentTarget.value)}>
+            <option value="">Selecciona un profesional</option>
+            <For each={datos().medicos.filter(m => m.activo)}>{m => <option value={m.id}>{m.nombre} {m.apellido}</option>}</For>
+          </select>
+          <Show when={listo() && !datos().medicos.some(m => m.activo)}><p>No hay profesionales activos. Crea o activa uno en Médicos.</p></Show>
+        </div></section>
+        <Show keyed when={profesional()}>{id => <DisponibilidadMedico medicoId={Number(id)} administrador />}</Show>
+      </Show>
+      <Show when={tipo() !== "disponibilidad"}>
       <div classList={{ "admin-grid": true, "admin-grid-editor": !!editor() }}>
         <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">☷</span><div><h2>{secciones[tipo()]}</h2><p>{tipo() === "usuarios" ? "Gestiona las cuentas y sus permisos." : "Crea los perfiles antes de vincular sus cuentas."}</p></div></div>
           <div class="admin-list-body"><div class="admin-actions"><button class="btn btn-primary" disabled={busy() || !listo()} onClick={() => setEditor({ registro:null })}>Crear {tipo() === "usuarios" ? "usuario" : tipo() === "medicos" ? "médico" : "paciente"}</button><button class="medico-outline" disabled={busy()} onClick={actualizar}>Actualizar</button></div>
@@ -62,6 +78,7 @@ export default function AdminPage() {
           </div></section>
         <Show keyed when={editor()}>{ed => <AdminEditor tipo={tipo()} registro={ed.registro} medicos={datos().medicos} pacientes={datos().pacientes} busy={busy()} onSave={guardar} onClose={() => setEditor(null)} />}</Show>
       </div>
+      </Show>
       <footer class="medico-footer">PiedraAzul · Atención y bienestar</footer>
     </main>
   </div>;

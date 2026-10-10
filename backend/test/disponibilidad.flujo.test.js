@@ -7,7 +7,7 @@ import { DisponibilidadService } from "../src/modules/disponibilidad/application
 import { CitaService } from "../src/modules/citas/application/cita.service.js";
 import { DisponibilidadRepository } from "../src/modules/disponibilidad/infrastructure/disponibilidad.repository.js";
 
-test("médico configura, agendador reserva y la franja desaparece", async t => {
+for (const rol of ["MEDICO_TERAPISTA", "ADMINISTRADOR"]) test(`${rol} configura, se reserva y la franja desaparece`, async t => {
   let bloques = [], citas = [];
   const repo = {
     guardar: async d => { bloques = [{ id: 1, medico_id: d.medicoId, dia_semana: d.diaSemana, hora_inicio: d.horaInicio, hora_fin: d.horaFin, intervalo_minutos: d.intervaloMinutos, semanas_habilitadas: d.semanasHabilitadas }]; return bloques[0]; },
@@ -29,19 +29,25 @@ test("médico configura, agendador reserva y la franja desaparece", async t => {
   app.decorate("disponibilidadRepository", repo);
   app.decorate("disponibilidadController", crearDisponibilidadController({ disponibilidadService: service }));
   await app.register(disponibilidadRoutes);
-  const headers = { authorization: "MEDICO_TERAPISTA" };
-  const payload = { medicoId: 99, diaSemana: "LUNES", horaInicio: "08:00", horaFin: "09:00", intervaloMinutos: 30, semanasHabilitadas: 4 };
-  assert.equal((await app.inject({ method: "POST", url: "/mia", headers, payload })).statusCode, 201);
+  const headers = { authorization: rol };
+  const listado = rol === "ADMINISTRADOR" ? "/medicos/12" : "/mia";
+  const payload = { medicoId: rol === "ADMINISTRADOR" ? 12 : 99, diaSemana: "LUNES", horaInicio: "08:00", horaFin: "09:00", intervaloMinutos: 30, semanasHabilitadas: 4 };
+  assert.equal((await app.inject({ method: "POST", url: rol === "ADMINISTRADOR" ? "/" : "/mia", headers, payload })).statusCode, 201);
   assert.equal(bloques[0].medico_id, 12);
   assert.equal((await app.inject("/mia")).statusCode, 401);
   assert.equal((await app.inject({ url: "/mia", headers: { authorization: "PACIENTE" } })).statusCode, 403);
+  assert.equal((await app.inject({ url: listado, headers })).json().length, 1);
+  if (rol === "ADMINISTRADOR") {
+    assert.equal((await app.inject({ url: "/medicos/13", headers })).json().length, 0);
+    assert.equal((await app.inject({ method: "DELETE", url: "/medicos/13/1", headers })).statusCode, 404);
+  }
   const url = "/franjas?medicoId=12&fecha=2026-09-28";
   assert.equal((await app.inject(url)).json().length, 2);
   const citasService = new CitaService({ disponibilidadService: service, citaRepository: citaRepo });
   await citasService.agendar({ medicoId: 12, pacienteId: 1, fecha: "2026-09-28", horaInicio: "08:00" });
   assert.equal((await app.inject(url)).json().length, 1);
-  assert.equal((await app.inject({ method: "DELETE", url: "/mia/99", headers })).statusCode, 404);
-  assert.equal((await app.inject({ method: "DELETE", url: "/mia/1", headers })).statusCode, 200);
+  assert.equal((await app.inject({ method: "DELETE", url: `${listado}/99`, headers })).statusCode, 404);
+  assert.equal((await app.inject({ method: "DELETE", url: `${listado}/1`, headers })).statusCode, 200);
   assert.equal((await app.inject(url)).json().length, 0);
   assert.equal(citas.length, 1);
   assert.equal((await app.inject("/franjas?medicoId=12&fecha=invalida")).statusCode, 400);
@@ -70,3 +76,22 @@ test("la reserva revalida disponibilidad bajo bloqueo antes de insertar", async 
   assert.equal(consultas.some(sql => sql.includes("INSERT")), false);
   assert.deepEqual(consultas.slice(-2), ["ROLLBACK", "release"]);
 });
+
+for (const rol of [null, "PACIENTE", "AGENDADOR", "MEDICO_TERAPISTA"]) {
+  test(`configuración administrativa rechaza el rol ${rol}`, async t => {
+    const app = Fastify(); t.after(() => app.close());
+    app.decorate("authenticate", async (req, reply) => {
+      if (!rol) return reply.code(401).send({});
+      req.user = { rol };
+    });
+    const unexpected = () => { throw new Error("No debe acceder a datos"); };
+    app.decorate("disponibilidadRepository", { buscarPorMedico: unexpected, desactivar: unexpected });
+    app.decorate("disponibilidadController", { configurar: unexpected, consultarFranjas: unexpected });
+    await app.register(disponibilidadRoutes);
+    for (const request of [
+      { method: "GET", url: "/medicos/12" },
+      { method: "DELETE", url: "/medicos/12/1" },
+      { method: "POST", url: "/", payload: { medicoId: 12, diaSemana: "LUNES", horaInicio: "08:00", horaFin: "12:00", intervaloMinutos: 30, semanasHabilitadas: 4 } }
+    ]) assert.equal((await app.inject(request)).statusCode, rol ? 403 : 401);
+  });
+}

@@ -4,6 +4,24 @@ import {
 } from "../schemas/disponibilidad.schema.js";
 
 export async function disponibilidadRoutes(fastify) {
+  const admin = [fastify.authenticate, authorize("ADMINISTRADOR")];
+  const medicoParams = {
+    type: "object", required: ["medicoId"],
+    properties: { medicoId: { type: "integer", minimum: 1 } }
+  };
+  fastify.get("/medicos/:medicoId", {
+    preHandler: admin, schema: { params: medicoParams }
+  }, request => fastify.disponibilidadRepository.buscarPorMedico(request.params.medicoId));
+  fastify.delete("/medicos/:medicoId/:id", {
+    preHandler: admin,
+    schema: { params: { ...medicoParams, required: ["medicoId", "id"],
+      properties: { ...medicoParams.properties, id: { type: "integer", minimum: 1 } } } }
+  }, async (request, reply) => {
+    const result = await fastify.disponibilidadRepository.desactivar(request.params.id, request.params.medicoId);
+    if (!result) return reply.code(404).send({ error: "Bloque no encontrado para este profesional" });
+    return { message: "Bloque desactivado. Las citas existentes se conservan." };
+  });
+
   const propio = async (request, reply) => {
     const id = Number(request.user.medicoId);
     if (!Number.isSafeInteger(id) || id <= 0) return reply.code(403).send({ error: "Tu usuario no tiene un médico asociado" });
