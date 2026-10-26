@@ -8,6 +8,7 @@ export default function DisponibilidadMedico(props) {
   const [ocupado, setOcupado] = createSignal(false), [error, setError] = createSignal(""), [mensaje, setMensaje] = createSignal("");
   const [fecha, setFecha] = createSignal(""), [franjas, setFranjas] = createSignal([]), [consultado, setConsultado] = createSignal(false);
   const [pendiente, setPendiente] = createSignal(null);
+  const [editandoId, setEditandoId] = createSignal(null);
   const api = async (path, options) => {
     const res = await apiFetch(path, options);
     const data = await res.json();
@@ -21,6 +22,9 @@ export default function DisponibilidadMedico(props) {
   };
   const cargar = async () => setBloques((await api(`/disponibilidad?medicoId=${props.medicoId}`)).sort((a,b) => dias.indexOf(a.dia_semana) - dias.indexOf(b.dia_semana) || a.hora_inicio.localeCompare(b.hora_inicio)));
   const limpiarVista = () => { setFranjas([]); setConsultado(false); };
+  const reiniciarFormulario = () => {
+    setEditandoId(null); setDia("LUNES"); setInicio("08:00"); setFin("12:00"); setIntervalo(30); setSemanas(4);
+  };
   onMount(() => ejecutar(cargar));
   return <section aria-label="Disponibilidad médica">
     <Show when={error()}><p class="medico-error" role="alert">{error()}</p></Show>
@@ -28,20 +32,23 @@ export default function DisponibilidadMedico(props) {
     <div class="medico-grid">
       <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">＋</span><div><h2>Horarios de atención</h2><p>Define cuándo pueden reservar una cita con este médico.</p></div></div>
         <form class="disponibilidad-form" onSubmit={e => { e.preventDefault(); ejecutar(async () => {
-          await api("/disponibilidad", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ medicoId: Number(props.medicoId), diaSemana: dia(), horaInicio: inicio(), horaFin: fin(), intervaloMinutos: Number(intervalo()), semanasHabilitadas: Number(semanas()) }) });
-          limpiarVista(); setMensaje("Horario guardado. Ya se aplica a las nuevas reservas."); await cargar();
+          const payload = { medicoId: Number(props.medicoId), diaSemana: dia(), horaInicio: inicio(), horaFin: fin(), intervaloMinutos: Number(intervalo()), semanasHabilitadas: Number(semanas()) };
+          const editando = editandoId();
+          await api(editando ? `/disponibilidad/${editando}` : "/disponibilidad", { method: editando ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+          reiniciarFormulario(); limpiarVista(); setMensaje(editando ? "Cambios guardados. Las citas existentes se conservan." : "Horario guardado. Ya se aplica a las nuevas reservas."); await cargar();
         }); }}><fieldset disabled={ocupado() || !props.medicoId}>
+          <h3>{editandoId() ? "Editar bloque de atención" : "Nuevo bloque de atención"}</h3>
           <label for="disp-dia">Día de la semana</label><select id="disp-dia" value={dia()} onChange={e => setDia(e.currentTarget.value)}><For each={dias}>{d => <option>{d}</option>}</For></select>
           <div class="disponibilidad-row"><div><label for="disp-inicio">Hora de inicio</label><input id="disp-inicio" type="time" required value={inicio()} onInput={e => setInicio(e.currentTarget.value)} /></div><div><label for="disp-fin">Hora de fin</label><input id="disp-fin" type="time" required value={fin()} onInput={e => setFin(e.currentTarget.value)} /></div></div>
           <div class="disponibilidad-row"><div><label for="disp-intervalo">Duración por cita (min)</label><input id="disp-intervalo" type="number" required min="1" max="1440" value={intervalo()} onInput={e => setIntervalo(e.currentTarget.value)} /></div><div><label for="disp-semanas">Semanas habilitadas</label><input id="disp-semanas" type="number" required min="1" value={semanas()} onInput={e => setSemanas(e.currentTarget.value)} /></div></div>
           <p class="disponibilidad-hint">Las semanas cuentan desde hoy y se renuevan diariamente. Los horarios usan la hora de Colombia.</p>
-          <p class="disponibilidad-hint">Guardar el mismo día y horario actualiza su duración y semanas. Para cambiar las horas, desactiva el bloque anterior y crea uno nuevo.</p>
-          <button class="btn btn-primary" type="submit">{ocupado() ? "Procesando…" : "Guardar horario"}</button>
+          <p class="disponibilidad-hint">Al editar, se actualizan el día, la franja, la duración y las semanas del bloque. Las citas ya registradas se conservan.</p>
+          <div class="admin-actions"><button class="btn btn-primary" type="submit">{ocupado() ? "Procesando…" : editandoId() ? "Guardar cambios" : "Guardar horario"}</button><Show when={editandoId()}><button class="medico-outline" type="button" disabled={ocupado()} onClick={reiniciarFormulario}>Cancelar edición</button></Show></div>
         </fieldset></form>
       </section>
       <section class="medico-card" aria-busy={ocupado()}><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">☷</span><div><h2>Bloques activos</h2><p>Puedes configurar varios bloques por día.</p></div></div><div class="medico-detail-body">
         <button class="medico-outline" disabled={ocupado()} onClick={() => ejecutar(cargar)}>Actualizar horarios</button>
-        <Show when={bloques().length} fallback={<p class="medico-empty">{ocupado() ? "Consultando…" : "Aún no hay horarios cargados."}</p>}><For each={bloques()}>{b => <article class="disponibilidad-block"><strong>{b.dia_semana}</strong><p>{b.hora_inicio.slice(0,5)} – {b.hora_fin.slice(0,5)}</p><small>Citas de {b.intervalo_minutos} min · {b.semanas_habilitadas} semanas</small><div class="disponibilidad-actions"><button class="medico-outline" disabled={ocupado()} onClick={() => { setDia(b.dia_semana); setInicio(b.hora_inicio.slice(0,5)); setFin(b.hora_fin.slice(0,5)); setIntervalo(b.intervalo_minutos); setSemanas(b.semanas_habilitadas); document.getElementById("disp-intervalo")?.focus(); }}>Editar duración</button><button class="medico-outline" disabled={ocupado()} onClick={() => setPendiente(b.id)}>Desactivar</button></div>
+        <Show when={bloques().length} fallback={<p class="medico-empty">{ocupado() ? "Consultando…" : "Aún no hay horarios cargados."}</p>}><For each={bloques()}>{b => <article class="disponibilidad-block"><strong>{b.dia_semana}</strong><p>{b.hora_inicio.slice(0,5)} – {b.hora_fin.slice(0,5)}</p><small>Citas de {b.intervalo_minutos} min · {b.semanas_habilitadas} semanas</small><div class="disponibilidad-actions"><button class="medico-outline" disabled={ocupado()} onClick={() => { setDia(b.dia_semana); setInicio(b.hora_inicio.slice(0,5)); setFin(b.hora_fin.slice(0,5)); setIntervalo(b.intervalo_minutos); setSemanas(b.semanas_habilitadas); setEditandoId(b.id); document.getElementById("disp-intervalo")?.focus(); }}>Editar bloque</button><button class="medico-outline" disabled={ocupado()} onClick={() => setPendiente(b.id)}>Desactivar</button></div>
           <Show when={pendiente() === b.id}><div class="disponibilidad-confirm"><p>Se retirará este horario de nuevas reservas. Las citas existentes se conservan.</p><button class="medico-outline" disabled={ocupado()} onClick={() => ejecutar(async () => { await api(`/disponibilidad/${b.id}?medicoId=${props.medicoId}`, { method: "DELETE" }); setPendiente(null); limpiarVista(); setMensaje("Bloque desactivado. Las citas existentes se conservan."); await cargar(); })}>Confirmar desactivación</button> <button class="medico-outline" disabled={ocupado()} onClick={() => setPendiente(null)}>Volver</button></div></Show>
         </article>}</For></Show>
       </div></section>

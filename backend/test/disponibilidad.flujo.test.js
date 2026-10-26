@@ -56,6 +56,60 @@ test("un bloque superpuesto revierte la transacción y libera la conexión", asy
   assert.equal(consultas.some(sql => sql.includes("INSERT")), false);
 });
 
+test("administrador consulta, crea, edita y desactiva bloques conservando las citas", async t => {
+  let bloques = [];
+  const citas = [{ id: 51, medico_id: 12, estado: "CONFIRMADA" }];
+  const repo = {
+    guardar: async d => {
+      const bloque = { id: 1, medico_id: d.medicoId, dia_semana: d.diaSemana, hora_inicio: d.horaInicio, hora_fin: d.horaFin, intervalo_minutos: d.intervaloMinutos, semanas_habilitadas: d.semanasHabilitadas, activo: true };
+      bloques = [bloque];
+      return bloque;
+    },
+    actualizar: async (id, d) => {
+      const bloque = bloques.find(b => b.id === id && b.activo);
+      if (!bloque) return null;
+      Object.assign(bloque, { dia_semana: d.diaSemana, hora_inicio: d.horaInicio, hora_fin: d.horaFin, intervalo_minutos: d.intervaloMinutos, semanas_habilitadas: d.semanasHabilitadas });
+      return bloque;
+    },
+    buscarPorMedico: async medicoId => bloques.filter(b => b.medico_id === medicoId && b.activo),
+    buscarPorMedicoYDia: async (medicoId, dia) => bloques.filter(b => b.medico_id === medicoId && b.dia_semana === dia && b.activo),
+    desactivar: async (id, medicoId) => {
+      const bloque = bloques.find(b => b.id === id && b.medico_id === medicoId && b.activo);
+      if (bloque) bloque.activo = false;
+      return bloque ? { id } : null;
+    }
+  };
+  const service = new DisponibilidadService({ disponibilidadRepository: repo, citaRepository: { listarPorMedicoYFecha: async () => [] } });
+  const app = Fastify(); t.after(() => app.close());
+  app.decorate("authenticate", async (request, reply) => {
+    if (!request.headers.authorization) return reply.code(401).send({ error: "no auth" });
+    request.user = { rol: request.headers.authorization };
+  });
+  app.decorate("disponibilidadRepository", repo);
+  app.decorate("disponibilidadController", crearDisponibilidadController({ disponibilidadService: service }));
+  await app.register(disponibilidadRoutes);
+
+  const dto = { medicoId: 12, diaSemana: "LUNES", horaInicio: "08:00", horaFin: "10:00", intervaloMinutos: 30, semanasHabilitadas: 4 };
+  assert.equal((await app.inject({ url: "/?medicoId=12" })).statusCode, 401);
+  assert.equal((await app.inject({ url: "/?medicoId=12", headers: { authorization: "PACIENTE" } })).statusCode, 403);
+  assert.equal((await app.inject({ method: "POST", url: "/", headers: { authorization: "AGENDADOR" }, payload: dto })).statusCode, 403);
+  assert.equal((await app.inject({ method: "POST", url: "/", headers: { authorization: "ADMINISTRADOR" }, payload: dto })).statusCode, 201);
+  assert.equal((await app.inject({ url: "/?medicoId=12", headers: { authorization: "ADMINISTRADOR" } })).json().length, 1);
+
+  const nuevo = { ...dto, diaSemana: "MARTES", horaInicio: "09:00", horaFin: "10:30", intervaloMinutos: 30, semanasHabilitadas: 6 };
+  const respuesta = await app.inject({ method: "PUT", url: "/1", headers: { authorization: "ADMINISTRADOR" }, payload: nuevo });
+  assert.equal(respuesta.statusCode, 200);
+  assert.equal(respuesta.json().dia_semana, "MARTES");
+  assert.equal(respuesta.json().hora_inicio, "09:00");
+  assert.equal(respuesta.json().semanas_habilitadas, 6);
+  assert.equal((await app.inject({ method: "PUT", url: "/1", headers: { authorization: "MEDICO_TERAPISTA" }, payload: nuevo })).statusCode, 403);
+  assert.equal((await app.inject({ method: "PUT", url: "/1", headers: { authorization: "ADMINISTRADOR" }, payload: { ...nuevo, diaSemana: "OTRO" } })).statusCode, 400);
+
+  assert.equal((await app.inject({ method: "DELETE", url: "/1?medicoId=12", headers: { authorization: "ADMINISTRADOR" } })).statusCode, 200);
+  assert.equal(citas.length, 1);
+  assert.equal(citas[0].estado, "CONFIRMADA");
+});
+
 test("la reserva revalida disponibilidad bajo bloqueo antes de insertar", async () => {
   const { CitaRepository } = await import("../src/modules/citas/infrastructure/cita.repository.js");
   const consultas = [];
