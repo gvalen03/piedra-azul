@@ -87,4 +87,65 @@ export class AdminRepository {
       return result.rows[0];
     });
   }
+  async eliminarPerfil(tipo, id, actor) {
+    if (!perfiles[tipo]) throw fallo("Recurso inválido");
+    const dependencias = tipo === "medicos"
+      ? {
+          query: `SELECT
+            EXISTS (SELECT 1 FROM citas WHERE medico_id=$1) AS tiene_citas,
+            EXISTS (SELECT 1 FROM controles_medicos WHERE medico_id=$1) AS tiene_controles,
+            EXISTS (SELECT 1 FROM disponibilidades WHERE medico_id=$1) AS tiene_disponibilidades,
+            EXISTS (SELECT 1 FROM usuarios WHERE medico_id=$1) AS tiene_cuenta`,
+          nombres: [
+            ["tiene_citas", "citas (incluidas las canceladas)"],
+            ["tiene_controles", "controles médicos"],
+            ["tiene_disponibilidades", "disponibilidad"],
+            ["tiene_cuenta", "cuenta de usuario vinculada"]
+          ]
+        }
+      : {
+          query: `SELECT
+            EXISTS (SELECT 1 FROM citas WHERE paciente_id=$1) AS tiene_citas,
+            EXISTS (SELECT 1 FROM historias_clinicas WHERE paciente_id=$1) AS tiene_historia,
+            EXISTS (SELECT 1 FROM usuarios WHERE paciente_id=$1) AS tiene_cuenta`,
+          nombres: [
+            ["tiene_citas", "citas (incluidas las canceladas)"],
+            ["tiene_historia", "historia clínica"],
+            ["tiene_cuenta", "cuenta de usuario vinculada"]
+          ]
+        };
+    return this.transaccion(async client => {
+      await this.verificarActor(client, actor);
+      const perfil = await client.query(`SELECT id FROM ${tipo} WHERE id=$1 FOR UPDATE`, [id]);
+      if (!perfil.rows.length) throw fallo("Registro no encontrado", 404);
+
+      const relaciones = (await client.query(dependencias.query, [id])).rows[0];
+      const encontradas = dependencias.nombres.filter(([campo]) => relaciones[campo]).map(([, nombre]) => nombre);
+      if (encontradas.length) {
+        throw fallo(`No se puede eliminar el perfil porque tiene ${encontradas.join(", ")}. Desactívalo en lugar de eliminarlo.`, 409);
+      }
+
+      await client.query(
+        `INSERT INTO auditorias (tipo_evento, descripcion, entidad_id, realizado_por, modulo_origen, datos_adicionales)
+         VALUES ($1,$2,$3,$4,'ADMINISTRACION',$5)`,
+        [
+          `${tipo.toUpperCase()}_ELIMINADO`,
+          `Eliminación irreversible de perfil de ${tipo === "medicos" ? "médico" : "paciente"}`,
+          String(id),
+          actor,
+          JSON.stringify({ tipoEntidad: tipo })
+        ]
+      );
+      try {
+        const resultado = await client.query(`DELETE FROM ${tipo} WHERE id=$1 RETURNING id`, [id]);
+        if (!resultado.rows.length) throw fallo("Registro no encontrado", 404);
+        return { id: resultado.rows[0].id, tipo, eliminado: true };
+      } catch (error) {
+        if (error.code === "23503") {
+          throw fallo("No se puede eliminar el perfil porque tiene registros relacionados. Desactívalo en lugar de eliminarlo.", 409);
+        }
+        throw error;
+      }
+    });
+  }
 }

@@ -18,14 +18,23 @@ test("crear usuario exige contraseña y solo entrega su hash al repositorio", as
   assert.equal(recibido.passwordHash, undefined);
   await assert.rejects(service.guardar("usuarios", 1, { ...usuario, password: "á".repeat(40) }, "admin"), { statusCode: 400 });
 });
-function repositorio({ propio = false, ultimo = false, vinculado = false, falloAuditoria = false } = {}) {
+function repositorio({ propio = false, ultimo = false, vinculado = false, falloAuditoria = false, dependencias = {}, perfilExiste = true, actorAdmin = true, falloFk = false } = {}) {
   const llamadas = [];
   const client = { query: async (sql, params) => {
     llamadas.push([sql, params]);
     if (sql.startsWith("SELECT id, username")) return { rows: [{ id: 1, username: propio ? "admin" : "otro", rol: "ADMINISTRADOR", activo: true }] };
     if (sql.includes("rol='ADMINISTRADOR' AND activo=TRUE AND id<>")) return { rows: ultimo ? [] : [{ id: 2 }] };
-    if (sql.includes("FROM usuarios WHERE medico_id=")) return { rows: vinculado ? [{ id: 8 }] : [] };
-    if (sql.includes("FROM medicos")) return { rows: [{ id: 3, activo: true }] };
+    if (sql.startsWith("SELECT id FROM usuarios WHERE medico_id=")) return { rows: vinculado ? [{ id: 8 }] : [] };
+    if (sql.startsWith("SELECT id FROM usuarios WHERE username=")) return { rows: actorAdmin ? [{ id: 1 }] : [] };
+    if (sql.includes("FOR UPDATE")) return { rows: perfilExiste ? [{ id: 3, activo: true }] : [] };
+    if (/^\s*SELECT\s+EXISTS/.test(sql)) {
+      const campos = [...sql.matchAll(/AS (tiene_\w+)/g)].map(([, campo]) => campo);
+      return { rows: [Object.fromEntries(campos.map(campo => [campo, Boolean(dependencias[campo])]))] };
+    }
+    if (sql.startsWith("DELETE FROM")) {
+      if (falloFk) throw Object.assign(new Error("foreign key violation"), { code: "23503" });
+      return { rows: [{ id: 3 }] };
+    }
     if (sql.startsWith("INSERT INTO auditorias") && falloAuditoria) throw new Error("Auditoría no disponible");
     return { rows: [{ id: 1 }] };
   }, release: () => llamadas.push(["release"]) };
@@ -59,6 +68,55 @@ test("revierte cambios si falla auditoría", async () => {
   await assert.rejects(repo.guardarPerfil("medicos", null, { nombre: "Ana", apellido: "G", numeroDocumento: "1", activo: true }, "admin"), /Auditoría/);
   assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["ROLLBACK", "release"]);
 });
+for (const [tipo, campos] of [
+  ["medicos", ["tiene_citas", "tiene_controles", "tiene_disponibilidades", "tiene_cuenta"]],
+  ["pacientes", ["tiene_citas", "tiene_historia", "tiene_cuenta"]]
+]) {
+  for (const campo of campos) {
+    test(`bloquea la eliminación de ${tipo} con dependencia ${campo}`, async () => {
+      const { repo, llamadas } = repositorio({ dependencias: { [campo]: true } });
+      await assert.rejects(repo.eliminarPerfil(tipo, 3, "admin"), {
+        statusCode: 409,
+        message: /Desactívalo en lugar de eliminarlo/
+      });
+      const consulta = llamadas.find(([sql]) => /^\s*SELECT\s+EXISTS/.test(sql))[0];
+      assert.match(consulta, /FROM citas/);
+      assert.doesNotMatch(consulta, /estado\s*=/i);
+      assert.equal(llamadas.some(([sql]) => sql.startsWith("DELETE FROM")), false);
+      assert.equal(llamadas.some(([sql]) => sql.startsWith("INSERT INTO auditorias")), false);
+      assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["ROLLBACK", "release"]);
+    });
+  }
+}
+test("elimina perfiles libres y conserva auditoría mínima dentro de la transacción", async () => {
+  const { repo, llamadas } = repositorio();
+  assert.deepEqual(await repo.eliminarPerfil("medicos", 3, "admin"), { id: 3, tipo: "medicos", eliminado: true });
+  const auditoria = llamadas.findIndex(([sql]) => sql.startsWith("INSERT INTO auditorias"));
+  const eliminacion = llamadas.findIndex(([sql]) => sql.startsWith("DELETE FROM medicos"));
+  assert.ok(auditoria >= 0 && auditoria < eliminacion);
+  assert.deepEqual(llamadas[auditoria][1], ["MEDICOS_ELIMINADO", "Eliminación irreversible de perfil de médico", "3", "admin", '{"tipoEntidad":"medicos"}']);
+  assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["COMMIT", "release"]);
+});
+test("no elimina si falla la auditoría", async () => {
+  const { repo, llamadas } = repositorio({ falloAuditoria: true });
+  await assert.rejects(repo.eliminarPerfil("pacientes", 3, "admin"), /Auditoría/);
+  assert.equal(llamadas.some(([sql]) => sql.startsWith("DELETE FROM")), false);
+  assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["ROLLBACK", "release"]);
+});
+test("una FK no inventariada también bloquea y revierte la eliminación", async () => {
+  const { repo, llamadas } = repositorio({ falloFk: true });
+  await assert.rejects(repo.eliminarPerfil("medicos", 3, "admin"), {
+    statusCode: 409,
+    message: /registros relacionados.*Desactívalo/
+  });
+  assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["ROLLBACK", "release"]);
+});
+test("no permite eliminar sin perfil ni con actor sin privilegios", async () => {
+  const faltante = repositorio({ perfilExiste: false });
+  await assert.rejects(faltante.repo.eliminarPerfil("medicos", 3, "admin"), { statusCode: 404 });
+  const sinPermiso = repositorio({ actorAdmin: false });
+  await assert.rejects(sinPermiso.repo.eliminarPerfil("pacientes", 3, "admin"), { statusCode: 403 });
+});
 test("administración requiere sesión vigente de administrador", async t => {
   const previo = process.env.JWT_SECRET;
   process.env.JWT_SECRET = "secreto-solo-pruebas-admin";
@@ -68,11 +126,16 @@ test("administración requiere sesión vigente de administrador", async t => {
   t.after(async () => { await app.close(); if (previo === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = previo; });
   await app.register(authPlugin, { db: { query: async () => ({ rows: [cuenta] }) } });
   app.decorate("adminRepository", { listar: async () => [] });
-  app.decorate("adminService", { guardar: async () => ({ id: 1 }) });
+  const eliminaciones = [];
+  app.decorate("adminService", { guardar: async () => ({ id: 1 }), eliminarPerfil: async (...args) => { eliminaciones.push(args); return { id: 3, tipo: args[0], eliminado: true }; } });
   await app.register(adminRoutes, { prefix: "/admin" });
   const token = rol => ({ authorization: `Bearer ${jwt.sign({ rol, version: Date.parse(fecha) }, process.env.JWT_SECRET, { subject: "admin" })}` });
   assert.equal((await app.inject("/admin/usuarios")).statusCode, 401);
   assert.equal((await app.inject({ url: "/admin/usuarios", headers: token("ADMINISTRADOR") })).statusCode, 200);
+  const eliminado = await app.inject({ method: "DELETE", url: "/admin/medicos/3", headers: token("ADMINISTRADOR") });
+  assert.equal(eliminado.statusCode, 200);
+  assert.deepEqual(eliminaciones, [["medicos", 3, "admin"]]);
+  assert.equal((await app.inject({ method: "DELETE", url: "/admin/usuarios/3", headers: token("ADMINISTRADOR") })).statusCode, 404);
   assert.equal((await app.inject({ method: "POST", url: "/admin/medicos", headers: token("ADMINISTRADOR"), payload: { nombre: " ", apellido: "G", numeroDocumento: "1", activo: true } })).statusCode, 400);
   cuenta = { ...cuenta, rol: "AGENDADOR" };
   assert.equal((await app.inject({ url: "/admin/usuarios", headers: token("AGENDADOR") })).statusCode, 403);

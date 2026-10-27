@@ -14,4 +14,7 @@ export class AdminService {
     }
     return this.repository.guardarPerfil(tipo, id, datos, actor);
   }
+  async eliminarPerfil(tipo, id, actor) {
+    return this.repository.eliminarPerfil(tipo, id, actor);
+  }
 }

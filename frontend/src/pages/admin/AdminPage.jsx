@@ -42,6 +42,20 @@ export default function AdminPage() {
       try { await cargar(); } catch (e) { setError(`El registro se guardó, pero no se pudo actualizar el listado. ${e.message}`); }
     } finally { setBusy(false); }
   };
+  const eliminar = async registro => {
+    if (busy() || !window.confirm("¿Eliminar permanentemente este perfil? La acción es irreversible. Si tiene relaciones o una cuenta vinculada, el sistema impedirá eliminarlo; considera desactivarlo.")) return;
+    const categoria = tipo(), id = registro.id;
+    setBusy(true); setError(""); setMensaje("");
+    try {
+      await api(`${categoria}/${id}`, { method: "DELETE" });
+      setMensaje("Perfil eliminado permanentemente.");
+      try { await cargar(); } catch (e) { setError(`El perfil se eliminó, pero no se pudo actualizar el listado. ${e.message}`); }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
   const perfilNombre = r => {
     const perfil = r.rol === "MEDICO_TERAPISTA" ? datos().medicos.find(m => String(m.id) === String(r.medico_id)) : r.rol === "PACIENTE" ? datos().pacientes.find(p => String(p.id) === String(r.paciente_id)) : null;
     return perfil ? `${perfil.nombre} ${perfil.apellido}` : "Sin perfil asociado";
@@ -58,7 +72,7 @@ export default function AdminPage() {
           <div class="admin-list-body"><div class="admin-actions"><button class="btn btn-primary" disabled={busy() || !listo()} onClick={() => setEditor({ registro:null })}>Crear {tipo() === "usuarios" ? "usuario" : tipo() === "medicos" ? "médico" : "paciente"}</button><button class="medico-outline" disabled={busy()} onClick={actualizar}>Actualizar</button></div>
             <div class="admin-filters"><label for="admin-buscar">Buscar<input id="admin-buscar" type="search" placeholder="Nombre, correo, usuario o documento" value={busqueda()} onInput={e => setBusqueda(e.currentTarget.value)} /></label><label for="admin-filtro-estado">Estado<select id="admin-filtro-estado" value={estado()} onChange={e => setEstado(e.currentTarget.value)}><option value="">Todos</option><option value="ACTIVO">Activos</option><option value="INACTIVO">Inactivos</option></select></label><Show when={tipo() === "usuarios"}><label for="admin-filtro-rol">Rol<select id="admin-filtro-rol" value={rol()} onChange={e => setRol(e.currentTarget.value)}><option value="">Todos los roles</option><For each={Object.entries(roles)}>{([value,label]) => <option value={value}>{label}</option>}</For></select></label></Show></div>
             <Show when={listo() && !visibles().length}><p class="medico-empty">No hay registros que coincidan con la búsqueda.</p></Show>
-            <ul class="admin-list"><For each={visibles()}>{r => <li><div class="admin-record"><div><strong>{r.nombre} {r.apellido || ""}</strong><small>{tipo() === "usuarios" ? `${r.username} · ${roles[r.rol]}` : `Documento: ${r.numero_documento}`}</small><small>{r.email || "Sin correo registrado"}</small><Show when={tipo() === "usuarios" && ["MEDICO_TERAPISTA", "PACIENTE"].includes(r.rol)}><small>Perfil: {perfilNombre(r)}</small></Show></div><span class={`medico-badge ${activo(r) ? "estado-atendida" : "estado-cancelada"}`}>{activo(r) ? "Activo" : "Inactivo"}</span></div><Show when={tipo() !== "usuarios" || Number(r.id) !== Number(auth.user()?.usuarioId)} fallback={<small class="admin-help">Tu cuenta actual</small>}><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>Editar</button></Show></li>}</For></ul>
+            <ul class="admin-list"><For each={visibles()}>{r => <li><div class="admin-record"><div><strong>{r.nombre} {r.apellido || ""}</strong><small>{tipo() === "usuarios" ? `${r.username} · ${roles[r.rol]}` : `Documento: ${r.numero_documento}`}</small><small>{r.email || "Sin correo registrado"}</small><Show when={tipo() === "usuarios" && ["MEDICO_TERAPISTA", "PACIENTE"].includes(r.rol)}><small>Perfil: {perfilNombre(r)}</small></Show></div><span class={`medico-badge ${activo(r) ? "estado-atendida" : "estado-cancelada"}`}>{activo(r) ? "Activo" : "Inactivo"}</span></div><Show when={tipo() !== "usuarios" || Number(r.id) !== Number(auth.user()?.usuarioId)} fallback={<small class="admin-help">Tu cuenta actual</small>}><div class="admin-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>Editar / Desactivar</button><Show when={tipo() !== "usuarios"}><button class="medico-outline" disabled={busy()} onClick={() => eliminar(r)}>Eliminar</button></Show></div></Show></li>}</For></ul>
           </div></section>
         <Show keyed when={editor()}>{ed => <AdminEditor tipo={tipo()} registro={ed.registro} medicos={datos().medicos} pacientes={datos().pacientes} busy={busy()} onSave={guardar} onClose={() => setEditor(null)} />}</Show>
       </div>
