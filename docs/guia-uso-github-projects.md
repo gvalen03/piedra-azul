@@ -2,107 +2,272 @@
 
 ## 1. Introducción
 
-El GitHub Project **Piedra Azul — Gestión de desarrollo** organiza el trabajo del Sprint 2 y el Product Backlog. El equipo lo usa para consultar responsables, prioridades, fechas, dependencias, criterios de aceptación y avance de los Issues.
+El proyecto **Piedra Azul** utiliza GitHub Projects como herramienta de planificación, organización y seguimiento de las actividades de desarrollo.
 
-- Repositorio: [gvalen03/piedra-azul](https://github.com/gvalen03/piedra-azul)
-- Project: [Piedra Azul — Gestión de desarrollo](https://github.com/users/gvalen03/projects/1)
+El tablero **Piedra Azul — Gestión de desarrollo** permite al equipo administrar los Issues del Sprint 2, consultar las responsabilidades de cada integrante, registrar avances y dar seguimiento al cumplimiento de los requisitos establecidos.
+
+Esta guía describe el procedimiento que deben seguir los integrantes para gestionar sus tareas, desarrollar funcionalidades y participar en el proceso de revisión e integración de cambios.
+
+**Enlaces del proyecto:**
+
+- **Repositorio:** [gvalen03/piedra-azul](https://github.com/gvalen03/piedra-azul)
+- **Tablero de gestión:** [Piedra Azul — Gestión de desarrollo](https://github.com/users/gvalen03/projects/1)
 
 ## 2. Acceso al tablero
 
-El Project es **privado** y requiere acceso concedido a la cuenta de GitHub de cada integrante. Según la confirmación visual del propietario, el Project está asociado al repositorio `gvalen03/piedra-azul` y ese repositorio es el predeterminado. Se puede abrir desde la pestaña **Projects** del repositorio o usando el enlace directo de arriba.
+El tablero está vinculado al repositorio oficial de Piedra Azul y puede consultarse desde la pestaña **Projects** de GitHub.
 
-La guía se actualizó con esa confirmación del propietario. En esta sesión `gh auth status` siguió indicando que el token local de `gvalen03` es inválido, así que no pude volver a consultar la configuración por API.
+Para ingresar:
+
+1. Iniciar sesión en GitHub con la cuenta autorizada.
+2. Acceder al repositorio `gvalen03/piedra-azul`.
+3. Seleccionar la pestaña **Projects**.
+4. Abrir **Piedra Azul — Gestión de desarrollo**.
+
+El Project tiene visibilidad **privada**, por lo que solo pueden acceder los integrantes autorizados.
+
+Cada colaborador dispone de permisos para consultar y actualizar las tareas del tablero, de acuerdo con el rol asignado.
 
 ## 3. Integrantes y permisos
 
-Los permisos del repositorio y los del Project son independientes: tener acceso a uno no concede automáticamente el mismo rol en el otro. Los permisos de repositorio determinan qué acciones se pueden hacer en el código y sus Issues/PR; el rol del Project permite consultar y editar el tablero según el nivel concedido.
+El equipo está conformado por cuatro integrantes que participan en la implementación, verificación y documentación del proyecto.
 
-Según la revisión visual que informó el propietario, `CarlosMartinez258` y `miguelperez80` tienen **Write** en el Project. También aparece una fila con inicio de sesión `krzo`, nombre visible `Karzozy` y rol **Write**. No se debe asumir que `krzo` y `Karzozy` son la misma cuenta: el nombre visible no confirma el login ni el ID de la cuenta. Esa identidad requiere verificación antes de atribuirle el acceso al integrante esperado o modificarlo. El acceso al repositorio de cada integrante no se confirmó en esta revisión.
+| Usuario de GitHub | Función |
+|---|---|
+| `gvalen03` | Propietario del repositorio y administrador del Project |
+| `miguelperez80` | Colaborador con permiso Write |
+| `CarlosMartinez258` | Colaborador con permiso Write |
+| `krzo` (nombre visible: Karzozy) | Colaborador con permiso Write |
 
-`gvalen03` es propietario del Project. No compartas tokens ni credenciales en Issues, PR o documentos.
+La identidad de la cuenta `krzo` fue comprobada mediante su identificador de GitHub. Corresponde al colaborador registrado con el ID `170581390`.
+
+Los permisos del repositorio y los del Project se administran de manera independiente. En consecuencia, cada integrante debe contar con acceso a ambos espacios para trabajar con normalidad.
+
+**Responsabilidades de los integrantes:**
+
+- Consultar las tareas que les fueron asignadas.
+- Mantener actualizado el estado de sus actividades.
+- Registrar los avances y dificultades encontrados.
+- Cumplir los criterios de aceptación establecidos.
+- Presentar las evidencias y pruebas correspondientes.
+- Participar en la revisión de cambios cuando sean designados.
 
 ## 4. Organización del tablero
 
-El Project tiene tres vistas:
+El GitHub Project está organizado en tres vistas principales.
 
-- **Sprint 2**: trabajo comprometido para el sprint.
-- **Product Backlog**: trabajo futuro aún no comprometido en el sprint.
-- **Cronograma**: seguimiento de objetivos por fecha.
+### 4.1. Sprint 2
 
-Los campos disponibles incluyen **Assignees** (responsable), **Status** (estado), **Prioridad**, **Sprint**, **Fecha objetivo**, **Estimación (puntos)**, **Módulo**, **Épica**, **Bloqueado**, **Dependencias** y progreso de sub-issues.
+Contiene las tareas comprometidas para la segunda iteración de desarrollo.
 
-Los estados configurados son **Backlog**, **Por hacer**, **En progreso**, **En revisión** y **Finalizado**. En la última inspección directa disponible, Sprint 2 tenía 17 Issues y Product Backlog no mostraba elementos; los Issues #26 y #27 no aparecían en esa vista. La confirmación posterior del vínculo y el acceso no incluyó el contenido de las vistas, por lo que hace falta comprobar que #26 (ADM-01) y #27 (ADM-02) ya estén en Product Backlog. Tampoco pude reconfirmar si Cronograma usa **Fecha objetivo**.
+Cada Issue representa una actividad relacionada con requisitos funcionales, seguridad, pruebas, arquitectura o documentación.
 
-No se cambian fechas: si un Issue no tiene fecha objetivo definida, debe permanecer sin fecha hasta que el equipo la acuerde.
+Los integrantes deben consultar esta vista para identificar sus responsabilidades y mantener actualizado el avance del sprint.
 
-## 5. Cómo consultar las tareas asignadas
+### 4.2. Product Backlog
 
-En las vistas del Project, usa el filtro de **Assignees** y selecciona tu cuenta. También puedes filtrar por texto, por ejemplo:
+Agrupa las actividades identificadas que no forman parte del alcance comprometido del Sprint 2.
+
+Actualmente incluye:
+
+- **ADM-01 (#26):** desactivación de registros con validaciones de dependencias.
+- **ADM-02 (#27):** eliminación física controlada de registros.
+
+Estas actividades permanecen en el backlog hasta que el equipo determine su incorporación a una iteración posterior.
+
+### 4.3. Cronograma
+
+Permite visualizar la planificación temporal de las tareas mediante sus fechas objetivo.
+
+El campo **Fecha objetivo** se utiliza como referencia para el seguimiento de los compromisos. La configuración de este campo en la vista Cronograma debe terminar de guardarse y verificarse.
+
+### 4.4. Estados de las tareas
+
+| Estado | Significado |
+|---|---|
+| **Backlog** | Actividad registrada para una futura iteración. |
+| **Por hacer** | Tarea asignada que todavía no ha comenzado. |
+| **En progreso** | Actividad en desarrollo por el responsable. |
+| **En revisión** | Trabajo implementado y pendiente de revisión o aprobación. |
+| **Finalizado** | Actividad validada e integrada conforme a los criterios establecidos. |
+
+Cada integrante debe actualizar el estado de sus tareas para reflejar su progreso real.
+
+## 5. Consulta de tareas asignadas
+
+Para visualizar las actividades propias:
+
+1. Ingresar a la vista **Sprint 2**.
+2. Abrir las opciones de filtrado.
+3. Seleccionar el campo **Assignees**.
+4. Escoger el usuario de GitHub correspondiente.
+
+También es posible utilizar filtros como:
 
 ```text
 assignee:gvalen03
 assignee:miguelperez80
 assignee:CarlosMartinez258
+assignee:krzo
 ```
 
-Para la persona cuyo nombre visible es Karzozy, confirma primero el login exacto: actualmente la fila reportada muestra `krzo`, que no coincide con el usuario esperado `Karzozy`.
+Los Issues también pueden consultarse directamente desde la pestaña **Issues** del repositorio.
 
-En la pestaña **Issues** del repositorio puedes usar la búsqueda `is:issue is:open assignee:USUARIO`, sustituyendo `USUARIO` por tu login. `assignee:@me` filtra las tareas asignadas a la cuenta con la que has iniciado sesión.
+Antes de comenzar una tarea, cada integrante debe revisar su descripción, prioridad, criterios de aceptación, dependencias y responsable de revisión.
 
-## 6. Cómo comenzar una tarea
+## 6. Inicio y desarrollo de una tarea
 
-1. Abre el Issue asignado y lee su descripción, criterios de aceptación, dependencias y Definition of Done.
-2. Si el trabajo está comprometido y vas a iniciarlo, cambia **Status** a **En progreso**.
-3. Actualiza tu rama local `dev` y crea una rama `feature` desde ella. Ejemplos de nombres, sin crear ramas aquí:
-   - `feature/RF-03-admin-disponibilidad`
-   - `feature/RF-05-consultar-citas-cedula`
-4. Implementa el alcance del Issue sin mezclar requisitos no relacionados.
-5. Ejecuta las pruebas pertinentes y registra comandos, resultados y limitaciones reales.
-6. Actualiza la documentación o evidencia que corresponda al cambio.
+Para garantizar la organización del trabajo, todas las funcionalidades deben desarrollarse mediante ramas independientes.
 
-## 7. Cómo marcar criterios cumplidos
+### Paso 1. Seleccionar el Issue
 
-Los criterios de aceptación suelen estar escritos como casillas Markdown:
+Identificar la tarea asignada y revisar los resultados esperados.
 
-- `[ ]` significa pendiente.
-- `[x]` significa completado.
+### Paso 2. Actualizar su estado
 
-Marca una casilla únicamente cuando hayas comprobado el criterio y puedas señalar evidencia, por ejemplo una prueba automatizada, una prueba manual reproducible o documentación técnica. No cambies el alcance del criterio para poder marcarlo.
+Cambiar el estado de **Por hacer** a **En progreso** cuando se inicie el desarrollo.
 
-## 8. Cómo enviar una tarea a revisión
+### Paso 3. Preparar la rama
 
-1. Crea commits descriptivos en tu rama siguiendo las convenciones del repositorio.
-2. Publica la rama en GitHub.
-3. Abre un Pull Request con destino a `dev`; no propongas integración directa a `main`.
-4. Relaciona el PR con su Issue mediante **Development → Link a pull request** o una referencia explícita en la descripción.
-5. Solicita revisión a otro integrante y responde a sus comentarios.
-6. Cuando el PR esté listo para revisión, cambia el estado del Issue a **En revisión**. Si se solicitan cambios, mantenlo en revisión hasta publicar las correcciones y actualizar la solicitud.
+Actualizar la rama local `dev` y crear una rama específica para la actividad.
 
-No dependas de palabras clave como `Closes #N` para cerrar Issues mediante un PR hacia `dev`: la rama predeterminada es `main` y las palabras clave de cierre se aplican al integrar en la rama predeterminada. Consulta la documentación de GitHub sobre [vincular un Pull Request con un Issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue).
+```bash
+git switch dev
+git pull --ff-only origin dev
+git switch -c feature/nombre-de-la-tarea
+```
 
-## 9. Cuándo marcar una tarea como Finalizado
+Ejemplos utilizados en Piedra Azul:
 
-Marca **Finalizado** solo cuando:
+```text
+feature/RF-03-admin-disponibilidad
+feature/RF-05-consultar-citas-cedula
+```
 
-- Se cumplan todos los criterios de aceptación.
-- Se hayan ejecutado las pruebas pertinentes y sus resultados estén registrados.
-- La evidencia y documentación estén actualizadas.
-- Otro integrante haya revisado y aprobado el Pull Request.
-- El PR se haya integrado correctamente en `dev`.
+Si la rama ya existe, debe utilizarse la existente en lugar de crear una duplicada.
 
-Completar las casillas de aceptación no cierra automáticamente el Issue. No cierres el Issue antes de completar la revisión y la integración. La última configuración comprobada tenía deshabilitadas las automatizaciones **Auto-close issue**, **Item closed**, **Pull request linked to issue** y **Pull request merged**; la única habilitada observada era **Auto-add sub-issues to project**. No se cambiaron automatizaciones y su estado actual requiere reconfirmación.
+### Paso 4. Implementar la funcionalidad
+
+Realizar únicamente los cambios correspondientes al Issue, respetando la arquitectura y las convenciones del repositorio.
+
+### Paso 5. Ejecutar pruebas
+
+Comprobar el funcionamiento de la implementación mediante pruebas automatizadas y, cuando corresponda, pruebas funcionales.
+
+### Paso 6. Documentar los resultados
+
+Registrar los cambios, las verificaciones realizadas, las evidencias y las limitaciones encontradas.
+
+## 7. Seguimiento de criterios de aceptación
+
+Cada Issue incluye criterios de aceptación que permiten verificar el cumplimiento de la actividad.
+
+Estos criterios pueden representarse mediante listas de verificación de Markdown:
+
+```markdown
+- [ ] Funcionalidad implementada.
+- [ ] Validaciones comprobadas.
+- [ ] Pruebas ejecutadas satisfactoriamente.
+- [ ] Evidencias documentadas.
+```
+
+Cuando un criterio se cumple y ha sido verificado, puede marcarse:
+
+```markdown
+- [x] Funcionalidad implementada.
+```
+
+**Importante:** marcar una casilla no significa que la tarea haya finalizado. El Issue debe cumplir todos los criterios de aceptación y superar el proceso de revisión correspondiente.
+
+Cuando exista alguna dificultad o dependencia, el responsable debe registrarla en el Issue para facilitar su seguimiento.
+
+## 8. Creación y revisión de Pull Requests
+
+Una vez completada la implementación y ejecutadas las pruebas, el responsable debe preparar los cambios para su integración.
+
+### Paso 1. Registrar los cambios
+
+Crear commits descriptivos que reflejen el trabajo realizado.
+
+Ejemplo:
+
+```bash
+git add ruta/del/archivo
+git commit -m "feat(disponibilidad): implementar configuración administrativa"
+```
+
+### Paso 2. Publicar la rama
+
+```bash
+git push -u origin nombre-de-la-rama
+```
+
+### Paso 3. Crear el Pull Request
+
+Desde GitHub, abrir un Pull Request con las siguientes ramas:
+
+- **Base:** `dev`
+- **Compare:** rama de la funcionalidad desarrollada.
+
+La descripción del PR debe incluir:
+
+- Issue relacionado.
+- Resumen de los cambios.
+- Criterios de aceptación cumplidos.
+- Pruebas ejecutadas y resultados.
+- Evidencias disponibles.
+- Limitaciones o aspectos pendientes.
+
+### Paso 4. Solicitar revisión
+
+El PR debe ser revisado por un integrante diferente de su autor.
+
+Durante la revisión se verifica que los cambios cumplan los requisitos, mantengan la calidad del código y no afecten otras funcionalidades.
+
+### Paso 5. Integrar los cambios
+
+Una vez aprobado el PR y satisfechas las verificaciones establecidas, los cambios pueden integrarse a `dev`.
+
+Las funcionalidades no deben integrarse directamente a `main`.
+
+## 9. Finalización de una tarea
+
+Una tarea puede pasar al estado **Finalizado** cuando se cumplen las siguientes condiciones:
+
+- Todos sus criterios de aceptación están satisfechos.
+- La implementación funciona según lo esperado.
+- Las pruebas correspondientes fueron ejecutadas y documentadas.
+- Las evidencias técnicas están disponibles.
+- El Pull Request fue revisado y aprobado.
+- Los cambios fueron integrados correctamente a `dev`.
+
+Después de verificar estas condiciones, se actualiza el estado del Issue y se realiza su cierre conforme al procedimiento del equipo.
+
+Actualmente, el Project no tiene habilitadas las automatizaciones de cierre y actualización por Pull Requests. Por ello, el equipo debe mantener manualmente el estado de las tareas.
 
 ## 10. Buenas prácticas de colaboración
 
-- No trabajes directamente sobre `main` ni `dev`; usa una rama de trabajo basada en `dev`.
-- Coordina antes de modificar archivos o Issues asignados a otra persona.
-- Mantén cada Issue relacionado con sus ramas y Pull Requests.
-- Procura que un PR cubra un requisito o conjunto de cambios estrechamente relacionado.
-- Conserva tus cambios locales: revisa `git status` antes de cambiar de rama y protege cambios que deban acompañarte.
-- No cierres Issues antes de la aprobación e integración del PR.
-- Registra bloqueos, dependencias y decisiones en el Issue para que el equipo pueda darles seguimiento.
-- Actualiza el estado del tablero cuando cambie realmente el avance; no marques progreso por trabajo aún no verificado.
+Para mantener un proceso de desarrollo organizado, todos los integrantes deben seguir estas recomendaciones:
 
-## Verificaciones pendientes
+1. **Respetar las asignaciones:** cada integrante debe trabajar principalmente sobre los Issues que tiene asignados.
+2. **Utilizar ramas independientes:** evitar cambios directos sobre `main` y `dev`.
+3. **Mantener los cambios relacionados:** cada Pull Request debe abordar una funcionalidad o actividad claramente definida.
+4. **Verificar antes de integrar:** ejecutar pruebas y revisar los cambios antes de solicitar un Pull Request.
+5. **Registrar evidencias:** documentar resultados relevantes para la sustentación y el documento de arquitectura.
+6. **Actualizar el tablero:** reflejar el avance real de las tareas para facilitar el seguimiento del Sprint 2.
+7. **Comunicar bloqueos:** informar oportunamente cuando una actividad dependa del trabajo de otro integrante.
+8. **Proteger los cambios locales:** comprobar el estado de Git antes de cambiar de rama o ejecutar operaciones que modifiquen el historial.
+9. **Participar en las revisiones:** responder observaciones y realizar las correcciones solicitadas.
+10. **Mantener la trazabilidad:** relacionar Issues, commits y Pull Requests para facilitar la identificación de cada contribución.
 
-La asociación del Project al repositorio, el repositorio predeterminado, la visibilidad privada y los roles de `CarlosMartinez258`, `miguelperez80` y la fila `krzo`/`Karzozy` se basan en la confirmación visual del propietario. Falta verificar directamente la identidad exacta de esa fila, los permisos de repositorio, la presencia de #26 y #27 en Product Backlog, la selección de **Fecha objetivo** en Cronograma y el estado actual de las automatizaciones. No se modificaron permisos, Issues, vistas, campos ni automatizaciones al preparar esta guía.
+---
+
+## Consideraciones finales
+
+GitHub Projects constituye el principal mecanismo de seguimiento del trabajo del equipo durante el Sprint 2 de Piedra Azul.
+
+Su utilización permite conocer las responsabilidades individuales, identificar actividades pendientes, registrar avances y verificar el cumplimiento de los compromisos adquiridos.
+
+Cada integrante es responsable de mantener actualizadas sus tareas y proporcionar evidencias verificables de su trabajo.
+
+**El cumplimiento de este flujo facilita la colaboración, la revisión del código y la entrega organizada de los resultados del proyecto.**
