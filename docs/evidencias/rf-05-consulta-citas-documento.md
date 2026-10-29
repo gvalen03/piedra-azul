@@ -1,81 +1,138 @@
-# Evidencia RF-05 — Consulta de citas por documento
+**EVIDENCIA TÉCNICA — RF-05: CONSULTA DE CITAS POR DOCUMENTO**
 
-Fecha de implementación y verificación: 28 de octubre de 2026. Issue: [#17 — RF-05 Consultar citas de paciente por cédula](https://github.com/gvalen03/piedra-azul/issues/17).
+**Proyecto:** Piedra Azul  
+**Requisito funcional:** RF-05 — Consultar citas de paciente por cédula  
+**Issue:** [#17 — RF-05](https://github.com/gvalen03/piedra-azul/issues/17)  
+**Responsable:** gvalen03  
+**Fecha de verificación:** 28 de octubre de 2026  
+**Rama:** `feature/RF-05-consultar-citas-cedula`
 
-## Interpretación del requisito
+---
 
-El PDF oficial del segundo corte, página 2, define RF-05 como la consulta por parte de médico/terapista/agendador de las citas de un paciente a partir de su cédula. El Issue #17 precisa búsqueda exacta y parametrizada, citas pasadas y futuras con sus estados, resultado consistente ante documentos sin coincidencias, acceso restringido y minimización de información clínica. La funcionalidad no es la consulta de controles o historia clínica.
+**1. Descripción del requisito**
 
-## Implementación
+El requisito funcional RF-05 permite que los usuarios con rol de **Agendador** o **Médico/Terapista** consulten las citas de un paciente mediante su número de documento de identificación.
 
-- Se añadió `GET /api/historial/pacientes/:documento/citas` dentro del módulo de historial.
-- La ruta exige autenticación y los roles `AGENDADOR` o `MEDICO_TERAPISTA`. Niega a `PACIENTE` y otros roles.
-- Para `MEDICO_TERAPISTA`, el `medicoId` se toma del usuario autenticado y se aplica como filtro de servidor; no se acepta un perfil médico enviado por el cliente. `AGENDADOR` puede consultar sin filtro de médico.
-- El repositorio usa igualdad exacta en `pacientes.numero_documento = $1` y parámetros SQL. Incluye todos los estados y fechas sin filtrar pasado/futuro.
-- Solo devuelve fecha, horario, estado, paciente (nombre y documento) y profesional (nombre); excluye motivo, controles, diagnóstico, tratamiento y otros datos clínicos.
-- Si no hay coincidencias, responde `200 { "citas": [] }`; no devuelve otros pacientes ni distingue si el documento existe sin citas.
-- Se reutilizó `authorize` y el usuario ya validado por el mecanismo de autenticación de la aplicación. No se modificó la integración central de Keycloak/JWT.
-- El componente `ConsultaCitasPaciente` se comparte entre el portal de agendador y el portal médico. Permite buscar por documento y muestra resultados pasados/futuros con sus estados.
+La consulta presenta las citas registradas, tanto pasadas como futuras, junto con su fecha, horario, estado y profesional asignado.
 
-## Evidencias de arquitectura
+El acceso a esta información está controlado según el rol del usuario. Los médicos y terapistas únicamente pueden consultar las citas asociadas a su propio perfil, mientras que los agendadores pueden consultar las citas de los pacientes sin esa restricción.
 
-```text
-Portal AGENDADOR / portal MEDICO_TERAPISTA
-  -> ConsultaCitasPaciente (SolidJS)
-  -> GET /api/historial/pacientes/:documento/citas (Fastify)
-  -> authenticate + authorize + ámbito del médico autenticado
-  -> HistorialService
-  -> HistorialRepository
-  -> PostgreSQL: pacientes JOIN citas JOIN medicos
-```
+La funcionalidad está orientada exclusivamente a la consulta de citas y no permite acceder a diagnósticos, tratamientos ni información de la historia clínica.
 
-La nueva consulta se mantiene bajo el módulo `historial` y no modifica `CitaRepository`, que el Issue reserva para el trabajo paralelo de RF-04. Los campos devueltos se limitan a una proyección para la tabla; la UI no recibe la entidad completa ni los controles clínicos.
+**2. Implementación realizada**
 
-## Archivos modificados
+La funcionalidad se desarrolló respetando la arquitectura de monolito modular utilizada en Piedra Azul, mediante la integración del backend Fastify, la base de datos PostgreSQL y el frontend SolidJS.
 
-- Backend: rutas, servicio, repositorio y esquema de parámetros del módulo `historial`.
-- Pruebas: `backend/test/historial.consulta.test.js`.
-- Frontend: componente compartido y CSS de consulta; integración en `CitasPage.jsx` y `MedicoPage.jsx`.
-- Evidencia: este documento.
+**Backend**
 
-## Pruebas y resultados
+Se implementó el endpoint:
 
-| Comando | Resultado |
+`GET /api/historial/pacientes/:documento/citas`
+
+Este servicio permite consultar las citas correspondientes a un documento de identificación y aplica las siguientes reglas:
+
+- Requiere que el usuario esté autenticado.
+- Autoriza únicamente a los roles `AGENDADOR` y `MEDICO_TERAPISTA`.
+- Restringe las consultas de los médicos y terapistas a sus propias citas.
+- Utiliza coincidencia exacta del documento mediante consultas SQL parametrizadas.
+- Incluye citas pasadas y futuras, independientemente de su estado.
+- Devuelve únicamente los datos necesarios para visualizar las citas.
+- Cuando no se encuentran registros, responde con una lista vacía sin exponer información adicional del paciente.
+
+La implementación reutiliza los mecanismos de autenticación y autorización existentes, sin modificar su funcionamiento central.
+
+**Frontend**
+
+Se desarrolló el componente `ConsultaCitasPaciente.jsx`, reutilizado en los paneles de Agendador y Médico/Terapista.
+
+La interfaz permite ingresar el documento de identificación, realizar la consulta y visualizar los resultados encontrados.
+
+También contempla los casos en los que el documento es inválido, no existen citas registradas o se presenta un error durante la solicitud.
+
+**3. Arquitectura de la solución**
+
+La consulta sigue el flujo de comunicación establecido en la arquitectura del proyecto:
+
+**Interfaz SolidJS** → **Ruta Fastify** → **Servicio de aplicación** → **Repositorio** → **PostgreSQL**
+
+Cada componente cumple una responsabilidad específica:
+
+| Componente | Responsabilidad |
 |---|---|
-| `node --test test/historial.module.test.js test/historial.consulta.test.js` (desde `backend/`) | 17/17 aprobadas, 0 fallidas. Incluye pruebas de repositorio, servicio, acceso por rol, ámbito de médico, documento vacío/largo, resultado vacío, exactitud y datos minimizados. |
-| `npm run build` (desde `frontend/`) | Correcto; Vite transformó 55 módulos y generó el bundle de producción. |
-| `npm test` (desde `backend/`) | 83 aprobadas, 8 fallidas de 91. |
-| Suite base limpia `npm test` sobre `HEAD` anterior a RF-05 | 75 aprobadas, 8 fallidas de 83. Se reprodujeron los mismos ocho fallos en la base. |
+| `ConsultaCitasPaciente.jsx` | Capturar el documento y presentar los resultados. |
+| `historial.routes.js` | Recibir la solicitud y aplicar los controles de acceso. |
+| `historial.service.js` | Coordinar las reglas de negocio de la consulta. |
+| `historial.repository.js` | Ejecutar la consulta parametrizada y aplicar el filtro del médico. |
+| PostgreSQL | Almacenar la información de pacientes, citas y médicos. |
 
-Los ocho fallos del conjunto completo ya aparecen en la revisión base: seis pruebas de reprogramación/actualización del módulo agendador, una aserción de SQL en `medico.agenda.test.js` y una aserción de SQL en `paciente.portal.test.js`. La suite ampliada mantiene exactamente esos ocho y añade ocho pruebas RF-05 aprobadas; no se editaron los archivos afectados por dichos fallos.
+La implementación permanece dentro del módulo `historial` y no modifica la lógica de administración y reprogramación de citas desarrollada por otros integrantes.
 
-## Validación de rama e Issue
+**4. Validaciones de seguridad**
 
-- Rama: `feature/RF-05-consultar-citas-cedula`.
-- `git fetch origin dev` actualizó `FETCH_HEAD`; coincide con la referencia local `origin/dev` (`79d1bfa5b63dbe7b637f6c598ab1126891aa3c52`). La rama ya contiene esa revisión; no se necesitó merge ni rebase.
-- El Issue #17 está asignado a `gvalen03`, marcado como Sprint 2 y dentro del milestone “Sprint 2 — 15 al 31 de octubre de 2026”.
-- Project #1 contiene 17 Issues de Sprint 2 y #17 conserva la asignación `gvalen03`.
+Se incorporaron controles para garantizar que la consulta sea segura y respete los permisos definidos en el sistema.
 
-## Pendiente y limitaciones
+- **Autenticación:** se exige una sesión válida antes de permitir el acceso.
+- **Autorización:** únicamente los roles habilitados pueden utilizar el servicio.
+- **Restricción por profesional:** el identificador del médico se obtiene del usuario autenticado y no de un valor proporcionado por el cliente.
+- **Prevención de inyección SQL:** se utilizan parámetros en las consultas a la base de datos.
+- **Protección de datos:** las respuestas excluyen diagnósticos, tratamientos, controles y demás información clínica.
+- **Validación de entradas:** se comprueba el documento recibido y se controlan las consultas sin resultados.
 
-- No se ejecutó prueba end-to-end contra PostgreSQL ni un recorrido de UI conectado a un Keycloak real. Las pruebas de RF-05 usan Fastify inject y repositorios controlados con datos sintéticos.
-- Antes de cerrar el Issue, probar el recorrido con un token real de Keycloak, verificar los claims/roles acordados y validar el aislamiento de médico con datos sintéticos en PostgreSQL.
-- No se creó commit, Pull Request ni se cerró el Issue. Los cambios quedan locales para revisión.
+Estas reglas se verificaron mediante pruebas automatizadas, aunque todavía está pendiente su comprobación integral con servicios reales.
 
-## Validación final de servicios reales — 28 de octubre de 2026
+**5. Archivos desarrollados o modificados**
 
-Se comprobó rama y estado antes de validar: la rama activa fue `feature/RF-05-consultar-citas-cedula`; los diez archivos locales corresponden a RF-05; no había cambios staged; `git diff --check` no reportó errores. El stash `stash@{0}: On feature/RF-03-admin-disponibilidad: Preservar plantilla y plan antes de RF-05` permaneció intacto.
-
-| Comprobación | Resultado observado |
+| Área | Archivos |
 |---|---|
-| `pg_isready -h 127.0.0.1 -p 5432` | `127.0.0.1:5432 - no response`. No se ejecutaron consultas ni escrituras en PostgreSQL. |
-| `docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'` | No pudo consultar Docker: el daemon no está disponible en `unix:///Users/valen/.docker/run/docker.sock`. |
-| E2E SQL con datos sintéticos | No ejecutada: no se confirmó una instancia PostgreSQL de pruebas separada de producción. No se usó ni modificó ninguna base. |
-| Flujo de UI para AGENDADOR y MEDICO_TERAPISTA | No ejecutado contra servicios: sin backend y base de datos disponibles, el flujo completo no es verificable. |
-| Keycloak real | No ejecutado. La revisión del código (`backend/src` y `frontend/src`) no encontró integración/configuración de Keycloak, OpenID Connect, JWKS o issuer. El servidor actual utiliza JWT local; por ello, esta validación no simula un token de Keycloak. |
-| Pruebas Fastify específicas | Repetidas en esta validación: 17/17 aprobadas. |
-| Build frontend | Repetido en esta validación: `npm run build` correcto; Vite transformó 55 módulos. |
+| Backend | `historial.routes.js`, `historial.service.js`, `historial.repository.js`, `historial.schema.js` |
+| Frontend | `ConsultaCitasPaciente.jsx`, `consulta-citas.css`, `CitasPage.jsx`, `MedicoPage.jsx` |
+| Pruebas | `historial.consulta.test.js` |
+| Documentación | `rf-05-consulta-citas-documento.md` |
 
-Por estas limitaciones no se verificaron contra PostgreSQL real las relaciones y consultas con registros sintéticos, las citas pasadas/futuras, los estados persistidos ni el aislamiento con datos de dos médicos. El acceso por roles, el ámbito de médico, la igualdad parametrizada, respuesta vacía y minimización de campos sí están cubiertos por las 17 pruebas específicas automatizadas, pero esas pruebas usan `Fastify inject` y repositorios controlados, no una base real ni Keycloak.
+**6. Pruebas realizadas y resultados**
 
-**Evaluación:** RF-05 está listo para revisión de código y pruebas automatizadas, pero la validación integral solicitada para servicios reales sigue pendiente. Antes de afirmar que el recorrido completo está validado, se necesita una base de pruebas aislada accesible y la integración/entorno de Keycloak acordado. No se alteraron archivos adicionales durante esta validación.
+Se ejecutaron pruebas automatizadas para comprobar la funcionalidad, las restricciones de acceso, las validaciones y la estructura de las respuestas.
+
+| Prueba | Resultado |
+|---|---|
+| Pruebas específicas de Historial y RF-05 | **17 de 17 aprobadas** |
+| Compilación del frontend con Vite | **Exitosa** |
+| Suite completa del backend | 83 aprobadas y 8 fallidas, de 91 |
+| Verificación `git diff --check` | Sin errores |
+| Integración con PostgreSQL real | Pendiente |
+| Prueba funcional completa de la interfaz | Pendiente |
+| Validación con Keycloak | Pendiente |
+
+Las pruebas específicas comprobaron la búsqueda exacta por documento, el tratamiento de resultados vacíos, los parámetros inválidos, las restricciones por rol, el aislamiento de las consultas del médico y la exclusión de información clínica.
+
+La suite general del backend presenta ocho pruebas fallidas que también se reprodujeron sobre la versión base anterior a RF-05. Estas corresponden a seis pruebas de reprogramación y actualización de citas, una prueba de agenda médica y una del portal del paciente.
+
+Por tanto, las fallas identificadas no se atribuyen a los cambios implementados en RF-05 y deberán atenderse dentro de las actividades de pruebas generales del proyecto.
+
+**7. Limitaciones y verificaciones pendientes**
+
+Aunque las pruebas automatizadas específicas fueron satisfactorias, no fue posible completar la validación con todos los servicios reales.
+
+**PostgreSQL:** la instancia local en `127.0.0.1:5432` no respondió. Por esta razón, no se ejecutaron consultas sobre una base de pruebas con información sintética.
+
+**Docker:** el servicio no estaba disponible en el entorno utilizado, por lo que no fue posible iniciar una instancia aislada de PostgreSQL mediante contenedores.
+
+**Interfaz:** no se ejecutó un recorrido funcional completo con los usuarios Agendador y Médico/Terapista conectados a una base de datos real.
+
+**Keycloak:** la integración con este proveedor de autenticación todavía no estaba presente en la versión revisada del proyecto. Las validaciones de autorización se realizaron utilizando los mecanismos existentes y pruebas controladas.
+
+Para completar la verificación integral será necesario comprobar el funcionamiento de RF-05 en un entorno de pruebas con PostgreSQL, validar la consulta desde ambos paneles y verificar su compatibilidad con Keycloak una vez que esté integrado.
+
+**8. Estado del requisito**
+
+RF-05 cuenta con su implementación de backend y frontend, pruebas automatizadas específicas satisfactorias y documentación técnica de los cambios realizados.
+
+La funcionalidad se encuentra **lista para revisión de código**, pero todavía tiene verificaciones de integración pendientes.
+
+Se recomienda conservar el Issue #17 abierto hasta completar las pruebas con los servicios correspondientes, obtener la aprobación del Pull Request y realizar la integración a la rama `dev`.
+
+**Conclusión**
+
+La implementación de RF-05 permite consultar las citas de un paciente mediante su documento de identificación, aplicando restricciones de acceso por rol y limitando la información presentada a los datos necesarios.
+
+Las pruebas automatizadas realizadas respaldan el funcionamiento de las reglas implementadas. No obstante, la validación completa deberá finalizarse cuando estén disponibles PostgreSQL y la integración de autenticación requerida para el proyecto.
