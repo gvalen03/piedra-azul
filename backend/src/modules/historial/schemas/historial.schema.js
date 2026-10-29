@@ -1,4 +1,13 @@
 export const citaParams = { type: "object", required: ["citaId"], properties: { citaId: { type: "integer", minimum: 1 } } };
+export const citasPorDocumentoParams = {
+  type: "object",
+  required: ["documento"],
+  additionalProperties: false,
+  properties: {
+    documento: { type: "string", minLength: 1, maxLength: 50, pattern: "\\S" }
+  }
+};
+
 export const registrarControlSchema = {
   params: citaParams,
   body: {

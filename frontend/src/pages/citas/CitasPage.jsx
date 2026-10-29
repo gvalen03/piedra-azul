@@ -9,6 +9,9 @@ import { apiJson } from "../../services/api-json.js";
 import RegistroPaciente
   from "../../components/pacientes/RegistroPaciente.jsx";
 
+import ConsultaCitasPaciente
+  from "../../components/citas/ConsultaCitasPaciente.jsx";
+
 import ReprogramarCita
   from "../../components/citas/ReprogramarCita.jsx";
 
@@ -403,6 +406,7 @@ function CitasPage() {
         <nav class="agendador-tabs" aria-label="Secciones del agendador">
           <button class="btn citas-btn-outline" disabled={ocupado()} aria-pressed={vista() === "citas"} onClick={() => setVista("citas")}>Gestión de citas</button>
           <button class="btn citas-btn-outline" disabled={ocupado()} aria-pressed={vista() === "pacientes"} onClick={() => setVista("pacientes")}>Registrar paciente</button>
+          <button class="btn citas-btn-outline" disabled={ocupado()} aria-pressed={vista() === "consulta"} onClick={() => setVista("consulta")}>Consultar citas por documento</button>
         </nav>
         <Show when={mensaje()}>
           <div
@@ -817,6 +821,7 @@ function CitasPage() {
 
           </fieldset>
         </Show>
+        <Show when={vista() === "consulta"}><ConsultaCitasPaciente /></Show>
         <footer class="citas-footer">
           PiedraAzul
           <span>•</span>

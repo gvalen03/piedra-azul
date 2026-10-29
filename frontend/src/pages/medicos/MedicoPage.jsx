@@ -1,4 +1,5 @@
 import AtencionMedica from "../../components/medicos/AtencionMedica.jsx";
+import ConsultaCitasPaciente from "../../components/citas/ConsultaCitasPaciente.jsx";
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { A, useNavigate } from "@solidjs/router";
 import { apiFetch } from "../../services/api.js";
@@ -64,6 +65,7 @@ function MedicoPage() {
         <Show when={aviso()}><p class="disponibilidad-success" role="status">{aviso()}</p></Show>
         <nav class="medico-tabs" aria-label="Secciones del panel">
           <button disabled={guardandoAtencion()} class="medico-outline" aria-pressed={vista() === "agenda"} onClick={() => { setVista("agenda"); consultar(); }}>Mi agenda</button>
+          <button disabled={guardandoAtencion()} class="medico-outline" aria-pressed={vista() === "consulta"} onClick={() => setVista("consulta")}>Consultar citas por documento</button>
         </nav>
         <Show when={vista() === "agenda"}>
         <section class="medico-toolbar" aria-label="Fecha de la agenda">
@@ -94,6 +96,7 @@ function MedicoPage() {
           </aside>
         </div>
         </Show>
+        <Show when={vista() === "consulta"}><ConsultaCitasPaciente /></Show>
         <footer class="medico-footer">PiedraAzul · Atención y bienestar</footer>
       </main>
     </div>
