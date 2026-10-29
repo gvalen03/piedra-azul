@@ -1,5 +1,11 @@
 export class HistorialService {
   constructor({ historialRepository }) { this.historialRepository = historialRepository; }
+  async consultarCitasPorDocumento(documento, medicoId = null) {
+    const normalizado = documento.trim();
+    if (!normalizado) throw Object.assign(new Error("Ingresa un documento válido"), { statusCode: 400 });
+    return this.historialRepository.listarCitasPorDocumento(normalizado, medicoId);
+  }
+
   async obtenerPorCita(citaId, medicoId) {
     const pacienteId = await this.historialRepository.pacienteDeCita(citaId, medicoId);
     return this.historialRepository.listarControlesPorPaciente(pacienteId);
