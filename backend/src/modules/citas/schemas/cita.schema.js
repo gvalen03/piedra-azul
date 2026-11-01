@@ -19,6 +19,26 @@ export const consultarCitasSchema = {
   }
 };
 
+// RF-04: medicoId es opcional porque el médico exporta siempre su propia
+// agenda (se toma del token); el agendador debe enviarlo.
+export const exportarCitasSchema = {
+  querystring: {
+    type: "object",
+    required: ["fecha"],
+    properties: {
+      medicoId: {
+        type: "integer",
+        minimum: 1
+      },
+
+      fecha: {
+        type: "string",
+        format: "date"
+      }
+    }
+  }
+};
+
 export const agendarCitaSchema = {
   body: {
     type: "object",

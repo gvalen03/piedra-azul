@@ -5,6 +5,7 @@ import { createSignal, onMount, For, Show } from "solid-js";
 
 import { useAuth } from "../../stores/auth.store.js";
 import { apiJson } from "../../services/api-json.js";
+import { descargarCsvAgenda } from "../../services/descarga-csv.js";
 
 import RegistroPaciente
   from "../../components/pacientes/RegistroPaciente.jsx";
@@ -233,6 +234,17 @@ function CitasPage() {
 
   const consultarCitas = () =>
     ejecutar(cargarCitas);
+
+  // RF-04: exporta a CSV las citas vigentes (sin canceladas) de la selección.
+  const exportarCitasCsv = () =>
+    ejecutar(async () => {
+      validarSeleccion();
+      await descargarCsvAgenda({
+        medicoId: medicoId(),
+        fecha: fecha()
+      });
+      setMensaje("Descarga del CSV iniciada.");
+    });
 
   // =========================
   // Actualizar agenda
@@ -746,6 +758,20 @@ function CitasPage() {
                     {consultandoCitas()
                       ? "Consultando..."
                       : "Consultar citas"}
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn citas-btn-outline citas-query"
+                    onClick={exportarCitasCsv}
+                    disabled={
+                      ocupado() ||
+                      !medicoId() ||
+                      !fecha()
+                    }
+                    title="Descarga las citas vigentes de la fecha (sin canceladas) en CSV"
+                  >
+                    Exportar CSV
                   </button>
 
                   <Show

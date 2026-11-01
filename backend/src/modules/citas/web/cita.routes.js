@@ -3,6 +3,7 @@ import { authorize }
 
 import {
   consultarCitasSchema,
+  exportarCitasSchema,
   agendarCitaSchema,
   confirmarCitaSchema
 } from "../schemas/cita.schema.js";
@@ -62,6 +63,26 @@ export async function citaRoutes(fastify) {
     const citas = await fastify.citaRepository.listarAgendaMedico(medicoId, request.query.fecha);
     return { citas };
   });
+
+  // RF-04: exportar la jornada de un médico/fecha a CSV.
+  // Roles: AGENDADOR y MEDICO_TERAPISTA. Autenticación y rol se comprueban
+  // antes de validar la consulta; el médico solo puede exportar su propia agenda.
+  fastify.get("/exportar", {
+    schema: exportarCitasSchema,
+    preValidation: [fastify.authenticate, authorize("AGENDADOR", "MEDICO_TERAPISTA")],
+    preHandler: async (request, reply) => {
+      if (request.user.rol !== "MEDICO_TERAPISTA") return;
+
+      const propio = Number(request.user.medicoId);
+      if (!Number.isSafeInteger(propio) || propio <= 0) {
+        return reply.code(403).send({ error: "Tu usuario no tiene un médico asociado. Contacta al administrador." });
+      }
+      if (request.query.medicoId !== undefined && Number(request.query.medicoId) !== propio) {
+        return reply.code(403).send({ error: "Solo puedes exportar tu propia agenda." });
+      }
+      request.query.medicoId = propio;
+    }
+  }, (request, reply) => fastify.citaController.exportarCsv(request, reply));
 
   fastify.get(
     "/",

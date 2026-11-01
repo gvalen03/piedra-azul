@@ -274,7 +274,9 @@ export async function buildApp() {
   // =========================
 
   await app.register(cors, {
-    origin: true
+    origin: true,
+    // RF-04: el navegador necesita leer el nombre del CSV en peticiones cross-origin
+    exposedHeaders: ["Content-Disposition"]
   });
 
   await app.register(authPlugin);
