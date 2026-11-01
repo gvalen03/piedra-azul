@@ -115,6 +115,9 @@ import { AuditoriaService }
 import { eventBus }
   from "./shared/event-bus.js";
 
+import { NotificadorCitas }
+  from "./modules/citas/application/cita-eventos.subscriber.js";
+
 
 export async function buildApp() {
   const app = Fastify({
@@ -252,6 +255,9 @@ export async function buildApp() {
   );
 
   app.decorate("citaRepository", citaRepository);
+
+  // Observer: suscribe al bus de eventos al observador que notifica las citas.
+  new NotificadorCitas({ logger: app.log }).registrar(eventBus);
 
   app.decorate(
     "citaController",
