@@ -19,7 +19,7 @@ export function crearCitaController({ citaService }) {
           error.message ||
           "Error al consultar las citas";
 
-        return reply.code(500).send({
+        return reply.code(error.statusCode || 500).send({
           error: mensaje
         });
       }

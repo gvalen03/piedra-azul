@@ -1,21 +1,70 @@
 import { Cita } from "../domain/cita.entity.js";
 import { EstadoCita } from "../domain/estado-cita.js";
 
+function esFechaValida(fecha) {
+  if (typeof fecha !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return false;
+  }
+
+  const [anio, mes, dia] = fecha.split("-").map(Number);
+  const date = new Date(Date.UTC(anio, mes - 1, dia));
+
+  return (
+    date.getUTCFullYear() === anio &&
+    date.getUTCMonth() === mes - 1 &&
+    date.getUTCDate() === dia
+  );
+}
+
 export class CitaService {
   constructor({
     citaRepository,
     disponibilidadService,
-    eventBus
+    eventBus,
+    medicoRepository
   }) {
     this.citaRepository = citaRepository;
     this.disponibilidadService = disponibilidadService;
     this.eventBus = eventBus;
+    this.medicoRepository = medicoRepository;
   }
 
+  /**
+   * RF-01: agenda de un médico en una fecha.
+   * Semántica: el listado incluye TODAS las citas del día, también las
+   * CANCELADA (se muestran con su estado). `cantidad` es el tamaño de ese
+   * mismo listado, por lo que resultado y conteo siempre coinciden.
+   */
   async consultarPorMedicoYFecha(medicoId, fecha) {
+    const id = Number(medicoId);
+
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      throw Object.assign(
+        new Error("El médico es obligatorio"),
+        { statusCode: 400 }
+      );
+    }
+
+    if (!esFechaValida(fecha)) {
+      throw Object.assign(
+        new Error("La fecha debe tener el formato AAAA-MM-DD"),
+        { statusCode: 400 }
+      );
+    }
+
+    const medico =
+      await this.medicoRepository.buscarPorId(id);
+
+    if (!medico) {
+      throw Object.assign(
+        new Error("Médico no encontrado"),
+        { statusCode: 404 }
+      );
+    }
+
     const citas =
       await this.citaRepository.listarAgendaMedico(
-        medicoId,
+        id,
         fecha
       );
 

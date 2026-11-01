@@ -189,7 +189,8 @@ export async function buildApp() {
     new CitaService({
       citaRepository,
       disponibilidadService,
-      eventBus
+      eventBus,
+      medicoRepository
     });
 
   const pacienteService =
