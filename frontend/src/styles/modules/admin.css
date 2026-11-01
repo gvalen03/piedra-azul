@@ -19,3 +19,17 @@
 .admin-page .medico-tabs { flex-wrap:wrap; }
 .admin-page .medico-badge { flex-shrink:0; }
 @media(max-width:850px) { .admin-grid-editor { grid-template-columns:1fr; } .admin-editor { grid-row:1; } }
+.admin-row-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.admin-estado-fijo { display:flex; align-items:center; gap:12px; margin-bottom:20px; font-size:13px; }
+.admin-dialog-fondo { position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:16px; background:rgba(20,32,30,.55); }
+.admin-dialog { width:min(520px,100%); max-height:calc(100vh - 32px); overflow:auto; background:#fff; border-radius:14px; padding:24px; box-shadow:0 18px 48px rgba(0,0,0,.25); font-size:14px; line-height:1.65; }
+.admin-dialog h2 { margin:0 0 12px; font-size:18px; color:var(--color-primary); }
+.admin-dialog p { margin:0 0 12px; }
+.admin-dialog-resultado { font-weight:600; }
+.admin-dialog details { margin:0 0 12px; font-size:12px; }
+.admin-dialog summary { cursor:pointer; color:var(--color-primary); }
+.admin-dialog-citas { margin:8px 0 0; padding-left:18px; max-height:160px; overflow:auto; color:var(--color-text-secondary); }
+.admin-dialog .admin-actions { justify-content:flex-end; margin-top:16px; }
+.admin-dialog-confirmar { background:#a63d2f; border-color:#a63d2f; }
+.admin-dialog-confirmar:disabled { opacity:.6; }
+@media(max-width:480px) { .admin-dialog { padding:18px; } .admin-dialog .admin-actions > button { flex:1; } }

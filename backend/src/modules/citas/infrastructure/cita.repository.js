@@ -627,4 +627,81 @@ export class CitaRepository {
       client.release();
     }
   }
+
+  // =========================
+  // ADM-01: citas pendientes de un perfil
+  // =========================
+
+  // Pendiente = PROGRAMADA o CONFIRMADA cuyo inicio aún no ocurre en hora
+  // America/Bogota (misma regla que actualizarEstado). Se conservan
+  // CANCELADA, ATENDIDA, las ya iniciadas/antiguas y los controles/historia.
+  static PENDIENTE_FUTURA = `
+    c.estado IN ('PROGRAMADA', 'CONFIRMADA')
+    AND (c.fecha + c.hora_inicio) > (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')`;
+
+  static #columnaPerfil(tipo) {
+    if (tipo === "medicos") return "medico_id";
+    if (tipo === "pacientes") return "paciente_id";
+    throw Object.assign(new Error("Recurso inválido"), { statusCode: 400 });
+  }
+
+  /**
+   * Lista las citas pendientes de un médico o paciente.
+   * `ejecutor` es un pool o un cliente de transacción. Con `bloquear` se
+   * toman bloqueos de fila (FOR UPDATE) en orden de id para que nadie las
+   * modifique hasta el fin de la transacción.
+   */
+  async listarPendientesDePerfil(ejecutor, tipo, id, { bloquear = false } = {}) {
+    const columna = CitaRepository.#columnaPerfil(tipo);
+    const result = await ejecutor.query(
+      `
+      SELECT
+        c.id,
+        c.fecha::text AS fecha,
+        c.hora_inicio,
+        c.hora_fin,
+        c.estado,
+        c.medico_id,
+        c.paciente_id
+      FROM citas c
+      WHERE c.${columna} = $1
+        AND ${CitaRepository.PENDIENTE_FUTURA}
+      ORDER BY c.fecha, c.hora_inicio, c.id
+      ${bloquear ? "FOR UPDATE OF c" : ""}
+      `,
+      [id]
+    );
+
+    return result.rows;
+  }
+
+  /**
+   * Cancela exactamente las citas indicadas, que deben seguir siendo
+   * pendientes. Si alguna ya no lo es (no debería ocurrir bajo bloqueo)
+   * lanza 409 y la transacción completa se revierte.
+   */
+  async cancelarPendientesPorIds(ejecutor, ids) {
+    if (!ids.length) return [];
+
+    const result = await ejecutor.query(
+      `
+      UPDATE citas c
+      SET estado = 'CANCELADA',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE c.id = ANY($1::bigint[])
+        AND ${CitaRepository.PENDIENTE_FUTURA}
+      RETURNING c.id
+      `,
+      [ids]
+    );
+
+    if (result.rows.length !== ids.length) {
+      throw Object.assign(
+        new Error("Las citas cambiaron durante la desactivación. Vuelve a intentarlo."),
+        { statusCode: 409 }
+      );
+    }
+
+    return result.rows.map((fila) => fila.id);
+  }
 }
