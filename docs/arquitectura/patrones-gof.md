@@ -20,7 +20,7 @@ Lista honesta de lo que existe en el código, dónde y con qué alcance.
 
 ## Factory + Builder
 
-- `PacienteFactory.crear(dto)` (factory estática/simple) decide cómo construir un `Paciente` y **delega en** `PacienteBuilder`, que arma el objeto paso a paso (`fechaNacimiento`, `email`, `direccion`, `eps`, `build`) con los campos opcionales en `null` por defecto.
+- `PacienteFactory.crearDesdeDTO(dto)` (factory estática/simple) decide cómo construir un `Paciente` y **delega en** `PacienteBuilder`, que arma el objeto paso a paso (`fechaNacimiento`, `email`, `direccion`, `eps`, `build`) con los campos opcionales en `null` por defecto.
 - Pruebas: `paciente.builder.test.js` (6) y las de la fábrica.
 - `UsuarioFactory` (`auth/domain`) existe y tiene pruebas, pero **no se usa en el flujo de producción**: no se afirma como patrón en uso.
 
