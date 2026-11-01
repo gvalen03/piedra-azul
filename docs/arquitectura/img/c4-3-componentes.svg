@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1250 880" width="1250" height="880" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#44546A"/></marker></defs>
+<rect width="1250" height="880" fill="#ffffff"/>
+<text x="20" y="28" font-size="17" font-weight="bold" fill="#0b1f33">C4 · Nivel 3 · Componentes del API REST</text>
+<rect x="20" y="50" width="1210" height="640" rx="10" fill="none" stroke="#6B7C8F" stroke-width="1.5" stroke-dasharray="7,5"/>
+<text x="32" y="68" font-size="12" font-weight="bold" fill="#44546A">API REST [Node.js + Fastify]</text>
+<rect x="40" y="90" width="270" height="125" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="175.0" y="127.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">auth</text>
+<text x="175.0" y="142.0" text-anchor="middle" font-size="11" fill="#0b1f33">[módulo]</text>
+<text x="175.0" y="157.0" text-anchor="middle" font-size="11" fill="#0b1f33">POST /login</text>
+<text x="175.0" y="172.0" text-anchor="middle" font-size="11" fill="#0b1f33">AuthService · UsuarioRepository</text>
+<text x="175.0" y="187.0" text-anchor="middle" font-size="11" fill="#0b1f33">Usuario (entidad y factory)</text>
+<rect x="340" y="90" width="270" height="125" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="475.0" y="134.5" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">medicos</text>
+<text x="475.0" y="149.5" text-anchor="middle" font-size="11" fill="#0b1f33">[módulo]</text>
+<text x="475.0" y="164.5" text-anchor="middle" font-size="11" fill="#0b1f33">GET /medicos y /medicos/:id</text>
+<text x="475.0" y="179.5" text-anchor="middle" font-size="11" fill="#0b1f33">MedicoService · MedicoRepository</text>
+<rect x="640" y="90" width="270" height="125" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="775.0" y="127.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">disponibilidad</text>
+<text x="775.0" y="142.0" text-anchor="middle" font-size="11" fill="#0b1f33">[módulo]</text>
+<text x="775.0" y="157.0" text-anchor="middle" font-size="11" fill="#0b1f33">Días, franjas e intervalo y</text>
+<text x="775.0" y="172.0" text-anchor="middle" font-size="11" fill="#0b1f33">cálculo de franjas libres</text>
+<text x="775.0" y="187.0" text-anchor="middle" font-size="11" fill="#0b1f33">DisponibilidadService</text>
+<rect x="940" y="90" width="270" height="125" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="1075.0" y="127.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">pacientes</text>
+<text x="1075.0" y="142.0" text-anchor="middle" font-size="11" fill="#0b1f33">[módulo]</text>
+<text x="1075.0" y="157.0" text-anchor="middle" font-size="11" fill="#0b1f33">Registro, /me y búsqueda por documento</text>
+<text x="1075.0" y="172.0" text-anchor="middle" font-size="11" fill="#0b1f33">PacienteFactory + PacienteBuilder</text>
+<text x="1075.0" y="187.0" text-anchor="middle" font-size="11" fill="#0b1f33">PacienteService · Repository</text>
+<rect x="40" y="290" width="270" height="125" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="175.0" y="327.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">admin</text>
+<text x="175.0" y="342.0" text-anchor="middle" font-size="11" fill="#0b1f33">[módulo]</text>
+<text x="175.0" y="357.0" text-anchor="middle" font-size="11" fill="#0b1f33">Alta y edición de usuarios,</text>
+<text x="175.0" y="372.0" text-anchor="middle" font-size="11" fill="#0b1f33">médicos y pacientes</text>
+<text x="175.0" y="387.0" text-anchor="middle" font-size="11" fill="#0b1f33">AdminService · AdminRepository</text>
+<rect x="340" y="290" width="270" height="140" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="475.0" y="327.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">citas</text>
+<text x="475.0" y="342.0" text-anchor="middle" font-size="11" fill="#0b1f33">[módulo]</text>
+<text x="475.0" y="357.0" text-anchor="middle" font-size="11" fill="#0b1f33">Agendar, confirmar, cancelar y</text>
+<text x="475.0" y="372.0" text-anchor="middle" font-size="11" fill="#0b1f33">reprogramar; listar por médico/fecha</text>
+<text x="475.0" y="387.0" text-anchor="middle" font-size="11" fill="#0b1f33">CitaService · CitaRepository</text>
+<text x="475.0" y="402.0" text-anchor="middle" font-size="11" fill="#0b1f33">Transacción con bloqueo de filas</text>
+<rect x="640" y="290" width="270" height="125" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="775.0" y="327.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">historial</text>
+<text x="775.0" y="342.0" text-anchor="middle" font-size="11" fill="#0b1f33">[módulo]</text>
+<text x="775.0" y="357.0" text-anchor="middle" font-size="11" fill="#0b1f33">Historia clínica y controles</text>
+<text x="775.0" y="372.0" text-anchor="middle" font-size="11" fill="#0b1f33">médicos de cada atención</text>
+<text x="775.0" y="387.0" text-anchor="middle" font-size="11" fill="#0b1f33">HistorialService · Repository</text>
+<rect x="940" y="290" width="270" height="125" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="1075.0" y="334.5" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">auditoria</text>
+<text x="1075.0" y="349.5" text-anchor="middle" font-size="11" fill="#0b1f33">[módulo]</text>
+<text x="1075.0" y="364.5" text-anchor="middle" font-size="11" fill="#0b1f33">Registro de eventos (JSONB)</text>
+<text x="1075.0" y="379.5" text-anchor="middle" font-size="11" fill="#0b1f33">AuditoriaService · Repository</text>
+<rect x="40" y="500" width="270" height="135" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="175.0" y="542.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">Seguridad compartida</text>
+<text x="175.0" y="557.0" text-anchor="middle" font-size="11" fill="#0b1f33">[shared/security]</text>
+<text x="175.0" y="572.0" text-anchor="middle" font-size="11" fill="#0b1f33">authenticate (JWT) y authorize (rol)</text>
+<text x="175.0" y="587.0" text-anchor="middle" font-size="11" fill="#0b1f33">JwtService · PasswordService (bcrypt)</text>
+<text x="175.0" y="602.0" text-anchor="middle" font-size="11" fill="#0b1f33">Lo usan las rutas de todos los módulos</text>
+<rect x="340" y="500" width="270" height="100" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="475.0" y="532.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">NotificadorCitas</text>
+<text x="475.0" y="547.0" text-anchor="middle" font-size="11" fill="#0b1f33">[Observer]</text>
+<text x="475.0" y="562.0" text-anchor="middle" font-size="11" fill="#0b1f33">Suscrito a cita.creada y</text>
+<text x="475.0" y="577.0" text-anchor="middle" font-size="11" fill="#0b1f33">cita.confirmada</text>
+<rect x="700" y="500" width="230" height="100" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="815.0" y="539.5" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">EventBus</text>
+<text x="815.0" y="554.5" text-anchor="middle" font-size="11" fill="#0b1f33">[Singleton · EventEmitter]</text>
+<text x="815.0" y="569.5" text-anchor="middle" font-size="11" fill="#0b1f33">shared/event-bus.js</text>
+<rect x="960" y="500" width="250" height="100" rx="6" fill="#85BBF0" stroke="#5E9BD6" stroke-width="1.5"/>
+<text x="1085.0" y="539.5" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b1f33">Pool de conexiones</text>
+<text x="1085.0" y="554.5" text-anchor="middle" font-size="11" fill="#0b1f33">[Singleton · pg.Pool]</text>
+<text x="1085.0" y="569.5" text-anchor="middle" font-size="11" fill="#0b1f33">Lo usan todos los repositorios</text>
+<path d="M960,754 v72 a125.0,14 0 0 0 250,0 v-72 a125.0,14 0 0 0 -250,0 a125.0,14 0 0 0 250,0" fill="#438DD5" stroke="#3C7FC0" stroke-width="1.5"/>
+<text x="1085.0" y="787.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">PostgreSQL</text>
+<text x="1085.0" y="802.0" text-anchor="middle" font-size="11" fill="#ffffff">[Base de datos]</text>
+<line x1="600.3" y1="430.0" x2="725.5" y2="500.0" stroke="#44546A" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="610.0" y1="550.0" x2="700.0" y2="550.0" stroke="#44546A" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="576.2" y1="290.0" x2="684.6" y2="215.0" stroke="#44546A" stroke-width="1.6" marker-end="url(#ar)" marker-start="url(#ar)"/>
+<line x1="1075.0" y1="215.0" x2="1075.0" y2="290.0" stroke="#44546A" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="1085.0" y1="600.0" x2="1085.0" y2="740.0" stroke="#44546A" stroke-width="1.6" marker-end="url(#ar)"/>
+<rect x="637.9" y="449.0" width="49.9" height="32" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="662.9" y="461.0" text-anchor="middle" font-size="10.5" fill="#1f2d3d">emite</text>
+<text x="662.9" y="474.0" text-anchor="middle" font-size="10.5" fill="#1f2d3d">eventos</text>
+<rect x="618.6" y="540.5" width="72.7" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="655.0" y="552.5" text-anchor="middle" font-size="10.5" fill="#1f2d3d">se suscribe</text>
+<rect x="582.7" y="243.0" width="95.5" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="630.4" y="255.0" text-anchor="middle" font-size="10.5" fill="#1f2d3d">usa las franjas</text>
+<rect x="1044.3" y="236.5" width="61.3" height="32" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="1075.0" y="248.5" text-anchor="middle" font-size="10.5" fill="#1f2d3d">registra</text>
+<text x="1075.0" y="261.5" text-anchor="middle" font-size="10.5" fill="#1f2d3d">auditoría</text>
+<rect x="1071.5" y="660.5" width="27.1" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="1085.0" y="672.5" text-anchor="middle" font-size="10.5" fill="#1f2d3d">SQL</text>
+</svg>

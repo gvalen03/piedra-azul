@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1450 860" width="1450" height="860" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#44546A"/></marker></defs>
+<rect width="1450" height="860" fill="#ffffff"/>
+<text x="20" y="28" font-size="17" font-weight="bold" fill="#0b1f33">Vista lógica · Modelo de dominio y relaciones (según las migraciones)</text>
+<rect x="30" y="50" width="280" height="175" rx="3" fill="#ffffff" stroke="#2F5F8F" stroke-width="1.5"/>
+<rect x="30" y="50" width="280" height="24" rx="3" fill="#DCE9F7" stroke="#2F5F8F" stroke-width="1.5"/>
+<text x="38" y="67" font-size="13" font-weight="bold" fill="#0b1f33">Paciente</text>
+<text x="38" y="87" font-size="11" fill="#0b1f33">id</text>
+<text x="38" y="102" font-size="11" fill="#0b1f33">nombre, apellido</text>
+<text x="38" y="117" font-size="11" fill="#0b1f33">numeroDocumento (único)</text>
+<text x="38" y="132" font-size="11" fill="#0b1f33">fechaNacimiento, genero</text>
+<text x="38" y="147" font-size="11" fill="#0b1f33">email (único), telefono, direccion</text>
+<text x="38" y="162" font-size="11" fill="#0b1f33">eps</text>
+<text x="38" y="177" font-size="11" fill="#0b1f33">estado: ACTIVO | INACTIVO</text>
+<rect x="400" y="50" width="280" height="175" rx="3" fill="#ffffff" stroke="#2F5F8F" stroke-width="1.5"/>
+<rect x="400" y="50" width="280" height="24" rx="3" fill="#DCE9F7" stroke="#2F5F8F" stroke-width="1.5"/>
+<text x="408" y="67" font-size="13" font-weight="bold" fill="#0b1f33">Usuario</text>
+<text x="408" y="87" font-size="11" fill="#0b1f33">id</text>
+<text x="408" y="102" font-size="11" fill="#0b1f33">username (único), password (hash)</text>
+<text x="408" y="117" font-size="11" fill="#0b1f33">nombre, email (único)</text>
+<text x="408" y="132" font-size="11" fill="#0b1f33">rol: ADMINISTRADOR | MEDICO_TERAPISTA</text>
+<text x="408" y="147" font-size="11" fill="#0b1f33">       | AGENDADOR | PACIENTE</text>
+<text x="408" y="162" font-size="11" fill="#0b1f33">activo</text>
+<text x="408" y="177" font-size="11" fill="#0b1f33">pacienteId?, medicoId? (perfil vinculado)</text>
+<rect x="770" y="50" width="280" height="135" rx="3" fill="#ffffff" stroke="#2F5F8F" stroke-width="1.5"/>
+<rect x="770" y="50" width="280" height="24" rx="3" fill="#DCE9F7" stroke="#2F5F8F" stroke-width="1.5"/>
+<text x="778" y="67" font-size="13" font-weight="bold" fill="#0b1f33">Médico</text>
+<text x="778" y="87" font-size="11" fill="#0b1f33">id</text>
+<text x="778" y="102" font-size="11" fill="#0b1f33">nombre, apellido</text>
+<text x="778" y="117" font-size="11" fill="#0b1f33">numeroDocumento (único)</text>
+<text x="778" y="132" font-size="11" fill="#0b1f33">email (único), telefono</text>
+<text x="778" y="147" font-size="11" fill="#0b1f33">activo</text>
+<rect x="30" y="330" width="280" height="105" rx="3" fill="#ffffff" stroke="#2F5F8F" stroke-width="1.5"/>
+<rect x="30" y="330" width="280" height="24" rx="3" fill="#DCE9F7" stroke="#2F5F8F" stroke-width="1.5"/>
+<text x="38" y="347" font-size="13" font-weight="bold" fill="#0b1f33">HistoriaClinica</text>
+<text x="38" y="367" font-size="11" fill="#0b1f33">id</text>
+<text x="38" y="382" font-size="11" fill="#0b1f33">pacienteId (único)</text>
+<text x="38" y="397" font-size="11" fill="#0b1f33">activa, fechaCreacion</text>
+<rect x="400" y="330" width="280" height="145" rx="3" fill="#ffffff" stroke="#2F5F8F" stroke-width="1.5"/>
+<rect x="400" y="330" width="280" height="24" rx="3" fill="#DCE9F7" stroke="#2F5F8F" stroke-width="1.5"/>
+<text x="408" y="347" font-size="13" font-weight="bold" fill="#0b1f33">Cita</text>
+<text x="408" y="367" font-size="11" fill="#0b1f33">id</text>
+<text x="408" y="382" font-size="11" fill="#0b1f33">pacienteId, medicoId</text>
+<text x="408" y="397" font-size="11" fill="#0b1f33">fecha, horaInicio, horaFin</text>
+<text x="408" y="412" font-size="11" fill="#0b1f33">estado: PROGRAMADA | CONFIRMADA</text>
+<text x="408" y="427" font-size="11" fill="#0b1f33">       | ATENDIDA | CANCELADA</text>
+<text x="408" y="442" font-size="11" fill="#0b1f33">motivo</text>
+<rect x="1140" y="330" width="280" height="145" rx="3" fill="#ffffff" stroke="#2F5F8F" stroke-width="1.5"/>
+<rect x="1140" y="330" width="280" height="24" rx="3" fill="#DCE9F7" stroke="#2F5F8F" stroke-width="1.5"/>
+<text x="1148" y="347" font-size="13" font-weight="bold" fill="#0b1f33">Disponibilidad</text>
+<text x="1148" y="367" font-size="11" fill="#0b1f33">id</text>
+<text x="1148" y="382" font-size="11" fill="#0b1f33">medicoId</text>
+<text x="1148" y="397" font-size="11" fill="#0b1f33">diaSemana</text>
+<text x="1148" y="412" font-size="11" fill="#0b1f33">horaInicio, horaFin</text>
+<text x="1148" y="427" font-size="11" fill="#0b1f33">intervaloMinutos</text>
+<text x="1148" y="442" font-size="11" fill="#0b1f33">semanasHabilitadas, activo</text>
+<rect x="770" y="590" width="280" height="175" rx="3" fill="#ffffff" stroke="#2F5F8F" stroke-width="1.5"/>
+<rect x="770" y="590" width="280" height="24" rx="3" fill="#DCE9F7" stroke="#2F5F8F" stroke-width="1.5"/>
+<text x="778" y="607" font-size="13" font-weight="bold" fill="#0b1f33">ControlMedico</text>
+<text x="778" y="627" font-size="11" fill="#0b1f33">id</text>
+<text x="778" y="642" font-size="11" fill="#0b1f33">historiaClinicaId, citaId, medicoId</text>
+<text x="778" y="657" font-size="11" fill="#0b1f33">fecha</text>
+<text x="778" y="672" font-size="11" fill="#0b1f33">motivoConsulta, observaciones</text>
+<text x="778" y="687" font-size="11" fill="#0b1f33">diagnostico, tratamiento</text>
+<text x="778" y="702" font-size="11" fill="#0b1f33">recomendaciones</text>
+<rect x="30" y="590" width="280" height="150" rx="3" fill="#ffffff" stroke="#2F5F8F" stroke-width="1.5"/>
+<rect x="30" y="590" width="280" height="24" rx="3" fill="#DCE9F7" stroke="#2F5F8F" stroke-width="1.5"/>
+<text x="38" y="607" font-size="13" font-weight="bold" fill="#0b1f33">Auditoria (sin claves foráneas)</text>
+<text x="38" y="627" font-size="11" fill="#0b1f33">id</text>
+<text x="38" y="642" font-size="11" fill="#0b1f33">tipoEvento, descripcion</text>
+<text x="38" y="657" font-size="11" fill="#0b1f33">entidadId, realizadoPor</text>
+<text x="38" y="672" font-size="11" fill="#0b1f33">moduloOrigen</text>
+<text x="38" y="687" font-size="11" fill="#0b1f33">datosAdicionales (JSONB), fecha</text>
+<line x1="400.0" y1="137.5" x2="310.0" y2="137.5" stroke="#44546A" stroke-width="1.6"/>
+<line x1="680.0" y1="129.9" x2="770.0" y2="125.1" stroke="#44546A" stroke-width="1.6"/>
+<line x1="292.2" y1="225.0" x2="438.8" y2="330.0" stroke="#44546A" stroke-width="1.6"/>
+<line x1="822.4" y1="185.0" x2="634.1" y2="330.0" stroke="#44546A" stroke-width="1.6"/>
+<line x1="997.6" y1="185.0" x2="1185.9" y2="330.0" stroke="#44546A" stroke-width="1.6"/>
+<line x1="170.0" y1="225.0" x2="170.0" y2="330.0" stroke="#44546A" stroke-width="1.6"/>
+<line x1="301.7" y1="435.0" x2="770.0" y2="621.7" stroke="#44546A" stroke-width="1.6"/>
+<line x1="637.5" y1="475.0" x2="792.3" y2="590.0" stroke="#44546A" stroke-width="1.6"/>
+<line x1="910.0" y1="185.0" x2="910.0" y2="590.0" stroke="#44546A" stroke-width="1.6"/>
+<rect x="327.2" y="128.0" width="55.6" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="355.0" y="140.0" text-anchor="middle" font-size="10.5" fill="#1f2d3d">* — 0..1</text>
+<rect x="697.2" y="118.0" width="55.6" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="725.0" y="130.0" text-anchor="middle" font-size="10.5" fill="#1f2d3d">* — 0..1</text>
+<rect x="338.9" y="262.8" width="38.5" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="358.1" y="274.8" text-anchor="middle" font-size="10.5" fill="#1f2d3d">1 — *</text>
+<rect x="718.4" y="240.8" width="38.5" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="737.7" y="252.8" text-anchor="middle" font-size="10.5" fill="#1f2d3d">1 — *</text>
+<rect x="1072.5" y="248.0" width="38.5" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="1091.8" y="260.0" text-anchor="middle" font-size="10.5" fill="#1f2d3d">1 — *</text>
+<rect x="142.2" y="268.0" width="55.6" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="170.0" y="280.0" text-anchor="middle" font-size="10.5" fill="#1f2d3d">1 — 0..1</text>
+<rect x="422.9" y="481.5" width="38.5" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="442.2" y="493.5" text-anchor="middle" font-size="10.5" fill="#1f2d3d">1 — *</text>
+<rect x="695.7" y="523.0" width="38.5" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="714.9" y="535.0" text-anchor="middle" font-size="10.5" fill="#1f2d3d">1 — *</text>
+<rect x="890.8" y="378.0" width="38.5" height="19" fill="#ffffff" fill-opacity="0.92" rx="3"/>
+<text x="910.0" y="390.0" text-anchor="middle" font-size="10.5" fill="#1f2d3d">1 — *</text>
+</svg>
