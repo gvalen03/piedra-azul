@@ -55,3 +55,43 @@ Las pruebas automatizadas usan Fastify injection y repositorios controlados. Ade
 - Resultado E2E: 7 grupos de comprobaciones aprobados: login JWT sintético de ADMINISTRADOR y PACIENTE; alta de disponibilidad y agendamiento previo; edición `PUT` que conservó el ID (sin duplicar), con lectura posterior de día, horas, intervalo y semanas; error 400 para intervalo inválido y 409 para solapamiento; rechazo 403 al rol PACIENTE; franjas nuevas reflejadas y posterior reserva HTTP; cita previa conservada con misma fecha, hora y estado.
 - Alcance pendiente: el recorrido comprobó la API y persistencia real, incluida la lectura equivalente a recargar los datos; no automatizó el navegador y por tanto no confirma el render visual de la pantalla ni la interacción DOM. La interfaz sí pasó el build de producción (53 módulos transformados). Las pruebas de agenda de extremo a extremo no usaron datos clínicos o personales reales.
 - La integración E2E no depende de Docker ni de `pg_isready` en `/tmp:5432`; la app pudo conectarse al PostgreSQL local definido por el entorno. No se aplicaron migraciones ni se modificaron tablas/esquemas durante la prueba.
+
+## Verificación manual de interfaz — 02-nov-2026
+
+Se realizó una revisión funcional desde el navegador utilizando
+la aplicación en ejecución local, con frontend SolidJS, backend
+Fastify y PostgreSQL. Las verificaciones se hicieron mediante
+Administración → Disponibilidad, con una cuenta de prueba de rol
+ADMINISTRADOR.
+
+- **Acceso y consulta inicial:** el administrador pudo ingresar
+  al módulo, seleccionar al profesional activo y visualizar
+  los bloques de disponibilidad existentes.
+- **Validación de formulario:** al introducir una duración de
+  cita igual a cero, la interfaz impidió guardar el valor inválido.
+- **Creación de disponibilidad:** se creó un bloque temporal para
+  el miércoles de 14:00 a 16:00, con intervalos de 30 minutos y
+  horizonte de 4 semanas. El sistema confirmó el guardado y lo
+  mostró en la lista de bloques activos.
+- **Edición de disponibilidad:** se modificó el mismo bloque,
+  ampliando la hora de finalización de 16:00 a 17:00. El cambio
+  se reflejó correctamente en la interfaz.
+- **Consulta de franjas:** para el miércoles 04-nov-2026,
+  la vista previa mostró seis franjas entre las 14:00 y
+  las 17:00, con intervalos de 30 minutos.
+- **Desactivación de disponibilidad:** se desactivó el bloque
+  temporal y se verificó que dejó de aparecer entre los bloques
+  activos. El horario original del lunes permaneció sin cambios.
+- **Pruebas complementarias:** las tres suites específicas de
+  disponibilidad finalizaron con 14 pruebas aprobadas y ninguna
+  fallida. El build de producción del frontend fue correcto.
+
+**Resultado:** las operaciones principales de RF-03 fueron
+verificadas satisfactoriamente desde la interfaz administrativa.
+Esta comprobación complementa las pruebas automatizadas y E2E
+registradas el 26-oct-2026.
+
+No se realizó una prueba manual específica de conservación de
+citas después de modificar un bloque con reservas existentes.
+Ese escenario se encuentra documentado en la ejecución E2E
+anterior.
