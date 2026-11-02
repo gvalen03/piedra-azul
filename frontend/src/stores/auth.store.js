@@ -1,4 +1,5 @@
 import { createSignal } from "solid-js";
+import { cerrarSesionKeycloak, isKeycloakAuthEnabled } from "../services/keycloak.service.js";
 
 const [user, setUser] = createSignal(null);
 const [token, setToken] = createSignal(null);
@@ -33,6 +34,7 @@ export function useAuth() {
 
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
+    if (isKeycloakAuthEnabled()) cerrarSesionKeycloak();
   };
 
   const restaurarSesion = () => {

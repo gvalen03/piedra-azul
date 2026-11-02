@@ -1,6 +1,7 @@
-import { createSignal } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
 
 import { login } from "../../services/auth.service.js";
+import { completarSesionKeycloak, iniciarSesionKeycloak, isKeycloakAuthEnabled } from "../../services/keycloak.service.js";
 import { useAuth } from "../../stores/auth.store.js";
 import { useNavigate } from "@solidjs/router";
 
@@ -17,8 +18,35 @@ function LoginPage() {
   const adminEmail = (import.meta.env.VITE_ADMIN_CONTACT_EMAIL || "administrador@piedraAzul.com").trim();
   const contactHref = `mailto:${encodeURIComponent(adminEmail)}?subject=${encodeURIComponent("Ayuda para ingresar a PiedraAzul")}&body=${encodeURIComponent("Hola, necesito ayuda para ingresar a PiedraAzul.\n\nMi nombre es:\nEl problema que tengo es:\n")}`;
   const navigate = useNavigate();
-
   const auth = useAuth();
+  const keycloakMode = isKeycloakAuthEnabled();
+
+  const navegarPorRol = rol => {
+    const rutas = {
+      PACIENTE: "/paciente",
+      MEDICO_TERAPISTA: "/medico",
+      AGENDADOR: "/citas",
+      ADMINISTRADOR: "/admin"
+    };
+    if (!rutas[rol]) throw new Error("Rol no reconocido");
+    navigate(rutas[rol], { replace: true });
+  };
+
+  onMount(async () => {
+    if (!keycloakMode || (!window.location.search.includes("code=") && !window.location.search.includes("error="))) return;
+    try {
+      setLoading(true);
+      setError("");
+      const session = await completarSesionKeycloak();
+      if (!session) return;
+      auth.iniciarSesion(session);
+      navegarPorRol(session.rol);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  });
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -46,26 +74,7 @@ function LoginPage() {
       console.log("Usuario:", data.nombre);
       console.log("Rol:", data.rol);
 
-      switch (data.rol) {
-        case "PACIENTE":
-          navigate("/paciente");
-          break;
-
-        case "MEDICO_TERAPISTA":
-          navigate("/medico");
-          break;
-
-        case "AGENDADOR":
-          navigate("/citas");
-          break;
-
-        case "ADMINISTRADOR":
-          navigate("/admin");
-          break;
-
-        default:
-          setError("Rol no reconocido");
-      }
+      navegarPorRol(data.rol);
 
     } catch (error) {
       setError(error.message);
@@ -110,7 +119,8 @@ function LoginPage() {
             </div>
           </div>
           <div class="login-card-body">
-            <form class="login-form" onSubmit={handleSubmit} aria-busy={loading()}>
+            <Show when={keycloakMode} fallback={
+              <form class="login-form" onSubmit={handleSubmit} aria-busy={loading()}>
               <div class="form-group">
                 <label class="form-label" for="username">Usuario</label>
                 <input
@@ -151,7 +161,26 @@ function LoginPage() {
                 </span>
               </button>
               <span class="login-status" role="status">{loading() ? "Iniciando sesión, espera un momento." : ""}</span>
-            </form>
+              </form>
+            }>
+              <div class="login-form" aria-busy={loading()}>
+                <Show when={error()}><p class="form-error login-error" role="alert">{error()}</p></Show>
+                <button type="button" class="btn btn-primary login-button" disabled={loading()} onClick={async () => {
+                  setError("");
+                  setLoading(true);
+                  try {
+                    await iniciarSesionKeycloak();
+                  } catch (error) {
+                    setError(error.message);
+                    setLoading(false);
+                  }
+                }}>
+                  <span>{loading() ? "Conectando con Keycloak…" : "Continuar con Keycloak"}</span>
+                  <span class={loading() ? "login-spinner" : "login-arrow"} aria-hidden="true">{loading() ? "" : "→"}</span>
+                </button>
+                <span class="login-status" role="status">{loading() ? "Redirigiendo al inicio de sesión seguro." : ""}</span>
+              </div>
+            </Show>
 
             <div class="login-help">
               <button

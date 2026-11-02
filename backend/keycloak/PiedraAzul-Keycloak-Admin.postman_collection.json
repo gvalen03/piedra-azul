@@ -1,0 +1,126 @@
+{
+  "info": {
+    "_postman_id": "e3d3cc36-a66c-4e42-9c2c-c10d75e6aefb",
+    "name": "Piedra Azul - Keycloak local provisioning",
+    "description": "Development-only Admin API flow. Secrets, passwords, user access tokens and generated Keycloak IDs are environment variables with empty values. The user must also have a matching local usuarios row and keycloak_subject binding before calling the API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": { "type": "noauth" },
+  "item": [
+    {
+      "name": "01 - Keycloak Admin API",
+      "item": [
+        {
+          "name": "Get service-account token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "client_credentials" },
+                { "key": "client_id", "value": "{{provisionerClientId}}" },
+                { "key": "client_secret", "value": "{{provisionerClientSecret}}" }
+              ]
+            },
+            "url": "{{keycloakBaseUrl}}/realms/{{realm}}/protocol/openid-connect/token"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('service account token issued', () => pm.response.to.have.status(200));",
+            "pm.environment.set('provisionerToken', pm.response.json().access_token || '');"
+          ] } }]
+        },
+        {
+          "name": "Create user",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{provisionerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"{{newUsername}}\",\"email\":\"{{newEmail}}\",\"enabled\":true,\"emailVerified\":false}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{keycloakBaseUrl}}/admin/realms/{{realm}}/users"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('user created', () => pm.response.to.have.status(201));",
+            "const location = pm.response.headers.get('Location') || '';",
+            "pm.environment.set('newUserId', location.split('/').pop());"
+          ] } }]
+        },
+        {
+          "name": "Get role representation",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{provisionerToken}}" }],
+            "url": "{{keycloakBaseUrl}}/admin/realms/{{realm}}/roles/{{appRole}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('realm role found', () => pm.response.to.have.status(200));",
+            "pm.environment.set('appRoleJson', JSON.stringify(pm.response.json()));"
+          ] } }]
+        },
+        {
+          "name": "Assign realm role to created user",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{provisionerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "[{{appRoleJson}}]", "options": { "raw": { "language": "json" } } },
+            "url": "{{keycloakBaseUrl}}/admin/realms/{{realm}}/users/{{newUserId}}/role-mappings/realm"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('realm role assigned', () => pm.response.to.have.status(204));"
+          ] } }]
+        },
+        {
+          "name": "Set temporary password for synthetic user",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{provisionerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"type\":\"password\",\"value\":\"{{newUserPassword}}\",\"temporary\":true}", "options": { "raw": { "language": "json" } } },
+            "url": "{{keycloakBaseUrl}}/admin/realms/{{realm}}/users/{{newUserId}}/reset-password"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('password set for one-time development test', () => pm.response.to.have.status(204));"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "02 - Call Piedra Azul API",
+      "item": [
+        {
+          "name": "Validate Keycloak user session and local profile binding",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+            "url": "{{apiBaseUrl}}/auth/session"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Keycloak JWT is accepted and linked to a local profile', () => pm.response.to.have.status(200));"
+          ] } }]
+        },
+        {
+          "name": "ADMINISTRADOR route authorization check",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+            "url": "{{apiBaseUrl}}/admin/usuarios"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('ADMINISTRADOR may access admin routes; other roles receive 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+          ] } }]
+        }
+      ]
+    }
+  ]
+}
