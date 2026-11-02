@@ -53,6 +53,14 @@ export class UsuarioRepository {
     return this.mapearUsuario(resultado.rows[0]);
   }
 
+  async actualizarPassword(username, passwordHash) {
+    const resultado = await this.db.query(`UPDATE usuarios
+      SET password=$1, updated_at=GREATEST(CURRENT_TIMESTAMP, updated_at + INTERVAL '1 millisecond')
+      WHERE username=$2 AND activo=TRUE
+      RETURNING id`, [passwordHash, username]);
+    return resultado.rows[0] ?? null;
+  }
+
   async listarPorRol(rol) {
     const resultado = await this.db.query(
       `

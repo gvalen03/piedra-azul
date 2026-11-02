@@ -54,3 +54,17 @@ export const registrarPacienteSchema = {
     }
   }
 };
+
+export const registroAutonomoPacienteSchema = {
+  body: {
+    type: "object",
+    additionalProperties: false,
+    required: ["nombre", "apellido", "numeroDocumento", "fechaNacimiento", "email", "telefono", "genero", "username", "password"],
+    properties: {
+      ...registrarPacienteSchema.body.properties,
+      email: { type: "string", format: "email", maxLength: 150 },
+      username: { type: "string", minLength: 1, maxLength: 100, pattern: "^[a-zA-Z0-9._-]+$" },
+      password: { type: "string", minLength: 8, maxLength: 72 }
+    }
+  }
+};

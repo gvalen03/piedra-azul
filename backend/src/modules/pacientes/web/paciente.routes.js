@@ -1,8 +1,11 @@
 
-import { registrarPacienteSchema } from "../schemas/paciente.schema.js";
+import { registrarPacienteSchema, registroAutonomoPacienteSchema } from "../schemas/paciente.schema.js";
 import { authorize } from "../../../shared/security/authorize.js";
 
 export async function pacienteRoutes(fastify) {
+  fastify.post("/registro", { schema: registroAutonomoPacienteSchema }, async (request, reply) =>
+    fastify.pacienteController.registrarAutonomo(request, reply)
+  );
   const propio = async (request, reply) => {
     const id = Number(request.user.pacienteId);
     if (!Number.isSafeInteger(id) || id <= 0) return reply.code(403).send({ error: "Tu cuenta no tiene un paciente asociado. Contacta al administrador." });

@@ -16,7 +16,7 @@ async function crear(t, user = { rol: "PACIENTE", pacienteId: 7 }) {
     buscarPorId: async id => { llamadas.push(["perfil", id]); return { id, nombre: "Ana", estado: "ACTIVO" }; },
     actualizarContacto: async (id, body) => { llamadas.push(["contacto", id, body]); return { id, ...body }; }
   });
-  app.decorate("pacienteController", { registrar: async () => ({}), buscarPorDocumento: async () => ({}) });
+  app.decorate("pacienteController", { registrar: async () => ({}), registrarAutonomo: async (req, reply) => { llamadas.push(["registro", req.body]); return reply.code(201).send({ id: 8 }); }, buscarPorDocumento: async () => ({}) });
   app.decorate("citaRepository", {
     listarPorPaciente: async id => { llamadas.push(["citas", id]); return []; },
     cambiarEstadoPaciente: async (id, pacienteId, estado) => { llamadas.push(["estado", id, pacienteId, estado]); return id === 10 ? { id, estado } : null; }
@@ -26,6 +26,13 @@ async function crear(t, user = { rol: "PACIENTE", pacienteId: 7 }) {
   await app.register(citaRoutes, { prefix: "/citas" });
   return { app, llamadas };
 }
+test("registro autónomo es público, valida sus credenciales y no acepta campos de rol", async t => {
+  const { app, llamadas } = await crear(t);
+  const payload = { nombre: "Ana", apellido: "G", numeroDocumento: "123", fechaNacimiento: "1990-01-01", email: "ana@test.com", telefono: "3001234567", genero: "MUJER", username: "ana.g", password: "clave-segura" };
+  assert.equal((await app.inject({ method: "POST", url: "/pacientes/registro", payload })).statusCode, 201);
+  assert.equal((await app.inject({ method: "POST", url: "/pacientes/registro", payload: { ...payload, rol: "ADMINISTRADOR" } })).statusCode, 201);
+  assert.equal(llamadas[1][1].rol, undefined);
+});
 test("perfil y citas se consultan exclusivamente con la identidad de la sesión", async t => {
   const { app, llamadas } = await crear(t);
   assert.equal((await app.inject("/pacientes/me?pacienteId=99")).json().id, 7);

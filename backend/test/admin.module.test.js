@@ -8,15 +8,52 @@ import { adminRoutes } from "../src/modules/admin/web/admin.routes.js";
 import { authPlugin } from "../src/modules/auth/plugins/auth.js";
 
 const usuario = { username: "nuevo", nombre: "Nuevo", email: "nuevo@example.com", rol: "AGENDADOR", activo: true };
-test("crear usuario exige contraseña y solo entrega su hash al repositorio", async () => {
+test("crear usuarios administrativos exige contraseña y las demás cuentas reciben activación segura", async () => {
   let recibido;
   const service = new AdminService({ repository: { guardarUsuario: async (_id, d) => { recibido = d; return { id: 1 }; } }, passwordService: { hash: async p => { assert.equal(p, "clave-segura"); return "hash"; } } });
-  await assert.rejects(service.guardar("usuarios", null, usuario, "admin"), { statusCode: 400 });
+  await assert.rejects(service.guardar("usuarios", null, { ...usuario, rol: "ADMINISTRADOR" }, "admin"), { statusCode: 400 });
   await service.guardar("usuarios", null, { ...usuario, password: "clave-segura" }, "admin");
   assert.equal(recibido.passwordHash, "hash"); assert.equal("password" in recibido, false);
   await service.guardar("usuarios", 1, usuario, "admin");
   assert.equal(recibido.passwordHash, undefined);
   await assert.rejects(service.guardar("usuarios", 1, { ...usuario, password: "á".repeat(40) }, "admin"), { statusCode: 400 });
+});
+test("una cuenta pendiente conserva solo hash del token y queda inactiva", async () => {
+  let recibido;
+  const service = new AdminService({ repository: { guardarUsuario: async (_id, d) => { recibido = d; return { id: 1 }; } }, passwordService: { hash: async () => "hash-aleatorio" } });
+  await service.guardar("usuarios", null, usuario, "admin");
+  assert.equal(recibido.activoCuenta, false);
+  assert.match(recibido.activationToken, /^[A-Za-z0-9_-]{32,}$/);
+  assert.match(recibido.activationTokenHash, /^[a-f0-9]{64}$/);
+  assert.equal("password" in recibido, false);
+});
+test("crear un perfil genera automáticamente la cuenta activa con su rol y vínculo", async () => {
+  let recibido;
+  const service = new AdminService({ repository: { guardarPerfil: async (_tipo, _id, datos) => { recibido = datos; return { id: 3 }; } }, passwordService: { hash: async password => `hash:${password}` } });
+  await service.guardar("medicos", null, { nombre: "Juan", apellido: "Pérez", numeroDocumento: "5678", email: "juanito@gmail.com", password: "clave-inicial", telefono: null, activo: true }, "admin");
+  assert.equal(recibido.crearCuenta, true);
+  assert.equal(recibido.username, "juanito-5678");
+  assert.equal(recibido.activoCuenta, true);
+  assert.equal(recibido.passwordHash, "hash:clave-inicial");
+  await service.guardar("pacientes", null, { nombre: "Ana", apellido: "G", numeroDocumento: "99", fechaNacimiento: "1990-01-01", email: "ana@example.com", password: "clave-inicial", telefono: "300", genero: "MUJER", estado: "ACTIVO" }, "admin");
+  assert.equal(recibido.username, "ana-99");
+});
+test("respeta el usuario elegido para la cuenta automática del perfil", async () => {
+  let recibido;
+  const service = new AdminService({ repository: { guardarPerfil: async (_tipo, _id, datos) => { recibido = datos; return { id: 3 }; } }, passwordService: { hash: async () => "hash-aleatorio" } });
+  await service.guardar("medicos", null, { nombre: "Juan", apellido: "Pérez", numeroDocumento: "5678", email: "juanito@gmail.com", username: "dr.juan", password: "clave-inicial", telefono: null, activo: true }, "admin");
+  assert.equal(recibido.username, "dr.juan");
+});
+test("no crea un perfil sin correo porque no puede crear una cuenta segura", async () => {
+  const service = new AdminService({ repository: {}, passwordService: { hash: async () => "hash" } });
+  await assert.rejects(service.guardar("medicos", null, { nombre: "Juan", apellido: "P", numeroDocumento: "1", email: null, password: "clave-inicial", telefono: null, activo: true }, "admin"), { statusCode: 400 });
+});
+test("activación solo envía hashes al repositorio", async () => {
+  let recibido;
+  const service = new AdminService({ repository: { consumirActivacion: async (...args) => { recibido = args; return { id: 8 }; } }, passwordService: { hash: async password => `hash:${password}` } });
+  await service.activarCuenta("x".repeat(48), "clave-segura");
+  assert.match(recibido[0], /^[a-f0-9]{64}$/);
+  assert.equal(recibido[1], "hash:clave-segura");
 });
 function repositorio({
   propio = false,

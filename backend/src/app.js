@@ -201,7 +201,8 @@ export async function buildApp() {
   const pacienteService =
     new PacienteService({
       pacienteRepository,
-      auditoriaService
+      auditoriaService,
+      passwordService
     });
 
   // =========================

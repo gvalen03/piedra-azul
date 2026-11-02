@@ -84,6 +84,26 @@ export class PacienteRepository {
     finally { client.release(); }
   }
 
+  async registrarConCuentaPropia(paciente, { username, passwordHash }) {
+    const client = await this.db.connect();
+    try {
+      await client.query("BEGIN");
+      const guardado = await new PacienteRepository(client).guardar(paciente);
+      const usuario = await client.query(`INSERT INTO usuarios (username, password, nombre, email, rol, activo, paciente_id)
+        VALUES ($1,$2,$3,$4,'PACIENTE',TRUE,$5) RETURNING id`,
+      [username, passwordHash, `${guardado.nombre} ${guardado.apellido}`.trim(), guardado.email, guardado.id]);
+      await client.query(`INSERT INTO auditorias (tipo_evento, descripcion, entidad_id, realizado_por, modulo_origen)
+        VALUES ('PACIENTE_REGISTRADO','Registro autónomo de paciente',$1,$2,'PACIENTES')`, [String(guardado.id), username]);
+      await client.query(`INSERT INTO auditorias (tipo_evento, descripcion, entidad_id, realizado_por, modulo_origen)
+        VALUES ('USUARIOS_CREADO','Cuenta creada por registro autónomo',$1,$2,'PACIENTES')`, [String(usuario.rows[0].id), username]);
+      await client.query("COMMIT");
+      return guardado;
+    } catch (e) {
+      await client.query("ROLLBACK");
+      throw e;
+    } finally { client.release(); }
+  }
+
   async guardar(paciente) {
     if (paciente.id) {
       const result = await this.db.query(

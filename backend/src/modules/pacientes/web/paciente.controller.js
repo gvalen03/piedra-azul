@@ -1,5 +1,14 @@
 export function crearPacienteController({ pacienteService }) {
   return {
+    registrarAutonomo: async (request, reply) => {
+      try {
+        const paciente = await pacienteService.registrarAutonomo(request.body);
+        return reply.code(201).send(paciente);
+      } catch (error) {
+        const status = error.statusCode || (error.code === "23505" ? 409 : 400);
+        return reply.code(status).send({ error: error.message || "No fue posible crear la cuenta" });
+      }
+    },
     registrar: async (request, reply) => {
       try {
         const paciente = await pacienteService.registrar(

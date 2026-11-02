@@ -15,7 +15,8 @@ export const medicoSchema = {
   type: "object", additionalProperties: false,
   required: ["nombre", "apellido", "numeroDocumento", "activo"],
   properties: { nombre: texto(100), apellido: texto(100), numeroDocumento: texto(50),
-    email: { ...opcional(150), format: "email" }, telefono: opcional(50), activo: { type: "boolean" } }
+    email: { ...opcional(150), format: "email" }, telefono: opcional(50), activo: { type: "boolean" },
+    username: { ...texto(100), pattern: "^[a-zA-Z0-9._-]+$" }, password: { type: "string", minLength: 8, maxLength: 72 } }
 };
 export const pacienteSchema = {
   type: "object", additionalProperties: false,
@@ -24,6 +25,7 @@ export const pacienteSchema = {
     fechaNacimiento: { type: "string", format: "date" }, telefono: texto(50),
     email: { ...opcional(150), format: "email" }, direccion: opcional(255), eps: opcional(150),
     genero: { type: "string", enum: ["HOMBRE", "MUJER", "OTRO"] },
-    estado: { type: "string", enum: ["ACTIVO", "INACTIVO"] } }
+    estado: { type: "string", enum: ["ACTIVO", "INACTIVO"] },
+    username: { ...texto(100), pattern: "^[a-zA-Z0-9._-]+$" }, password: { type: "string", minLength: 8, maxLength: 72 } }
 };
 export const idParams = { type: "object", required: ["id"], properties: { id: { type: "integer", minimum: 1 } } };

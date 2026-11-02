@@ -13,10 +13,22 @@ export default function AdminEditor(props) {
     numeroDocumento: registro?.numero_documento || "", email: registro?.email || "", telefono: registro?.telefono || "",
     fechaNacimiento: registro?.fecha_nacimiento?.slice(0,10) || "", direccion: registro?.direccion || "", eps: registro?.eps || "",
     genero: registro?.genero || "HOMBRE", estado: registro?.estado || "ACTIVO", activo: registro?.activo ?? true,
-    rol: registro?.rol || "AGENDADOR", medicoId: registro?.medico_id || "", pacienteId: registro?.paciente_id || "", password: ""
+    rol: registro?.rol || "AGENDADOR", medicoId: registro?.medico_id || "", pacienteId: registro?.paciente_id || "", password: "", crearCuenta: false
   });
   const [error, setError] = createSignal("");
   const cambiar = (key, value) => setDatos({ ...datos(), [key]: value });
+  const cargarPrueba = () => {
+    const esMedico = props.tipo === "medicos";
+    const codigo = Math.random().toString(36).slice(2, 8);
+    const tipo = esMedico ? "medico" : "paciente";
+    setDatos({ ...datos(),
+      nombre: `${esMedico ? "Medico" : "Paciente"}${codigo}`, apellido: "Prueba",
+      numeroDocumento: `TEST-${tipo.slice(0, 3).toUpperCase()}-${codigo.toUpperCase()}`,
+      email: `test.${tipo}.${codigo}@example.com`, telefono: "3000000000", username: tipo,
+      password: "12345678", fechaNacimiento: "1990-01-01", direccion: "Dirección de prueba",
+      eps: "EPS de prueba", genero: "OTRO", estado: "ACTIVO", activo: true
+    });
+  };
   const perfiles = () => datos().rol === "MEDICO_TERAPISTA" ? props.medicos : props.pacientes;
   const vincular = valor => {
     const key = datos().rol === "MEDICO_TERAPISTA" ? "medicoId" : "pacienteId";
@@ -32,7 +44,8 @@ export default function AdminEditor(props) {
         pacienteId: d.rol === "PACIENTE" ? Number(d.pacienteId) : null,
         ...(d.password ? { password: d.password } : {}) };
     } else {
-      payload = { nombre: d.nombre.trim(), apellido: d.apellido.trim(), numeroDocumento: d.numeroDocumento.trim(), email: d.email.trim() || null, telefono: d.telefono.trim() || null };
+      payload = { nombre: d.nombre.trim(), apellido: d.apellido.trim(), numeroDocumento: d.numeroDocumento.trim(), email: d.email.trim() || null, telefono: d.telefono.trim() || null,
+        ...(!registro ? { username: d.username.trim(), password: d.password } : {}) };
       if (props.tipo === "medicos") payload.activo = d.activo;
       else Object.assign(payload, { telefono: d.telefono.trim(), fechaNacimiento: d.fechaNacimiento, direccion: d.direccion.trim() || null, eps: d.eps.trim() || null, genero: d.genero, estado: d.estado });
     }
@@ -40,11 +53,13 @@ export default function AdminEditor(props) {
   };
   return <section class="medico-card admin-editor" aria-labelledby="admin-editor-title"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">＋</span><div><h2 id="admin-editor-title">{registro ? "Editar" : "Crear"} {props.tipo === "usuarios" ? "usuario" : props.tipo === "medicos" ? "médico" : "paciente"}</h2><p>Completa los datos y guarda los cambios.</p></div></div>
     <form class="admin-form" onSubmit={guardar}><fieldset disabled={props.busy}>
+      <Show when={props.tipo !== "usuarios" && !registro}><div class="admin-actions"><button class="medico-outline" type="button" onClick={cargarPrueba}>Generar datos de prueba</button><small class="admin-help">Se generan correo y documento aleatorios. Agrega un consecutivo al usuario base y cambia la contraseña fuera de pruebas.</small></div></Show>
       <Show when={props.tipo === "usuarios"}><label for="admin-rol">Rol<select id="admin-rol" value={datos().rol} onChange={e => setDatos({ ...datos(), rol: e.currentTarget.value, medicoId: "", pacienteId: "" })}><For each={Object.entries(roles)}>{([value,label]) => <option value={value}>{label}</option>}</For></select></label>
         <Show when={["PACIENTE", "MEDICO_TERAPISTA"].includes(datos().rol)}><label for="admin-perfil">Perfil vinculado<select id="admin-perfil" required value={datos().rol === "MEDICO_TERAPISTA" ? datos().medicoId : datos().pacienteId} onChange={e => vincular(e.currentTarget.value)}><option value="">Selecciona un perfil</option><For each={perfiles()}>{p => <option value={p.id}>{p.nombre} {p.apellido} · {p.numero_documento}{(p.activo === false || p.estado === "INACTIVO") ? " (inactivo)" : ""}</option>}</For></select></label><p class="admin-help">Si no aparece, crea primero el perfil en la sección de médicos o pacientes. Cada perfil puede vincularse a una sola cuenta.</p></Show>
       </Show>
-      <For each={props.tipo === "usuarios" ? camposUsuario : camposPerfil}>{([key,label,type,required,max]) => <label for={`admin-${key}`}>{label}{required || (key === "telefono" && props.tipo === "pacientes") ? " *" : " (opcional)"}<input id={`admin-${key}`} type={type} maxLength={max} required={required || (key === "telefono" && props.tipo === "pacientes")} value={datos()[key]} onInput={e => cambiar(key,e.currentTarget.value)} autocomplete={key === "username" ? "off" : undefined} /></label>}</For>
-      <Show when={props.tipo === "usuarios"}><label for="admin-password">{registro ? "Nueva contraseña (dejar vacía para conservar)" : "Contraseña inicial *"}<input id="admin-password" type="password" autocomplete="new-password" minLength="8" maxLength="72" required={!registro} value={datos().password} onInput={e => cambiar("password",e.currentTarget.value)} /></label><p class="admin-help">Mínimo 8 caracteres. Los cambios en una cuenta cierran sus sesiones anteriores.</p></Show>
+      <For each={props.tipo === "usuarios" ? camposUsuario : camposPerfil}>{([key,label,type,required,max]) => <label for={`admin-${key}`}>{label}{required || (key === "telefono" && props.tipo === "pacientes") || (key === "email" && !registro) ? " *" : " (opcional)"}<input id={`admin-${key}`} type={type} maxLength={max} required={required || (key === "telefono" && props.tipo === "pacientes") || (key === "email" && !registro)} value={datos()[key]} onInput={e => cambiar(key,e.currentTarget.value)} autocomplete={key === "username" ? "off" : undefined} /></label>}</For>
+      <Show when={props.tipo === "usuarios"}><label for="admin-password">{registro ? "Nueva contraseña (dejar vacía para conservar)" : datos().rol === "ADMINISTRADOR" ? "Contraseña inicial *" : "Contraseña (opcional)"}<input id="admin-password" type="password" autocomplete="new-password" minLength="8" maxLength="72" required={!registro && datos().rol === "ADMINISTRADOR"} value={datos().password} onInput={e => cambiar("password",e.currentTarget.value)} /></label><p class="admin-help">Sin contraseña se crea una cuenta inactiva con código de activación de un solo uso. Nunca compartas contraseñas.</p></Show>
+      <Show when={props.tipo !== "usuarios" && !registro}><label for="admin-profile-username">Usuario de inicio de sesión *<input id="admin-profile-username" type="text" maxLength="100" required value={datos().username} onInput={e => cambiar("username", e.currentTarget.value)} autocomplete="username" /></label><label for="admin-profile-password">Contraseña inicial *<input id="admin-profile-password" type="password" minLength="8" maxLength="72" required value={datos().password} onInput={e => cambiar("password", e.currentTarget.value)} autocomplete="new-password" /></label><p class="admin-help">Al guardar se creará automáticamente una cuenta {props.tipo === "medicos" ? "MÉDICO / TERAPISTA" : "PACIENTE"}, vinculada a este perfil. Entrega estas credenciales al titular por un canal seguro; podrá cambiar la contraseña al iniciar sesión.</p></Show>
       <Show when={props.tipo === "pacientes"}><label for="admin-nacimiento">Fecha de nacimiento *<input id="admin-nacimiento" type="date" required value={datos().fechaNacimiento} onInput={e => cambiar("fechaNacimiento",e.currentTarget.value)} /></label><label for="admin-genero">Género<select id="admin-genero" value={datos().genero} onChange={e => cambiar("genero",e.currentTarget.value)}><option value="HOMBRE">Hombre</option><option value="MUJER">Mujer</option><option value="OTRO">Otro</option></select></label><label for="admin-direccion">Dirección (opcional)<input id="admin-direccion" maxLength="255" value={datos().direccion} onInput={e => cambiar("direccion",e.currentTarget.value)} /></label><label for="admin-eps">EPS (opcional)<input id="admin-eps" maxLength="150" value={datos().eps} onInput={e => cambiar("eps",e.currentTarget.value)} /></label></Show>
       <label for="admin-estado">Estado<select id="admin-estado" value={props.tipo === "pacientes" ? datos().estado : datos().activo ? "ACTIVO" : "INACTIVO"} onChange={e => props.tipo === "pacientes" ? cambiar("estado",e.currentTarget.value) : cambiar("activo", e.currentTarget.value === "ACTIVO")}><option value="ACTIVO">Activo</option><option value="INACTIVO">Inactivo</option></select></label>
       <p class="admin-help">Desactivar bloquea el acceso de la cuenta o del perfil vinculado. Sus citas e historial se conservan.</p>

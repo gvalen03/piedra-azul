@@ -56,3 +56,24 @@ test("PacienteService registra un paciente y audita la acción", async () => {
   assert.equal(paciente.id, 1);
   assert.equal(paciente.email, "ana@test.com");
 });
+
+test("registro autónomo crea perfil y cuenta mediante una sola operación", async () => {
+  let recibido;
+  const service = new PacienteService({
+    pacienteRepository: {
+      existePorDocumento: async () => false,
+      existePorEmail: async () => false,
+      registrarConCuentaPropia: async (paciente, cuenta) => { recibido = { paciente, cuenta }; return { ...paciente, id: 7 }; }
+    },
+    auditoriaService: {},
+    passwordService: { hash: async password => `hash:${password}` }
+  });
+  const creado = await service.registrarAutonomo({
+    nombre: "Ana", apellido: "García", numeroDocumento: "987", fechaNacimiento: "1990-05-12", email: "ana@test.com",
+    telefono: "3010000000", direccion: null, eps: null, genero: "MUJER", username: "ana.g", password: "clave-segura"
+  });
+  assert.equal(creado.id, 7);
+  assert.equal(recibido.cuenta.username, "ana.g");
+  assert.equal(recibido.cuenta.passwordHash, "hash:clave-segura");
+  assert.equal("password" in recibido.paciente, false);
+});

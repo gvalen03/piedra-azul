@@ -9,8 +9,8 @@ function preparar(usuario = {}) {
     pacienteId: 34, medicoId: null, updatedAt: "2026-09-27T10:00:00Z",
     ...usuario
   };
-  const usuarioRepository = { buscarPorUsername: mock.fn(async () => datos) };
-  const passwordService = { comparar: mock.fn(async () => true) };
+  const usuarioRepository = { buscarPorUsername: mock.fn(async () => datos), actualizarPassword: mock.fn(async () => ({ id: 5 })) };
+  const passwordService = { comparar: mock.fn(async () => true), hash: mock.fn(async password => `hash:${password}`) };
   const jwtService = { generarToken: mock.fn(() => "token-de-prueba") };
   return {
     service: new AuthService({ usuarioRepository, passwordService, jwtService }),
@@ -67,6 +67,20 @@ test("login rechaza una contraseña incorrecta sin emitir un token", async () =>
 test("login permite usuarios sin indicador de perfil activo", async () => {
   const { service } = preparar({ perfilActivo: undefined });
   assert.equal((await service.login("prueba", "contraseña")).token, "token-de-prueba");
+});
+
+test("titular autenticado cambia su contraseña tras confirmar la actual", async () => {
+  const { service, usuarioRepository, passwordService } = preparar({ rol: "MEDICO_TERAPISTA", medicoId: 12, pacienteId: null });
+  await service.cambiarPassword("prueba", "actual-segura", "nueva-segura");
+  assert.deepEqual(passwordService.comparar.mock.calls[0].arguments, ["actual-segura", "hash"]);
+  assert.deepEqual(passwordService.hash.mock.calls[0].arguments, ["nueva-segura"]);
+  assert.deepEqual(usuarioRepository.actualizarPassword.mock.calls[0].arguments, ["prueba", "hash:nueva-segura"]);
+});
+test("no cambia contraseña si la actual no coincide", async () => {
+  const { service, usuarioRepository, passwordService } = preparar();
+  passwordService.comparar.mock.mockImplementation(async () => false);
+  await assert.rejects(service.cambiarPassword("prueba", "incorrecta", "nueva-segura"), /actual no es correcta/);
+  assert.equal(usuarioRepository.actualizarPassword.mock.callCount(), 0);
 });
 
 for (const dependencia of ["repositorio", "contraseña", "token"]) {

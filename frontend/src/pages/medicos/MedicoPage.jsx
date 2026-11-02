@@ -27,6 +27,10 @@ function MedicoPage() {
   const [seleccion, setSeleccion] = createSignal(null);
   const [cargando, setCargando] = createSignal(false);
   const [error, setError] = createSignal("");
+  const [passwordActual, setPasswordActual] = createSignal("");
+  const [passwordNueva, setPasswordNueva] = createSignal("");
+  const [cambiandoPassword, setCambiandoPassword] = createSignal(false);
+  const [errorPassword, setErrorPassword] = createSignal("");
   let solicitud = 0;
   const visibles = createMemo(() => citas().filter(cita =>
     (!estado() || cita.estado === estado()) &&
@@ -47,6 +51,15 @@ function MedicoPage() {
     } finally { if (actual === solicitud) setCargando(false); }
   };
   const cambiarFecha = (valor) => { setFecha(valor); consultar(); };
+  const guardarPassword = async event => {
+    event.preventDefault(); setErrorPassword(""); setCambiandoPassword(true);
+    try {
+      const response = await apiFetch("/auth/change-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ passwordActual: passwordActual(), passwordNueva: passwordNueva() }) });
+      if (!response.ok) { const data = await response.json(); throw new Error(data.error || "No fue posible cambiar la contraseña."); }
+      window.alert("Contraseña actualizada. Por seguridad debes iniciar sesión nuevamente.");
+      auth.cerrarSesion(); navigate("/", { replace: true });
+    } catch (err) { setErrorPassword(err.message); } finally { setCambiandoPassword(false); }
+  };
   const moverDia = (dias) => {
     const date = new Date(`${fecha() || hoy()}T12:00:00`);
     date.setDate(date.getDate() + dias);
@@ -66,6 +79,7 @@ function MedicoPage() {
         <nav class="medico-tabs" aria-label="Secciones del panel">
           <button disabled={guardandoAtencion()} class="medico-outline" aria-pressed={vista() === "agenda"} onClick={() => { setVista("agenda"); consultar(); }}>Mi agenda</button>
           <button disabled={guardandoAtencion()} class="medico-outline" aria-pressed={vista() === "consulta"} onClick={() => setVista("consulta")}>Consultar citas por documento</button>
+          <button disabled={guardandoAtencion()} class="medico-outline" aria-pressed={vista() === "cuenta"} onClick={() => setVista("cuenta")}>Mi contraseña</button>
         </nav>
         <Show when={vista() === "agenda"}>
         <section class="medico-toolbar" aria-label="Fecha de la agenda">
@@ -97,6 +111,7 @@ function MedicoPage() {
         </div>
         </Show>
         <Show when={vista() === "consulta"}><ConsultaCitasPaciente /></Show>
+        <Show when={vista() === "cuenta"}><section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">🔐</span><div><h2>Actualizar contraseña</h2><p>Confirma tu contraseña actual y define una nueva.</p></div></div><form class="medico-detail-body" onSubmit={guardarPassword}><fieldset disabled={cambiandoPassword()}><label for="password-actual">Contraseña actual<input id="password-actual" type="password" minLength="1" maxLength="72" required autocomplete="current-password" value={passwordActual()} onInput={e => setPasswordActual(e.currentTarget.value)} /></label><label for="password-nueva">Nueva contraseña<input id="password-nueva" type="password" minLength="8" maxLength="72" required autocomplete="new-password" value={passwordNueva()} onInput={e => setPasswordNueva(e.currentTarget.value)} /></label><Show when={errorPassword()}><p class="medico-error" role="alert">{errorPassword()}</p></Show><button class="btn btn-primary">{cambiandoPassword() ? "Actualizando…" : "Cambiar contraseña"}</button></fieldset></form></section></Show>
         <footer class="medico-footer">PiedraAzul · Atención y bienestar</footer>
       </main>
     </div>

@@ -27,6 +27,7 @@ for (const [rol, medicoId, pacienteId] of [
     });
     const app = Fastify();
     t.after(() => app.close());
+    app.decorate("authenticate", async request => { request.user = { username: "prueba" }; });
     app.decorate("authController", crearAuthController({ authService }));
     await app.register(authRoutes, { prefix: "/api/auth" });
 

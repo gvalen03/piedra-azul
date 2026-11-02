@@ -14,7 +14,7 @@ export default function AdminPage() {
   const auth = useAuth(), navigate = useNavigate();
   const [tipo,setTipo] = createSignal("usuarios"), [datos,setDatos] = createSignal({ usuarios: [], medicos: [], pacientes: [] });
   const [busqueda,setBusqueda] = createSignal(""), [estado,setEstado] = createSignal(""), [rol,setRol] = createSignal("");
-  const [editor,setEditor] = createSignal(null), [busy,setBusy] = createSignal(false), [error,setError] = createSignal(""), [mensaje,setMensaje] = createSignal("");
+  const [editor,setEditor] = createSignal(null), [busy,setBusy] = createSignal(false), [error,setError] = createSignal(""), [mensaje,setMensaje] = createSignal(""), [activationToken,setActivationToken] = createSignal("");
   const [listo,setListo] = createSignal(false);
   const [medicoDisponibilidadId, setMedicoDisponibilidadId] = createSignal("");
 
@@ -42,14 +42,15 @@ export default function AdminPage() {
 
   onMount(actualizar);
 
-  const cambiar = key => { setTipo(key); setEditor(null); setBusqueda(""); setEstado(""); setRol(""); setMensaje(""); };
+  const cambiar = key => { setTipo(key); setEditor(null); setBusqueda(""); setEstado(""); setRol(""); setMensaje(""); setActivationToken(""); if (key === "disponibilidad") setMedicoDisponibilidadId(""); };
 
   const guardar = async payload => {
     if (busy()) return; setBusy(true); setMensaje("");
     try {
       const id = editor().registro?.id;
-      await api(`${tipo()}${id ? `/${id}` : ""}`, { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const resultado = await api(`${tipo()}${id ? `/${id}` : ""}`, { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       setEditor(null); setMensaje(id ? "Cambios guardados correctamente." : "Registro creado correctamente.");
+      setActivationToken(resultado.activationToken || "");
       try { await cargar(); } catch (e) { setError(`El registro se guardó, pero no se pudo actualizar el listado. ${e.message}`); }
     } finally { setBusy(false); }
   };
@@ -85,9 +86,19 @@ export default function AdminPage() {
 
       <Show when={error()}><div class="medico-error" role="alert">{error()}<button class="medico-outline" disabled={busy()} onClick={actualizar}>Reintentar</button></div></Show>
       <Show when={mensaje()}><p class="admin-success" role="status">{mensaje()}</p></Show>
+      <Show when={activationToken()}><section class="admin-success" aria-live="polite"><strong>Código de activación (muéstralo una sola vez)</strong><p>Entrégalo al titular por un canal seguro. No lo copies en chats, tickets ni URL.</p><code>{activationToken()}</code><button class="medico-outline" onClick={() => setActivationToken("")}>Ocultar código</button></section></Show>
       <Show when={busy()}><p class="admin-help" role="status">Procesando…</p></Show>
+      <Show when={tipo() === "disponibilidad"}>
+        <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">◷</span><div><h2>Disponibilidad de médicos</h2><p>Selecciona un médico activo para agregar sus bloques de atención y consultar sus franjas.</p></div></div>
+          <div class="admin-list-body"><label for="disponibilidad-medico">Médico<select id="disponibilidad-medico" value={medicoDisponibilidadId()} onChange={e => setMedicoDisponibilidadId(e.currentTarget.value)}><option value="">Selecciona un médico</option><For each={datos().medicos.filter(m => m.activo)}>{medico => <option value={medico.id}>{medico.nombre} {medico.apellido} · {medico.numero_documento}</option>}</For></select></label>
+            <Show when={!datos().medicos.filter(m => m.activo).length}><p class="medico-empty">No hay médicos activos. Crea y activa un perfil médico antes de configurar disponibilidad.</p></Show>
+          </div>
+        </section>
+        <Show keyed when={medicoDisponibilidadId()}>{medicoId => <DisponibilidadMedico medicoId={Number(medicoId)} />}</Show>
+      </Show>
+      <Show when={tipo() !== "disponibilidad"}>
       <div classList={{ "admin-grid": true, "admin-grid-editor": !!editor() }}>
-        <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">☷</span><div><h2>{secciones[tipo()]}</h2><p>{tipo() === "usuarios" ? "Gestiona las cuentas y sus permisos." : "Crea los perfiles antes de vincular sus cuentas."}</p></div></div>
+        <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">☷</span><div><h2>{secciones[tipo()]}</h2><p>{tipo() === "usuarios" ? "Gestiona las cuentas y sus permisos." : "Cada perfil nuevo crea y vincula automáticamente su cuenta de acceso."}</p></div></div>
           <div class="admin-list-body"><div class="admin-actions"><button class="btn btn-primary" disabled={busy() || !listo()} onClick={() => setEditor({ registro:null })}>Crear {tipo() === "usuarios" ? "usuario" : tipo() === "medicos" ? "médico" : "paciente"}</button><button class="medico-outline" disabled={busy()} onClick={actualizar}>Actualizar</button></div>
             <div class="admin-filters"><label for="admin-buscar">Buscar<input id="admin-buscar" type="search" placeholder="Nombre, correo, usuario o documento" value={busqueda()} onInput={e => setBusqueda(e.currentTarget.value)} /></label><label for="admin-filtro-estado">Estado<select id="admin-filtro-estado" value={estado()} onChange={e => setEstado(e.currentTarget.value)}><option value="">Todos</option><option value="ACTIVO">Activos</option><option value="INACTIVO">Inactivos</option></select></label><Show when={tipo() === "usuarios"}><label for="admin-filtro-rol">Rol<select id="admin-filtro-rol" value={rol()} onChange={e => setRol(e.currentTarget.value)}><option value="">Todos los roles</option><For each={Object.entries(roles)}>{([value,label]) => <option value={value}>{label}</option>}</For></select></label></Show></div>
             <Show when={listo() && !visibles().length}><p class="medico-empty">No hay registros que coincidan con la búsqueda.</p></Show>
@@ -95,6 +106,7 @@ export default function AdminPage() {
           </div></section>
         <Show keyed when={editor()}>{ed => <AdminEditor tipo={tipo()} registro={ed.registro} medicos={datos().medicos} pacientes={datos().pacientes} busy={busy()} onSave={guardar} onClose={() => setEditor(null)} />}</Show>
       </div>
+      </Show>
       <footer class="medico-footer">PiedraAzul · Atención y bienestar</footer>
     </main>
   </div>;
