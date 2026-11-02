@@ -1,10 +1,9 @@
 import AtencionMedica from "../../components/medicos/AtencionMedica.jsx";
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
-import { useNavigate } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import { apiFetch } from "../../services/api.js";
 import { useAuth } from "../../stores/auth.store.js";
 import "../../styles/modules/medico.css";
-import DisponibilidadMedico from "../../components/medicos/DisponibilidadMedico.jsx";
 
 const hoy = () => {
   const now = new Date();
@@ -57,7 +56,7 @@ function MedicoPage() {
   return (
     <div class="medico-page">
       <header class="medico-topbar"><div class="medico-container medico-topbar-inner">
-        <a href="/medico" class="medico-brand"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" /></svg></span>PiedraAzul</a>
+        <A href="/medico" class="medico-brand"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" /></svg></span>PiedraAzul</A>
         <div class="medico-account"><span>{auth.user()?.nombre}<small>Médico / terapista</small></span><button class="medico-outline" onClick={() => { auth.cerrarSesion(); navigate("/", { replace: true }); }}>Cerrar sesión</button></div>
       </div></header>
       <main class="medico-container medico-main">
@@ -65,9 +64,7 @@ function MedicoPage() {
         <Show when={aviso()}><p class="disponibilidad-success" role="status">{aviso()}</p></Show>
         <nav class="medico-tabs" aria-label="Secciones del panel">
           <button disabled={guardandoAtencion()} class="medico-outline" aria-pressed={vista() === "agenda"} onClick={() => { setVista("agenda"); consultar(); }}>Mi agenda</button>
-          <button disabled={guardandoAtencion()} class="medico-outline" aria-pressed={vista() === "disponibilidad"} onClick={() => setVista("disponibilidad")}>Mi disponibilidad</button>
         </nav>
-        <Show when={vista() === "disponibilidad"}><DisponibilidadMedico medicoId={auth.user()?.medicoId} /></Show>
         <Show when={vista() === "agenda"}>
         <section class="medico-toolbar" aria-label="Fecha de la agenda">
           <div><label for="agenda-fecha">Fecha de consulta</label><input disabled={guardandoAtencion()} id="agenda-fecha" type="date" value={fecha()} onInput={e => cambiarFecha(e.currentTarget.value)} /></div>

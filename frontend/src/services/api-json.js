@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000/api";
+import { apiFetch } from "./api.js";
 
 export async function apiJson(
   endpoint,
@@ -24,8 +24,8 @@ export async function apiJson(
       "application/json";
   }
 
-  const response = await fetch(
-    `${API_URL}${endpoint}`,
+  const response = await apiFetch(
+    endpoint,
     {
       ...options,
       headers

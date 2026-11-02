@@ -1,5 +1,5 @@
 import { render } from "solid-js/web";
-import { Router } from "@solidjs/router";
+import { Router, HashRouter } from "@solidjs/router";
 import App from "./App.jsx";
 
 import "./styles/variables.css";
@@ -8,11 +8,13 @@ import "./styles/base.css";
 import "./styles/buttons.css";
 import "./styles/forms.css";
 
+const AppRouter = import.meta.env.VITE_GITHUB_PAGES === "true" ? HashRouter : Router;
+
 render(
   () => (
-    <Router>
+    <AppRouter>
       <App />
-    </Router>
+    </AppRouter>
   ),
   document.getElementById("root")
 );

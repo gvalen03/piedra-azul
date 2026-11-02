@@ -1,6 +1,6 @@
 import HistorialClinico from "../../components/historial/HistorialClinico.jsx";
 import { createSignal, createMemo, For, Show, onMount } from "solid-js";
-import { useNavigate } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import { useAuth } from "../../stores/auth.store.js";
 import { apiFetch } from "../../services/api.js";
 import "../../styles/modules/medico.css";
@@ -47,7 +47,7 @@ export default function PacientePage() {
     await cargarCitas();
   });
   return <div class="medico-page paciente-page">
-    <header class="medico-topbar"><div class="medico-container medico-topbar-inner"><a class="medico-brand" href="/paciente"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" /></svg></span>PiedraAzul</a><div class="medico-account"><span>{auth.user()?.nombre}<small>Portal del paciente</small></span><button class="medico-outline" onClick={() => { auth.cerrarSesion(); navigate("/", { replace: true }); }}>Cerrar sesión</button></div></div></header>
+    <header class="medico-topbar"><div class="medico-container medico-topbar-inner"><A class="medico-brand" href="/paciente"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" /></svg></span>PiedraAzul</A><div class="medico-account"><span>{auth.user()?.nombre}<small>Portal del paciente</small></span><button class="medico-outline" onClick={() => { auth.cerrarSesion(); navigate("/", { replace: true }); }}>Cerrar sesión</button></div></div></header>
     <main class="medico-container medico-main"><div class="medico-heading"><div><span class="medico-eyebrow">ATENCIÓN Y BIENESTAR</span><h1>Mi espacio de bienestar</h1><p>Organiza cada encuentro, cuida cada detalle.</p></div><span class="medico-label">Estamos para acompañarte</span></div>
       <nav class="medico-tabs" aria-label="Secciones del paciente"><For each={[["citas", "Mis citas"], ["reserva", "Reservar cita"], ["datos", "Mis datos"], ["historial", "Mi historial"]]}>{([key, label]) => <button class="medico-outline" disabled={ocupado()} aria-pressed={vista() === key} onClick={() => cambiarVista(key)}>{label}</button>}</For></nav>
       <Show when={error()}><div class="medico-error" role="alert">{error()}<button class="medico-outline" disabled={ocupado()} onClick={cargar}>Actualizar datos</button></div></Show>
