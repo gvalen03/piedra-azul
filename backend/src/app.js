@@ -277,7 +277,7 @@ export async function buildApp() {
   });
 
   await app.register(authPlugin);
-  const adminRepository = new AdminRepository(db);
+  const adminRepository = new AdminRepository(db, { citaRepository });
   app.decorate("adminRepository", adminRepository);
   app.decorate("adminService", new AdminService({ repository: adminRepository, passwordService }));
   await app.register(adminRoutes, { prefix: "/api/admin" });

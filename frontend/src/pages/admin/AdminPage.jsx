@@ -3,6 +3,7 @@ import { A, useNavigate } from "@solidjs/router";
 import { useAuth } from "../../stores/auth.store.js";
 import { apiFetch } from "../../services/api.js";
 import AdminEditor, { roles } from "../../components/admin/AdminEditor.jsx";
+import CambioEstadoPerfil from "../../components/admin/CambioEstadoPerfil.jsx";
 import DisponibilidadMedico from "../../components/medicos/DisponibilidadMedico.jsx";
 import "../../styles/modules/medico.css";
 import "../../styles/modules/admin.css";
@@ -14,7 +15,7 @@ export default function AdminPage() {
   const auth = useAuth(), navigate = useNavigate();
   const [tipo,setTipo] = createSignal("usuarios"), [datos,setDatos] = createSignal({ usuarios: [], medicos: [], pacientes: [] });
   const [busqueda,setBusqueda] = createSignal(""), [estado,setEstado] = createSignal(""), [rol,setRol] = createSignal("");
-  const [editor,setEditor] = createSignal(null), [busy,setBusy] = createSignal(false), [error,setError] = createSignal(""), [mensaje,setMensaje] = createSignal("");
+  const [editor,setEditor] = createSignal(null), [cambioEstado,setCambioEstado] = createSignal(null), [busy,setBusy] = createSignal(false), [error,setError] = createSignal(""), [mensaje,setMensaje] = createSignal("");
   const [listo,setListo] = createSignal(false);
   const [medicoDisponibilidadId, setMedicoDisponibilidadId] = createSignal("");
 
@@ -26,7 +27,7 @@ export default function AdminPage() {
 
   const api = async (path, options) => {
     const res = await apiFetch(`/admin/${path}`, options); const data = await res.json();
-    if (!res.ok) throw new Error(res.status === 401 ? "Tu sesión debe renovarse. Cierra sesión e ingresa nuevamente." : data.message || data.error || "No se pudo completar la operación");
+    if (!res.ok) throw Object.assign(new Error(res.status === 401 ? "Tu sesión debe renovarse. Cierra sesión e ingresa nuevamente." : data.message || data.error || "No se pudo completar la operación"), { status: res.status, data });
     return data;
   };
 
@@ -42,7 +43,7 @@ export default function AdminPage() {
 
   onMount(actualizar);
 
-  const cambiar = key => { setTipo(key); setEditor(null); setBusqueda(""); setEstado(""); setRol(""); setMensaje(""); };
+  const cambiar = key => { setTipo(key); setEditor(null); setCambioEstado(null); setBusqueda(""); setEstado(""); setRol(""); setMensaje(""); };
 
   const guardar = async payload => {
     if (busy()) return; setBusy(true); setMensaje("");
@@ -52,6 +53,12 @@ export default function AdminPage() {
       setEditor(null); setMensaje(id ? "Cambios guardados correctamente." : "Registro creado correctamente.");
       try { await cargar(); } catch (e) { setError(`El registro se guardó, pero no se pudo actualizar el listado. ${e.message}`); }
     } finally { setBusy(false); }
+  };
+
+  // ADM-01: el diálogo ya aplicó la desactivación/reactivación; aquí solo se refresca el listado.
+  const cambioTerminado = async texto => {
+    setCambioEstado(null); setMensaje(texto); setError("");
+    try { await cargar(); } catch (e) { setError(`El cambio se realizó, pero no se pudo actualizar el listado. ${e.message}`); }
   };
 
   const perfilNombre = r => {
@@ -80,11 +87,13 @@ export default function AdminPage() {
             <div class="admin-list-body"><div class="admin-actions"><button class="btn btn-primary" disabled={busy() || !listo()} onClick={() => setEditor({ registro:null })}>Crear {tipo() === "usuarios" ? "usuario" : tipo() === "medicos" ? "médico" : "paciente"}</button><button class="medico-outline" disabled={busy()} onClick={actualizar}>Actualizar</button></div>
               <div class="admin-filters"><label for="admin-buscar">Buscar<input id="admin-buscar" type="search" placeholder="Nombre, correo, usuario o documento" value={busqueda()} onInput={e => setBusqueda(e.currentTarget.value)} /></label><label for="admin-filtro-estado">Estado<select id="admin-filtro-estado" value={estado()} onChange={e => setEstado(e.currentTarget.value)}><option value="">Todos</option><option value="ACTIVO">Activos</option><option value="INACTIVO">Inactivos</option></select></label><Show when={tipo() === "usuarios"}><label for="admin-filtro-rol">Rol<select id="admin-filtro-rol" value={rol()} onChange={e => setRol(e.currentTarget.value)}><option value="">Todos los roles</option><For each={Object.entries(roles)}>{([value,label]) => <option value={value}>{label}</option>}</For></select></label></Show></div>
               <Show when={listo() && !visibles().length}><p class="medico-empty">No hay registros que coincidan con la búsqueda.</p></Show>
-              <ul class="admin-list"><For each={visibles()}>{r => <li><div class="admin-record"><div><strong>{r.nombre} {r.apellido || ""}</strong><small>{tipo() === "usuarios" ? `${r.username} · ${roles[r.rol]}` : `Documento: ${r.numero_documento}`}</small><small>{r.email || "Sin correo registrado"}</small><Show when={tipo() === "usuarios" && ["MEDICO_TERAPISTA", "PACIENTE"].includes(r.rol)}><small>Perfil: {perfilNombre(r)}</small></Show></div><span class={`medico-badge ${activo(r) ? "estado-atendida" : "estado-cancelada"}`}>{activo(r) ? "Activo" : "Inactivo"}</span></div><Show when={tipo() !== "usuarios" || Number(r.id) !== Number(auth.user()?.usuarioId)} fallback={<small class="admin-help">Tu cuenta actual</small>}><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>Editar</button></Show></li>}</For></ul>
+              <ul class="admin-list"><For each={visibles()}>{r => <li><div class="admin-record"><div><strong>{r.nombre} {r.apellido || ""}</strong><small>{tipo() === "usuarios" ? `${r.username} · ${roles[r.rol]}` : `Documento: ${r.numero_documento}`}</small><small>{r.email || "Sin correo registrado"}</small><Show when={tipo() === "usuarios" && ["MEDICO_TERAPISTA", "PACIENTE"].includes(r.rol)}><small>Perfil: {perfilNombre(r)}</small></Show></div><span class={`medico-badge ${activo(r) ? "estado-atendida" : "estado-cancelada"}`}>{activo(r) ? "Activo" : "Inactivo"}</span></div><Show when={tipo() !== "usuarios" || Number(r.id) !== Number(auth.user()?.usuarioId)} fallback={<small class="admin-help">Tu cuenta actual</small>}><div class="admin-row-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>Editar</button><Show when={tipo() !== "usuarios"}><button class="medico-outline" disabled={busy()} onClick={() => { setEditor(null); setMensaje(""); setCambioEstado({ registro:r, accion: activo(r) ? "desactivar" : "reactivar" }); }}>{activo(r) ? "Desactivar" : "Reactivar"}</button></Show></div></Show></li>}</For></ul>
             </div></section>
           <Show keyed when={editor()}>{ed => <AdminEditor tipo={tipo()} registro={ed.registro} medicos={datos().medicos} pacientes={datos().pacientes} busy={busy()} onSave={guardar} onClose={() => setEditor(null)} />}</Show>
         </div>
       </Show>
+
+      <Show keyed when={cambioEstado()}>{c => <CambioEstadoPerfil tipo={tipo()} registro={c.registro} accion={c.accion} api={api} onClose={() => setCambioEstado(null)} onDone={cambioTerminado} />}</Show>
 
       <Show when={tipo() === "disponibilidad"}>
         <section class="medico-card">

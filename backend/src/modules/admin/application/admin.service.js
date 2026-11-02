@@ -14,4 +14,14 @@ export class AdminService {
     }
     return this.repository.guardarPerfil(tipo, id, datos, actor);
   }
+
+  // ADM-01 — desactivación/reactivación de médicos y pacientes (rutas separadas del PUT genérico).
+  previsualizarDesactivacion(tipo, id) { return this.repository.previsualizarDesactivacion(tipo, id); }
+  desactivar(tipo, id, cantidadEsperada, actor) {
+    if (!Number.isSafeInteger(cantidadEsperada) || cantidadEsperada < 0) {
+      throw Object.assign(new Error("Debes confirmar la cantidad de citas que viste en la vista previa"), { statusCode: 400 });
+    }
+    return this.repository.desactivarPerfil(tipo, id, cantidadEsperada, actor);
+  }
+  reactivar(tipo, id, actor) { return this.repository.reactivarPerfil(tipo, id, actor); }
 }
