@@ -7,7 +7,13 @@ const perfiles = {
 export class AdminRepository {
   constructor(db) { this.db = db; }
   async listar(tipo) {
-    if (tipo === "usuarios") return (await this.db.query(`SELECT ${usuarioPublico} FROM usuarios ORDER BY nombre, id`)).rows;
+    if (tipo === "usuarios") return (await this.db.query(`SELECT u.id, u.username,
+      COALESCE(m.nombre || ' ' || m.apellido, p.nombre || ' ' || p.apellido, u.nombre) AS nombre,
+      u.email, u.rol, u.activo, u.medico_id, u.paciente_id
+      FROM usuarios u
+      LEFT JOIN medicos m ON m.id=u.medico_id
+      LEFT JOIN pacientes p ON p.id=u.paciente_id
+      ORDER BY nombre, u.id`)).rows;
     if (!perfiles[tipo]) throw fallo("Recurso inválido");
     const fecha = tipo === "pacientes" ? ", fecha_nacimiento::text AS fecha_nacimiento" : "";
     return (await this.db.query(`SELECT *${fecha} FROM ${tipo} ORDER BY nombre, id`)).rows;
@@ -56,10 +62,11 @@ export class AdminRepository {
         const perfil = (await client.query(`SELECT * FROM ${tabla} WHERE id=$1 FOR UPDATE`, [perfilId])).rows[0];
         if (!perfil) throw fallo("El perfil seleccionado no existe");
         if (datos.activo && !(campo === "medico_id" ? perfil.activo : perfil.estado === "ACTIVO")) throw fallo("Activa primero el perfil seleccionado");
+        if (perfil.nombre && perfil.apellido) datos.nombre = `${perfil.nombre} ${perfil.apellido}`;
         const vinculados = await client.query(`SELECT id FROM usuarios WHERE ${campo}=$1 AND ($2::bigint IS NULL OR id<>$2)`, [perfilId, id]);
         if (vinculados.rows.length) throw fallo("Este perfil ya está vinculado a otra cuenta", 409);
       }
-      const values = [datos.username, datos.nombre, datos.email, datos.rol, datos.activo, campo === "medico_id" ? perfilId : null, campo === "paciente_id" ? perfilId : null];
+      const values = [datos.username, datos.nombre, datos.email, datos.rol, datos.activoCuenta ?? datos.activo, campo === "medico_id" ? perfilId : null, campo === "paciente_id" ? perfilId : null];
       let result;
       if (id) {
         result = await client.query(`UPDATE usuarios SET username=$1, nombre=$2, email=$3, rol=$4, activo=$5,
@@ -69,8 +76,9 @@ export class AdminRepository {
         result = await client.query(`INSERT INTO usuarios (username,nombre,email,rol,activo,medico_id,paciente_id,password)
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING ${usuarioPublico}`, [...values, datos.passwordHash]);
       }
+      if (!id && datos.activationTokenHash) await this.crearActivacion(client, result.rows[0].id, datos.activationTokenHash);
       await this.auditar(client, "usuarios", result.rows[0].id, actor, id ? "ACTUALIZADO" : "CREADO");
-      return result.rows[0];
+      return datos.activationToken ? { ...result.rows[0], activationToken: datos.activationToken } : result.rows[0];
     });
   }
   async guardarPerfil(tipo, id, datos, actor) {
@@ -83,8 +91,47 @@ export class AdminRepository {
         ? await client.query(`UPDATE ${tipo} SET ${config.columns.map((col,i) => `${col}=$${i+1}`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=$${values.length+1} RETURNING *`, [...values, id])
         : await client.query(`INSERT INTO ${tipo} (${config.columns.join(",")}) VALUES (${values.map((_,i) => `$${i+1}`).join(",")}) RETURNING *`, values);
       if (!result.rows.length) throw fallo("Registro no encontrado", 404);
+      if (id) {
+        const campo = tipo === "medicos" ? "medico_id" : "paciente_id";
+        await client.query(`UPDATE usuarios SET nombre=$1,
+          updated_at=GREATEST(CURRENT_TIMESTAMP, updated_at + INTERVAL '1 millisecond')
+          WHERE ${campo}=$2`, [`${result.rows[0].nombre} ${result.rows[0].apellido}`.trim(), result.rows[0].id]);
+      }
+      let cuenta;
+      if (!id && datos.crearCuenta) {
+        const campo = tipo === "medicos" ? "medico_id" : "paciente_id";
+        const rol = tipo === "medicos" ? "MEDICO_TERAPISTA" : "PACIENTE";
+        const usuario = await client.query(`INSERT INTO usuarios (username,nombre,email,rol,activo,${campo},password)
+          VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING ${usuarioPublico}`,
+        [datos.username, `${result.rows[0].nombre} ${result.rows[0].apellido}`.trim(), datos.email, rol, datos.activoCuenta ?? true, result.rows[0].id, datos.passwordHash]);
+        cuenta = usuario.rows[0];
+        if (datos.activationTokenHash) await this.crearActivacion(client, cuenta.id, datos.activationTokenHash);
+        await this.auditar(client, "usuarios", cuenta.id, actor, "CREADO");
+      }
       await this.auditar(client, tipo, result.rows[0].id, actor, id ? "ACTUALIZADO" : "CREADO");
-      return result.rows[0];
+      return cuenta ? { ...result.rows[0], cuenta, activationToken: datos.activationToken } : result.rows[0];
+    });
+  }
+
+  async crearActivacion(client, usuarioId, tokenHash) {
+    await client.query(`INSERT INTO activaciones_cuenta (usuario_id, token_hash, expira_en)
+      VALUES ($1,$2,CURRENT_TIMESTAMP + INTERVAL '24 hours')`, [usuarioId, tokenHash]);
+  }
+
+  async consumirActivacion(tokenHash, passwordHash) {
+    return this.transaccion(async client => {
+      const activacion = await client.query(`SELECT a.id, a.usuario_id FROM activaciones_cuenta a
+        JOIN usuarios u ON u.id=a.usuario_id
+        WHERE a.token_hash=$1 AND a.usado_en IS NULL AND a.expira_en>CURRENT_TIMESTAMP
+        FOR UPDATE OF a, u`, [tokenHash]);
+      if (!activacion.rows.length) throw fallo("El código de activación no es válido, ya fue usado o expiró", 400);
+      const usuario = await client.query(`UPDATE usuarios SET password=$1, activo=TRUE,
+        updated_at=GREATEST(CURRENT_TIMESTAMP, updated_at + INTERVAL '1 millisecond')
+        WHERE id=$2 RETURNING ${usuarioPublico}`, [passwordHash, activacion.rows[0].usuario_id]);
+      await client.query("UPDATE activaciones_cuenta SET usado_en=CURRENT_TIMESTAMP WHERE id=$1", [activacion.rows[0].id]);
+      await client.query(`INSERT INTO auditorias (tipo_evento, descripcion, entidad_id, realizado_por, modulo_origen)
+        VALUES ('CUENTA_ACTIVADA','Activación de cuenta por titular',$1,$2,'AUTENTICACION')`, [String(usuario.rows[0].id), usuario.rows[0].username]);
+      return usuario.rows[0];
     });
   }
 

@@ -1,9 +1,10 @@
 import { PacienteFactory } from "../domain/paciente.factory.js";
 
 export class PacienteService {
-  constructor({ pacienteRepository, auditoriaService }) {
+  constructor({ pacienteRepository, auditoriaService, passwordService }) {
     this.pacienteRepository = pacienteRepository;
     this.auditoriaService = auditoriaService;
+    this.passwordService = passwordService;
   }
 
   async registrar(dto, origen = "SISTEMA") {
@@ -47,5 +48,17 @@ export class PacienteService {
     }
 
     return paciente;
+  }
+
+  async registrarAutonomo(dto) {
+    const { username, password, ...datosPaciente } = Object.fromEntries(Object.entries(dto).map(([key, value]) => [key, typeof value === "string" ? value.trim() : value]));
+    if (Buffer.byteLength(password, "utf8") > 72) throw Object.assign(new Error("La contraseña supera el tamaño permitido; usa una más corta"), { statusCode: 400 });
+    const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
+    if (datosPaciente.fechaNacimiento > hoy) throw Object.assign(new Error("La fecha de nacimiento no puede estar en el futuro"), { statusCode: 400 });
+    if (await this.pacienteRepository.existePorDocumento(datosPaciente.numeroDocumento)) throw Object.assign(new Error("Ya existe un paciente con ese documento"), { statusCode: 409 });
+    if (await this.pacienteRepository.existePorEmail(datosPaciente.email)) throw Object.assign(new Error("Ya existe un paciente con ese email"), { statusCode: 409 });
+    const passwordHash = await this.passwordService.hash(password);
+    const paciente = PacienteFactory.crearDesdeDTO(datosPaciente);
+    return this.pacienteRepository.registrarConCuentaPropia(paciente, { username, passwordHash });
   }
 }

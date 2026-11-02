@@ -14,13 +14,19 @@ export function crearAuthController({ authService }) {
           .send(resultado);
 
       } catch (error) {
-        console.error("ERROR REAL LOGIN:", error);
-
         return reply
           .code(401)
           .send({
             message: "Usuario o contraseña incorrectos"
           });
+      }
+    },
+    cambiarPassword: async (request, reply) => {
+      try {
+        await authService.cambiarPassword(request.user.username, request.body.passwordActual, request.body.passwordNueva);
+        return reply.code(204).send();
+      } catch (error) {
+        return reply.code(error.statusCode || 400).send({ error: error.message || "No fue posible cambiar la contraseña" });
       }
     }
   };

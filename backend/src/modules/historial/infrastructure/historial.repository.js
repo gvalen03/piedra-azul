@@ -2,6 +2,33 @@ const fallo = (message, statusCode) => Object.assign(new Error(message), { statu
 export class HistorialRepository {
   constructor(db) { this.db = db; }
 
+  async listarCitasPorDocumento(documento, medicoId = null) {
+    const parametros = [documento];
+    let filtroMedico = "";
+    if (medicoId !== null) {
+      parametros.push(medicoId);
+      filtroMedico = " AND c.medico_id = $2";
+    }
+
+    const result = await this.db.query(`SELECT
+      c.fecha::text AS fecha,
+      c.hora_inicio::text AS hora_inicio,
+      c.hora_fin::text AS hora_fin,
+      c.estado,
+      p.nombre AS paciente_nombre,
+      p.apellido AS paciente_apellido,
+      p.numero_documento AS paciente_documento,
+      m.nombre AS medico_nombre,
+      m.apellido AS medico_apellido
+      FROM pacientes p
+      JOIN citas c ON c.paciente_id = p.id
+      JOIN medicos m ON m.id = c.medico_id
+      WHERE p.numero_documento = $1${filtroMedico}
+      ORDER BY c.fecha DESC, c.hora_inicio DESC, c.id DESC`, parametros);
+
+    return result.rows;
+  }
+
   async listarControlesPorPaciente(pacienteId) {
     const result = await this.db.query(`SELECT cm.*, m.nombre AS medico_nombre, m.apellido AS medico_apellido,
       c.fecha::text AS fecha_cita, c.hora_inicio

@@ -15,13 +15,14 @@ function repositorio({ ocupada = false, estado = "CONFIRMADA", futura = true } =
   const client = {
     query: async (sql, params) => {
       llamadas.push([sql, params]);
-      if (sql.startsWith("SELECT medico_id")) return { rows: [{ medico_id: "3" }] };
-      if (sql.includes("AS futura")) return { rows: [cita] };
-      if (sql.includes("FROM medicos") && !sql.includes("disponibilidades")) return { rows: [{ id: "3" }] };
-      if (sql.includes("FROM pacientes")) return { rows: [{ id: "4" }] };
-      if (sql.includes("FROM disponibilidades")) return { rows: [{ hora_inicio: "08:00", hora_fin: "10:00", intervalo_minutos: 30, semanas_habilitadas: 4 }] };
-      if (sql.includes("FROM citas") && sql.includes("estado <>")) return { rows: [cita, ...(ocupada ? [{ id:"8", hora_inicio:"08:30", hora_fin:"09:00" }] : [])] };
-      if (sql.startsWith("UPDATE citas")) return { rows: [{ ...cita, hora_inicio: params[2], hora_fin: params[3], estado:"PROGRAMADA" }] };
+      const normalizado = sql.replace(/\s+/g, " ").trim();
+      if (normalizado.startsWith("SELECT medico_id")) return { rows: [{ medico_id: "3" }] };
+      if (normalizado.includes("AS futura")) return { rows: [cita] };
+      if (normalizado.includes("FROM medicos") && !normalizado.includes("disponibilidades")) return { rows: [{ id: "3" }] };
+      if (normalizado.includes("FROM pacientes")) return { rows: [{ id: "4" }] };
+      if (normalizado.includes("FROM disponibilidades")) return { rows: [{ hora_inicio: "08:00", hora_fin: "10:00", intervalo_minutos: 30, semanas_habilitadas: 4 }] };
+      if (normalizado.includes("FROM citas") && normalizado.includes("estado <>")) return { rows: [cita, ...(ocupada ? [{ id:"8", hora_inicio:"08:30", hora_fin:"09:00" }] : [])] };
+      if (normalizado.startsWith("UPDATE citas")) return { rows: [{ ...cita, hora_inicio: params[2], hora_fin: params[3], estado:"PROGRAMADA" }] };
       return { rows: [] };
     }, release: () => llamadas.push(["release"])
   };
@@ -31,7 +32,7 @@ test("reprograma la misma cita, excluye su horario original y vuelve a PROGRAMAD
   const { repo, llamadas } = repositorio();
   const result = await repo.reprogramar(7, { fecha:manana(), horaInicio:"08:30" }, "agendador");
   assert.equal(result.id, "7"); assert.equal(result.estado, "PROGRAMADA");
-  const update = llamadas.find(([sql]) => sql.startsWith("UPDATE citas"));
+  const update = llamadas.find(([sql]) => sql.trimStart().startsWith("UPDATE citas"));
   assert.deepEqual(update[1], [7, manana(), "08:30", "09:00"]);
   assert.equal(llamadas.some(([sql]) => sql.includes("INSERT INTO citas")), false);
   assert.ok(llamadas.findIndex(([sql]) => sql.includes("FROM medicos")) < llamadas.findIndex(([sql]) => sql.includes("AS futura")));
@@ -42,7 +43,7 @@ for (const caso of [{ ocupada:true }, { estado:"CANCELADA" }, { estado:"ATENDIDA
   test(`no altera la cita original si la reprogramación falla ${JSON.stringify(caso)}`, async () => {
     const { repo, llamadas } = repositorio(caso);
     await assert.rejects(repo.reprogramar(7, { fecha:manana(), horaInicio:"08:30" }, "agendador"), { statusCode:409 });
-    assert.equal(llamadas.some(([sql]) => sql.startsWith("UPDATE citas")), false);
+    assert.equal(llamadas.some(([sql]) => sql.trimStart().startsWith("UPDATE citas")), false);
     assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["ROLLBACK", "release"]);
   });
 }
@@ -51,8 +52,8 @@ test("cancelar y confirmar comprueban estado y horario en la actualización", as
   const client = { query: async (sql, params) => { llamadas.push([sql,params]); return { rows: [] }; }, release: () => {} };
   const repo = new CitaRepository({ connect: async () => client });
   await assert.rejects(repo.actualizarEstado(7,"CANCELADA","agendador"), { statusCode:409 });
-  const [sql, params] = llamadas.find(([sql]) => sql.startsWith("UPDATE citas"));
-  assert.match(sql, /estado='PROGRAMADA'/); assert.match(sql, /hora_inicio\) > /);
+  const [sql, params] = llamadas.find(([sql]) => sql.trimStart().startsWith("UPDATE citas"));
+  assert.match(sql, /estado\s*=\s*'PROGRAMADA'/); assert.match(sql, /hora_inicio\s*\)\s*>/);
   assert.deepEqual(params,[7,"CANCELADA"]);
   assert.equal(llamadas.at(-1)[0],"ROLLBACK");
 });

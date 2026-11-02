@@ -32,7 +32,7 @@ for (const user of [undefined, { rol: "PACIENTE", medicoId: 12 }, { rol: "MEDICO
 }
 test("repositorio limita la agenda al médico y fecha con parámetros SQL", async () => {
   const repo = new CitaRepository({ query: async (sql, params) => {
-    assert.match(sql, /c.medico_id = \$1 AND c.fecha = \$2/);
+    assert.match(sql, /c\.medico_id\s*=\s*\$1\s+AND\s+c\.fecha\s*=\s*\$2/);
     assert.match(sql, /JOIN pacientes/);
     assert.deepEqual(params, [12, "2026-09-27"]);
     return { rows: [] };

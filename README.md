@@ -72,6 +72,10 @@ KEYCLOAK_JWKS_URI=http://localhost:8081/realms/piedra-azul/protocol/openid-conne
 
 En `frontend/.env`, selecciona `VITE_AUTH_PROVIDER=keycloak`, `VITE_KEYCLOAK_URL=http://localhost:8081`, `VITE_KEYCLOAK_REALM=piedra-azul` y `VITE_KEYCLOAK_CLIENT_ID=piedra-azul-api`. Reinicia Vite tras cambiar variables. El inicio de sesión web usa Authorization Code con PKCE; el modo local conserva el login anterior solo para desarrollo. En producción el backend rechaza `AUTH_PROVIDER=local` y requiere configuración Keycloak con HTTPS.
 
+### Controles HTTP
+
+Configura `CORS_ORIGINS` en el backend con los orígenes exactos separados por comas. En producción es obligatorio; no se admiten comodines ni rutas. El endpoint de login local limita por defecto a cinco intentos por IP cada 60 segundos. Para un entorno de desarrollo se pueden ajustar `LOGIN_RATE_LIMIT_MAX` y `LOGIN_RATE_LIMIT_WINDOW_MS`; no los aumentes en producción sin una revisión de seguridad.
+
 ### Recorrido Postman reproducible
 
 1. Inicia Keycloak y la API configurada con `AUTH_PROVIDER=keycloak`.
