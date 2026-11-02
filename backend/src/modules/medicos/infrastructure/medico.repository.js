@@ -9,12 +9,7 @@ export class MedicoRepository {
         id,
         nombre,
         apellido,
-        numero_documento,
-        email,
-        telefono,
-        activo,
-        created_at,
-        updated_at
+        activo
       FROM medicos
       ORDER BY id ASC
     `);
@@ -23,7 +18,7 @@ export class MedicoRepository {
   }
   async buscarPorId(id) {
   const result = await this.db.query(
-    `SELECT id, nombre, apellido, numero_documento, email, telefono, activo, created_at, updated_at
+    `SELECT id, nombre, apellido, activo
      FROM medicos WHERE id = $1`,
     [id]
   );

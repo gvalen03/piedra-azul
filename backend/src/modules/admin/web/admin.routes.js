@@ -10,5 +10,9 @@ export async function adminRoutes(app) {
       return reply.code(201).send(result);
     });
     app.put(`/${tipo}/:id`, { schema: { body, params: idParams } }, request => app.adminService.guardar(tipo, request.params.id, request.body, request.user.sub));
+    if (tipo !== "usuarios") {
+      app.delete(`/${tipo}/:id`, { schema: { params: idParams } }, request =>
+        app.adminService.eliminarPerfil(tipo, request.params.id, request.user.sub));
+    }
   }
 }

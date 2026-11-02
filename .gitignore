@@ -12,6 +12,7 @@ dist/
 # Entornos y secretos
 .env
 .env.*
+!.env.example
 
 # IDE
 .idea/

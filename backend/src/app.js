@@ -33,6 +33,8 @@ import { JwtService }
 
 import { PasswordService }
   from "./shared/security/password.service.js";
+import { loadAuthConfig }
+  from "./shared/security/auth.config.js";
 
 // =========================
 // MEDICOS
@@ -117,6 +119,7 @@ import { eventBus }
 
 
 export async function buildApp() {
+  const authConfig = loadAuthConfig();
   const app = Fastify({
     logger: true
   });
@@ -149,8 +152,8 @@ export async function buildApp() {
 
   const jwtService =
     new JwtService({
-      secret: process.env.JWT_SECRET,
-      expiresIn: process.env.JWT_EXPIRES_IN
+      secret: authConfig.secret,
+      expiresIn: authConfig.expiresIn
     });
 
   const passwordService =
@@ -276,7 +279,8 @@ export async function buildApp() {
     origin: true
   });
 
-  await app.register(authPlugin);
+  app.decorate("authProvider", authConfig.provider);
+  await app.register(authPlugin, { config: authConfig });
   const adminRepository = new AdminRepository(db);
   app.decorate("adminRepository", adminRepository);
   app.decorate("adminService", new AdminService({ repository: adminRepository, passwordService }));
