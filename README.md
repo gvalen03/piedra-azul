@@ -79,3 +79,9 @@ En `frontend/.env`, selecciona `VITE_AUTH_PROVIDER=keycloak`, `VITE_KEYCLOAK_URL
 5. Comprueba que la solicitud sin JWT retorna `401`, un token con issuer/audience/firma/tiempos incorrectos retorna `401`, y el token válido con rol ajeno retorna `403`. Limpia secretos, contraseñas y tokens después de la prueba.
 
 El entorno Postman versionado mantiene vacíos los secretos, las contraseñas, los tokens y los IDs generados. El realm no contiene cuentas ni credenciales reales.
+
+## ADM-02 — Eliminación física protegida de perfiles
+
+Solo un `ADMINISTRADOR` puede eliminar físicamente perfiles de médicos o pacientes; las cuentas de usuario no tienen ruta de eliminación. La interfaz mantiene **Editar / Desactivar** separado de **Eliminar** y exige confirmar la operación irreversible. El backend bloquea citas de cualquier estado (incluidas las canceladas), controles, historias clínicas, disponibilidades médicas y cuentas vinculadas con `409 Conflict`, recomendando desactivar el perfil. Comprueba dependencias bajo transacción y bloqueo de fila; PostgreSQL también protege las relaciones mediante las FKs existentes `ON DELETE RESTRICT`. La auditoría `*_ELIMINADO`, con tipo e ID de entidad y sin datos personales, se inserta en la misma transacción antes del `DELETE`, sin FK a la entidad eliminada.
+
+Pruebas rápidas: `cd backend; node --test test/admin.module.test.js`. Para la prueba de integración contra un **esquema aislado y efímero** en PostgreSQL, configura `backend/.env`, luego en PowerShell ejecuta `$env:RUN_POSTGRES_INTEGRATION_TESTS='1'; node --test test/admin.delete.integration.test.js; Remove-Item Env:RUN_POSTGRES_INTEGRATION_TESTS`. La prueba crea y elimina únicamente su propio esquema con nombre aleatorio; no altera las tablas ni los datos existentes.
