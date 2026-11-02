@@ -64,14 +64,19 @@ for (const [user, status] of [[null, 401], [{ rol: "AGENDADOR" }, 403], [{ rol: 
     assert.equal(llamadas.length, 0);
   });
 }
+
 test("cambios de estado limitan propietario, fecha y estado de forma atómica", async () => {
-  const repo = new CitaRepository({ query: async (sql, params) => {
-    assert.match(sql, /paciente_id=\$2/);
-    assert.match(sql, /CURRENT_TIMESTAMP AT TIME ZONE 'America\/Bogota'/);
-    assert.match(sql, /estado='PROGRAMADA'/);
-    assert.match(sql, /estado='CONFIRMADA' AND \$3='CANCELADA'/);
-    assert.deepEqual(params, [10, 7, "CANCELADA"]);
-    return { rows: [] };
-  } });
+  const repo = new CitaRepository({
+    query: async (sql, params) => {
+      assert.match(sql, /paciente_id\s*=\s*\$2/);
+      assert.match(sql, /CURRENT_TIMESTAMP\s+AT TIME ZONE\s+'America\/Bogota'/);
+      assert.match(sql, /estado\s*=\s*'PROGRAMADA'/);
+      assert.match(sql, /estado\s*=\s*'CONFIRMADA'[\s\S]*?AND\s+\$3\s*=\s*'CANCELADA'/);
+      assert.deepEqual(params, [10, 7, "CANCELADA"]);
+
+      return { rows: [] };
+    },
+  });
+
   assert.equal(await repo.cambiarEstadoPaciente(10, 7, "CANCELADA"), null);
 });
