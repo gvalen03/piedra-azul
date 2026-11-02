@@ -97,31 +97,30 @@ Se ejecutaron pruebas automatizadas para comprobar la funcionalidad, las restric
 |---|---|
 | Pruebas específicas de Historial y RF-05 | **17 de 17 aprobadas** |
 | Compilación del frontend con Vite | **Exitosa** |
-| Suite completa del backend | 83 aprobadas y 8 fallidas, de 91 |
+| Suite completa del backend | **113 aprobadas, 0 fallidas y 1 omitida**, de 114 |
 | Verificación `git diff --check` | Sin errores |
-| Integración con PostgreSQL real | Pendiente |
+| Conexión local con PostgreSQL | Verificada al iniciar la API de prueba |
 | Prueba funcional completa de la interfaz | Pendiente |
-| Validación con Keycloak | Pendiente |
+| Pruebas automatizadas de Keycloak | **6 de 6 aprobadas** |
+| Integración real con el servidor Keycloak | Aprobada para Agendador sintético: sesión 200, RF-05 200 y acceso sin token 401 |
 
 Las pruebas específicas comprobaron la búsqueda exacta por documento, el tratamiento de resultados vacíos, los parámetros inválidos, las restricciones por rol, el aislamiento de las consultas del médico y la exclusión de información clínica.
 
-La suite general del backend presenta ocho pruebas fallidas que también se reprodujeron sobre la versión base anterior a RF-05. Estas corresponden a seis pruebas de reprogramación y actualización de citas, una prueba de agenda médica y una del portal del paciente.
-
-Por tanto, las fallas identificadas no se atribuyen a los cambios implementados en RF-05 y deberán atenderse dentro de las actividades de pruebas generales del proyecto.
+Las pruebas de regresión de reprogramación, agenda y portal se ajustaron para comprobar las consultas SQL sin depender del espaciado del texto. La suite completa se ejecutó nuevamente y no presenta fallos; la única prueba omitida requiere una configuración de integración de PostgreSQL específica.
 
 **7. Limitaciones y verificaciones pendientes**
 
-Aunque las pruebas automatizadas específicas fueron satisfactorias, no fue posible completar la validación con todos los servicios reales.
+Las pruebas automatizadas específicas y la validación integrada de Agendador fueron satisfactorias. El recorrido completo de la interfaz y el flujo real con Médico/Terapista siguen pendientes.
 
-**PostgreSQL:** la instancia local en `127.0.0.1:5432` no respondió. Por esta razón, no se ejecutaron consultas sobre una base de pruebas con información sintética.
+**PostgreSQL:** la API de prueba abrió correctamente su conexión local. Un usuario sintético de Agendador, vinculado a Keycloak mediante `keycloak_subject`, consultó `GET /api/historial/pacientes/20000001/citas` y recibió HTTP 200 sin datos clínicos; al finalizar se eliminaron los datos sintéticos.
 
-**Docker:** el servicio no estaba disponible en el entorno utilizado, por lo que no fue posible iniciar una instancia aislada de PostgreSQL mediante contenedores.
+**Docker/Keycloak:** se levantó el realm local, se completó Authorization Code con PKCE y el backend validó el token RS256/JWKS. `GET /api/auth/session` respondió HTTP 200 para el Agendador sintético y la misma consulta sin token respondió HTTP 401. El contenedor y los secretos temporales se eliminaron al finalizar.
 
 **Interfaz:** no se ejecutó un recorrido funcional completo con los usuarios Agendador y Médico/Terapista conectados a una base de datos real.
 
-**Keycloak:** la integración con este proveedor de autenticación todavía no estaba presente en la versión revisada del proyecto. Las validaciones de autorización se realizaron utilizando los mecanismos existentes y pruebas controladas.
+**Keycloak:** el backend verifica JWT RS256 mediante JWKS, issuer, audiencia, `azp`, rol y vínculo explícito entre `sub` y el usuario local. El frontend implementa Authorization Code con PKCE. La prueba end-to-end de Agendador está ejecutada; aún no se ha recorrido visualmente la interfaz ni se ha repetido el flujo real para Médico/Terapista.
 
-Para completar la verificación integral será necesario comprobar el funcionamiento de RF-05 en un entorno de pruebas con PostgreSQL, validar la consulta desde ambos paneles y verificar su compatibilidad con Keycloak una vez que esté integrado.
+Para completar la verificación integral queda comprobar RF-05 desde los paneles visuales de Agendador y Médico/Terapista y conservar evidencia saneada del recorrido.
 
 **8. Estado del requisito**
 

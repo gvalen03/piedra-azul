@@ -5,7 +5,10 @@ export async function authRoutes(fastify) {
     fastify.post(
       "/login",
       {
-        schema: loginSchema
+        schema: loginSchema,
+        config: {
+          rateLimit: fastify.loginRateLimit
+        }
       },
       fastify.authController.login
     );

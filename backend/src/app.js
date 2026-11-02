@@ -6,6 +6,7 @@ import { HistorialService } from "./modules/historial/application/historial.serv
 import { historialRoutes } from "./modules/historial/web/historial.routes.js";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 
 import { db } from "./shared/db/database.js";
 
@@ -35,6 +36,8 @@ import { PasswordService }
   from "./shared/security/password.service.js";
 import { loadAuthConfig }
   from "./shared/security/auth.config.js";
+import { loadCorsOptions, loadLoginRateLimit }
+  from "./shared/security/http-security.config.js";
 
 // =========================
 // MEDICOS
@@ -275,11 +278,11 @@ export async function buildApp() {
   // Plugins
   // =========================
 
-  await app.register(cors, {
-    origin: true
-  });
+  await app.register(cors, loadCorsOptions(process.env));
+  await app.register(rateLimit, { global: false });
 
   app.decorate("authProvider", authConfig.provider);
+  app.decorate("loginRateLimit", loadLoginRateLimit(process.env));
   await app.register(authPlugin, { config: authConfig });
   const adminRepository = new AdminRepository(db);
   app.decorate("adminRepository", adminRepository);
