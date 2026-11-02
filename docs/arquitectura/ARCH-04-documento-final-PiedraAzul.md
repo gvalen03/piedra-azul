@@ -158,11 +158,24 @@ El tiempo se mide desde la entrega de la consigna hasta la finalización. La tas
 
 Los resultados se incorporan una vez realizada la sesión. Las verificaciones funcionales del sistema y las pruebas automatizadas se documentan por separado, ya que evalúan aspectos distintos del uso por parte de una persona.
 
+4.4. Revisión visual de los prototipos
+Como complemento al protocolo de usabilidad, se realizó una inspección de las cinco pantallas propuestas para RF-01 a RF-05. Se revisaron la ubicación de los controles, la claridad del recorrido y la presentación de los resultados.
+
+Se observó que la consulta de agenda agrupa correctamente los filtros de profesional y fecha; la reserva de citas presenta el horario antes de confirmar; la disponibilidad muestra una vista previa de franjas; la exportación CSV identifica su acción principal; y la consulta por documento separa búsqueda y resultados.
+
+Se identificaron oportunidades de mejora en la visibilidad del horario seleccionado, los mensajes de confirmación y los estados sin resultados o con entradas inválidas. La selección de horarios se prioriza por su importancia en la reserva autónoma.
+
+Alcance: esta fue una revisión de prototipos estáticos, no una prueba con participantes. Por ello no se reportan tiempos, porcentajes de éxito ni calificaciones de satisfacción. El registro detallado de observaciones se encuentra en docs/ux/ARCH-03-historias-prototipos-usabilidad.md, apartado 4.8.
+
 ## 5. Planificación del Sprint 2
 
 El equipo organiza el Sprint 2 en GitHub Projects, donde registra requisitos, responsables y estados de trabajo. Esta planificación permite relacionar el desarrollo de las funcionalidades con las tareas de pruebas, seguridad y arquitectura.
 
-**Figura 6. Planificación del Sprint 2 en el tablero del equipo.** En esta sección se incorpora la captura del tablero utilizado por el grupo, con sus tareas y columnas de seguimiento, antes de generar el documento de entrega.
+**Figura 6. Planificación del Sprint 2 en GitHub Projects.**
+
+![Tablero de planificación del Sprint 2 de Piedra Azul](../evidencias/tablero-sprint2.jpeg)
+
+El tablero de GitHub Projects permite visualizar las tareas correspondientes al Sprint 2, distribuidas en las columnas Backlog, Por hacer, En progreso, En revisión y Finalizado. Se incluyen las actividades funcionales, de seguridad, pruebas y documentación arquitectónica, lo que facilita el seguimiento de las responsabilidades y del avance del equipo.
 
 ## 6. Escenarios de calidad: seguridad
 

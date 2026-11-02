@@ -183,6 +183,22 @@ Las incidencias se agrupan por severidad: **alta** (impide completar), **media**
 
 **Registro de resultados:** completar esta tabla únicamente con los datos obtenidos en las sesiones efectivamente realizadas. Las celdas «—» no equivalen a aprobación ni a incumplimiento; indican ausencia de medición registrada en este documento.
 
+### 4.8 Revisión de usabilidad de los prototipos
+
+**Tipo de evaluación:** inspección de las cinco pantallas estáticas diseñadas para RF-01 a RF-05. Se revisaron la claridad de las tareas, el orden de los controles, la visibilidad de resultados y la orientación que recibe el usuario. **No se ejecutaron tareas con participantes ni se midieron tiempos de interacción.** Por esta razón, esta revisión complementa el protocolo anterior, pero no reemplaza el test con usuarios.
+
+| Pantalla revisada | Aspectos observados | Mejora identificada | Prioridad |
+|---|---|---|---|
+| RF-01 · Agenda | Los filtros de profesional y fecha están juntos; el número de citas aparece antes del listado y cada fila presenta horario, paciente y estado. | Incluir un estado vacío visible cuando no existan citas y mostrar un mensaje junto al filtro si la fecha no es válida. | Media |
+| RF-02 · Reserva | El recorrido presenta profesional, fecha, franjas disponibles y el botón «Reservar cita»; la sección «Antes de reservar» explica condiciones básicas. | Hacer más evidente cuál horario está seleccionado y mantener visible la confirmación o el motivo de un error al reservar. | Alta |
+| RF-03 · Disponibilidad | Los campos de días, horas, duración y semanas aparecen agrupados; se muestra una vista previa de franjas y bloques activos. | Confirmar visualmente el guardado y diferenciar con claridad la edición de un bloque existente de la creación de uno nuevo. | Media |
+| RF-04 · Exportación CSV | La fecha y el botón de exportación son fáciles de identificar; un resumen de la jornada precede al listado de citas. | Mostrar una notificación cuando la descarga termine y un aviso claro si no hay citas para exportar. | Baja |
+| RF-05 · Consulta por documento | La búsqueda aparece antes de los resultados; el listado permite reconocer fechas, horarios y estados, sin presentar información clínica. | Añadir ejemplos de mensaje para documento inválido y búsqueda sin coincidencias, sin mostrar información de otros pacientes. | Media |
+
+**Resultado de la revisión:** las pantallas presentan una secuencia de tareas comprensible y controles agrupados por función. Las mejoras propuestas se concentran en la selección de horarios, los mensajes de confirmación, las validaciones y los estados sin resultados. Son observaciones sobre los **prototipos**, no afirmaciones de errores comprobados en la aplicación en funcionamiento.
+
+**Alcance:** cinco prototipos examinados; cero participantes y cero tareas de usuario medidas. No se reportan tasa de éxito, tiempo promedio, satisfacción ni puntuaciones de usuarios, porque esos datos requieren sesiones efectivas. Las observaciones pueden utilizarse para orientar ajustes de interfaz y para priorizar las tareas de un test posterior.
+
 ## 5. Verificaciones funcionales disponibles y límite de interpretación
 
 En la evidencia técnica del proyecto se registraron comprobaciones de los flujos RF-02 y RF-03, que sirven de contexto para escoger tareas realistas de usabilidad:
