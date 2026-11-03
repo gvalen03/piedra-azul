@@ -2,6 +2,7 @@ import AtencionMedica from "../../components/medicos/AtencionMedica.jsx";
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { A, useNavigate } from "@solidjs/router";
 import { apiFetch } from "../../services/api.js";
+import { descargarCsvAgenda } from "../../services/descarga-csv.js";
 import { useAuth } from "../../stores/auth.store.js";
 import "../../styles/modules/medico.css";
 
@@ -46,6 +47,17 @@ function MedicoPage() {
     } finally { if (actual === solicitud) setCargando(false); }
   };
   const cambiarFecha = (valor) => { setFecha(valor); consultar(); };
+  // RF-04: exporta a CSV mi agenda del día (citas vigentes, sin canceladas).
+  const [exportando, setExportando] = createSignal(false);
+  const [errorCsv, setErrorCsv] = createSignal("");
+  const exportarCsv = async () => {
+    setErrorCsv("");
+    if (!fecha()) { setErrorCsv("Selecciona una fecha para exportar tu agenda."); return; }
+    setExportando(true);
+    try { await descargarCsvAgenda({ fecha: fecha() }); }
+    catch (err) { setErrorCsv(err.message); }
+    finally { setExportando(false); }
+  };
   const moverDia = (dias) => {
     const date = new Date(`${fecha() || hoy()}T12:00:00`);
     date.setDate(date.getDate() + dias);
@@ -70,7 +82,9 @@ function MedicoPage() {
           <div><label for="agenda-fecha">Fecha de consulta</label><input disabled={guardandoAtencion()} id="agenda-fecha" type="date" value={fecha()} onInput={e => cambiarFecha(e.currentTarget.value)} /></div>
           <div class="medico-day-controls"><button disabled={guardandoAtencion()} class="medico-outline" aria-label="Día anterior" onClick={() => moverDia(-1)}>←</button><button disabled={guardandoAtencion()} class="medico-outline" onClick={() => cambiarFecha(hoy())}>Hoy</button><button disabled={guardandoAtencion()} class="medico-outline" aria-label="Día siguiente" onClick={() => moverDia(1)}>→</button></div>
           <button class="btn btn-primary medico-refresh" disabled={cargando() || guardandoAtencion()} onClick={consultar}>{cargando() ? "Consultando…" : "Actualizar agenda"}</button>
+          <button class="medico-outline" disabled={exportando() || cargando() || guardandoAtencion()} onClick={exportarCsv} title="Descarga tus citas vigentes de la fecha (sin canceladas) en CSV">{exportando() ? "Exportando…" : "Exportar CSV"}</button>
         </section>
+        <Show when={errorCsv()}><div class="medico-error" role="alert">{errorCsv()}</div></Show>
         <div class="medico-stats">
           <For each={[["Citas del día", null], ["Por atender", "pendientes"], ["Atendidas", "ATENDIDA"]]}>{([label, filtro]) => <div class="medico-stat"><span>{label}</span><strong>{cargando() || error() ? "—" : citas().filter(c => !filtro || (filtro === "pendientes" ? ["PROGRAMADA", "CONFIRMADA"].includes(c.estado) : c.estado === filtro)).length}</strong><small>En la fecha seleccionada</small></div>}</For>
         </div>

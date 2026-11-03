@@ -16,7 +16,8 @@ test(
     const service = new CitaService({
       citaRepository,
       disponibilidadService: {},
-      eventBus: null
+      eventBus: null,
+      medicoRepository: { buscarPorId: async () => ({ id: 1 }) }
     });
 
     const resultado =
@@ -29,6 +30,76 @@ test(
     assert.equal(resultado.citas.length, 2);
   }
 );
+
+function servicioAgenda({ citas = [], medico = { id: 1 } } = {}) {
+  const llamadas = [];
+  const service = new CitaService({
+    citaRepository: {
+      listarAgendaMedico: async (...args) => {
+        llamadas.push(args);
+        return citas;
+      }
+    },
+    disponibilidadService: {},
+    eventBus: null,
+    medicoRepository: { buscarPorId: async () => medico }
+  });
+  return { service, llamadas };
+}
+
+test("agenda sin citas es válida: cantidad 0 y lista vacía", async () => {
+  const { service } = servicioAgenda({ citas: [] });
+  const resultado = await service.consultarPorMedicoYFecha(1, "2026-09-28");
+  assert.deepEqual(resultado, { cantidad: 0, citas: [] });
+});
+
+test("agenda con varias citas incluye las CANCELADA y la cantidad coincide con la lista", async () => {
+  const citas = [
+    { id: 1, estado: "PROGRAMADA" },
+    { id: 2, estado: "CONFIRMADA" },
+    { id: 3, estado: "CANCELADA" },
+    { id: 4, estado: "ATENDIDA" }
+  ];
+  const { service } = servicioAgenda({ citas });
+  const resultado = await service.consultarPorMedicoYFecha("1", "2026-09-28");
+  assert.equal(resultado.cantidad, 4);
+  assert.equal(resultado.cantidad, resultado.citas.length);
+  assert.ok(resultado.citas.some(cita => cita.estado === "CANCELADA"));
+});
+
+test("agenda pasa el médico como número y la fecha al repositorio", async () => {
+  const { service, llamadas } = servicioAgenda();
+  await service.consultarPorMedicoYFecha("7", "2026-09-28");
+  assert.deepEqual(llamadas, [[7, "2026-09-28"]]);
+});
+
+for (const fecha of [undefined, null, "", "28-09-2026", "2026-9-28", "2026-02-30", "2026-13-01", "abc", 20260928]) {
+  test(`agenda rechaza fecha inválida (${JSON.stringify(fecha)}) sin consultar el repositorio`, async () => {
+    const { service, llamadas } = servicioAgenda();
+    await assert.rejects(service.consultarPorMedicoYFecha(1, fecha), { statusCode: 400 });
+    assert.equal(llamadas.length, 0);
+  });
+}
+
+test("agenda acepta 29 de febrero solo en año bisiesto", async () => {
+  const { service } = servicioAgenda();
+  await service.consultarPorMedicoYFecha(1, "2028-02-29");
+  await assert.rejects(service.consultarPorMedicoYFecha(1, "2027-02-29"), { statusCode: 400 });
+});
+
+for (const medicoId of [undefined, null, "", 0, -1, "abc", 1.5]) {
+  test(`agenda rechaza médico inválido (${JSON.stringify(medicoId)})`, async () => {
+    const { service, llamadas } = servicioAgenda();
+    await assert.rejects(service.consultarPorMedicoYFecha(medicoId, "2026-09-28"), { statusCode: 400 });
+    assert.equal(llamadas.length, 0);
+  });
+}
+
+test("agenda responde 404 si el médico no existe y no consulta citas", async () => {
+  const { service, llamadas } = servicioAgenda({ medico: null });
+  await assert.rejects(service.consultarPorMedicoYFecha(99, "2026-09-28"), { statusCode: 404 });
+  assert.equal(llamadas.length, 0);
+});
 
 test(
   "agendar crea una cita usando la hora final de la franja disponible",

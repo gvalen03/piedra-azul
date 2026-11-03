@@ -192,7 +192,8 @@ export async function buildApp() {
     new CitaService({
       citaRepository,
       disponibilidadService,
-      eventBus
+      eventBus,
+      medicoRepository
     });
 
   const pacienteService =
@@ -276,7 +277,9 @@ export async function buildApp() {
   // =========================
 
   await app.register(cors, {
-    origin: true
+    origin: true,
+    // RF-04: el navegador necesita leer el nombre del CSV en peticiones cross-origin
+    exposedHeaders: ["Content-Disposition"]
   });
 
   app.decorate("authProvider", authConfig.provider);

@@ -19,9 +19,36 @@ export function crearCitaController({ citaService }) {
           error.message ||
           "Error al consultar las citas";
 
-        return reply.code(500).send({
+        return reply.code(error.statusCode || 500).send({
           error: mensaje
         });
+      }
+    },
+
+    exportarCsv: async (request, reply) => {
+      try {
+        const { medicoId, fecha } = request.query;
+
+        const { nombreArchivo, contenido } =
+          await citaService.exportarCsv(medicoId, fecha);
+
+        return reply
+          .header("Content-Type", "text/csv; charset=utf-8")
+          .header(
+            "Content-Disposition",
+            `attachment; filename="${nombreArchivo}"`
+          )
+          .header("Cache-Control", "no-store")
+          .header("X-Content-Type-Options", "nosniff")
+          .send(contenido);
+      } catch (error) {
+        return reply
+          .code(error.statusCode || 500)
+          .send({
+            error:
+              error.message ||
+              "Error al exportar las citas"
+          });
       }
     },
 

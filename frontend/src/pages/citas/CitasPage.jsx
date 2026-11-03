@@ -5,6 +5,7 @@ import { createSignal, onMount, For, Show } from "solid-js";
 
 import { useAuth } from "../../stores/auth.store.js";
 import { apiJson } from "../../services/api-json.js";
+import { descargarCsvAgenda } from "../../services/descarga-csv.js";
 
 import RegistroPaciente
   from "../../components/pacientes/RegistroPaciente.jsx";
@@ -63,6 +64,16 @@ function CitasPage() {
 
   const [cantidadCitas, setCantidadCitas] =
     createSignal(0);
+
+  // true cuando la agenda de la selección actual ya se consultó con éxito
+  // (permite distinguir "cero citas" de "aún no se ha consultado").
+  const [agendaConsultada, setAgendaConsultada] =
+    createSignal(false);
+
+  const citasCanceladas = () =>
+    citas().filter(
+      (cita) => cita.estado === "CANCELADA"
+    ).length;
 
   const [vista, setVista] =
     createSignal("citas");
@@ -142,6 +153,7 @@ function CitasPage() {
     validarSeleccion();
 
     setConsultandoCitas(true);
+    setAgendaConsultada(false);
     setCitas([]);
     setCantidadCitas(0);
 
@@ -152,6 +164,7 @@ function CitasPage() {
 
       setCitas(data.citas);
       setCantidadCitas(data.cantidad);
+      setAgendaConsultada(true);
     } finally {
       setConsultandoCitas(false);
     }
@@ -167,6 +180,7 @@ function CitasPage() {
     limpiarFranjas();
     setCitas([]);
     setCantidadCitas(0);
+    setAgendaConsultada(false);
     setCancelarId(null);
     setReprogramarId(null);
   };
@@ -220,6 +234,17 @@ function CitasPage() {
 
   const consultarCitas = () =>
     ejecutar(cargarCitas);
+
+  // RF-04: exporta a CSV las citas vigentes (sin canceladas) de la selección.
+  const exportarCitasCsv = () =>
+    ejecutar(async () => {
+      validarSeleccion();
+      await descargarCsvAgenda({
+        medicoId: medicoId(),
+        fecha: fecha()
+      });
+      setMensaje("Descarga del CSV iniciada.");
+    });
 
   // =========================
   // Actualizar agenda
@@ -696,6 +721,15 @@ function CitasPage() {
                       <strong>
                         {cantidadCitas()}
                       </strong>
+
+                      <Show when={citasCanceladas() > 0}>
+                        <span class="citas-count-note">
+                          Incluye {citasCanceladas()}{" "}
+                          {citasCanceladas() === 1
+                            ? "cancelada"
+                            : "canceladas"}
+                        </span>
+                      </Show>
                     </div>
 
                     <span class="citas-date">
@@ -726,30 +760,70 @@ function CitasPage() {
                       : "Consultar citas"}
                   </button>
 
+                  <button
+                    type="button"
+                    class="btn citas-btn-outline citas-query"
+                    onClick={exportarCitasCsv}
+                    disabled={
+                      ocupado() ||
+                      !medicoId() ||
+                      !fecha()
+                    }
+                    title="Descarga las citas vigentes de la fecha (sin canceladas) en CSV"
+                  >
+                    Exportar CSV
+                  </button>
+
                   <Show
                     when={citas().length > 0}
                     fallback={
-                      <div class="citas-empty">
-                        <span aria-hidden="true">
-                          ▦
-                        </span>
+                      <Show
+                        when={agendaConsultada()}
+                        fallback={
+                          <div class="citas-empty">
+                            <span aria-hidden="true">
+                              ▦
+                            </span>
 
-                        <h3>
-                          Tu agenda, en un solo lugar
-                        </h3>
+                            <h3>
+                              Tu agenda, en un solo lugar
+                            </h3>
 
-                        <p>
-                          Selecciona un médico y una fecha.
-                          Luego consulta sus citas para
-                          verlas aquí.
-                        </p>
-                      </div>
+                            <p>
+                              Selecciona un médico y una fecha.
+                              Luego consulta sus citas para
+                              verlas aquí.
+                            </p>
+                          </div>
+                        }
+                      >
+                        <div class="citas-empty" role="status">
+                          <span aria-hidden="true">
+                            ▦
+                          </span>
+
+                          <h3>
+                            Sin citas para este día
+                          </h3>
+
+                          <p>
+                            Este médico no tiene citas en la
+                            fecha seleccionada.
+                          </p>
+                        </div>
+                      </Show>
                     }
                   >
                     <ul class="citas-list">
                       <For each={citas()}>
                         {(cita) => (
-                          <li>
+                          <li
+                            classList={{
+                              "is-cancelled":
+                                cita.estado ===
+                                "CANCELADA"
+                            }}
+                          >
                             <div class="citas-item-top">
                               <strong>
                                 {cita.hora_inicio?.slice(
@@ -768,7 +842,10 @@ function CitasPage() {
                                 classList={{
                                   "is-confirmed":
                                     cita.estado ===
-                                    "CONFIRMADA"
+                                    "CONFIRMADA",
+                                  "is-cancelled":
+                                    cita.estado ===
+                                    "CANCELADA"
                                 }}
                               >
                                 {cita.estado}
