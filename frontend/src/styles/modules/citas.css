@@ -410,6 +410,21 @@
   color: #286247;
 }
 
+.citas-badge.is-cancelled {
+  background: #fbe9e7;
+  color: #8a2c20;
+}
+
+.citas-list li.is-cancelled {
+  opacity: 0.75;
+}
+
+.citas-count-note {
+  display: block;
+  font-size: 11px;
+  color: #8a2c20;
+}
+
 .citas-list li > p {
   font-size: 13px;
   color: var(--color-text-secondary);

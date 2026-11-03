@@ -7,7 +7,8 @@ export const consultarCitasSchema = {
     ],
     properties: {
       medicoId: {
-        type: "integer"
+        type: "integer",
+        minimum: 1
       },
 
       fecha: {
