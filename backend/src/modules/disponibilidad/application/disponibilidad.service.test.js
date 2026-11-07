@@ -48,9 +48,29 @@ test("varios bloques, cruces parciales, horizonte y horas pasadas", async () => 
 });
 test("validación de horario y duración antes de guardar", async () => {
   const s = new DisponibilidadService({ disponibilidadRepository: { guardar: async d => d } });
-  const dto = { horaInicio: "08:00", horaFin: "09:00", intervaloMinutos: 30, semanasHabilitadas: 4 };
-  for (const cambio of [{ horaInicio: "25:00" }, { horaFin: "07:00" }, { intervaloMinutos: 90 }, { semanasHabilitadas: 0 }]) {
+  const dto = { medicoId: 12, diaSemana: "LUNES", horaInicio: "08:00", horaFin: "09:00", intervaloMinutos: 30, semanasHabilitadas: 4 };
+  for (const cambio of [{ horaInicio: "25:00" }, { horaFin: "07:00" }, { intervaloMinutos: 90 }, { semanasHabilitadas: 0 }, { medicoId: 0 }, { diaSemana: "FUNDAY" }]) {
     await assert.rejects(s.configurar({ ...dto, ...cambio }), { statusCode: 400 });
   }
   assert.equal((await s.configurar(dto)).intervaloMinutos, 30);
+});
+
+test("actualizar valida el bloque y delega el mismo id, profesional y parámetros", async () => {
+  let recibido;
+  const s = new DisponibilidadService({ disponibilidadRepository: {
+    actualizar: async (id, disponibilidad) => (recibido = { id, disponibilidad })
+  } });
+  const dto = { medicoId: 12, diaSemana: "MARTES", horaInicio: "09:00", horaFin: "10:30", intervaloMinutos: 30, semanasHabilitadas: 6 };
+  await s.actualizar(7, dto);
+  assert.equal(recibido.id, 7);
+  assert.deepEqual({
+    medicoId: recibido.disponibilidad.medicoId,
+    diaSemana: recibido.disponibilidad.diaSemana,
+    horaInicio: recibido.disponibilidad.horaInicio,
+    horaFin: recibido.disponibilidad.horaFin,
+    intervaloMinutos: recibido.disponibilidad.intervaloMinutos,
+    semanasHabilitadas: recibido.disponibilidad.semanasHabilitadas
+  }, dto);
+  await assert.rejects(s.actualizar(0, dto), { statusCode: 400 });
+  await assert.rejects(s.actualizar(7, { ...dto, intervaloMinutos: 0 }), { statusCode: 400 });
 });

@@ -1,6 +1,7 @@
 export const configurarDisponibilidadSchema = {
   body: {
     type: "object",
+    additionalProperties: false,
     required: [
       "medicoId",
       "diaSemana",

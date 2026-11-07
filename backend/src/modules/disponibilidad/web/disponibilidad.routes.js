@@ -48,6 +48,7 @@ export async function disponibilidadRoutes(fastify) {
         querystring: {
           type: "object",
           required: ["medicoId"],
+          additionalProperties: false,
           properties: {
             medicoId: { type: "integer", minimum: 1 }
           }
@@ -69,7 +70,7 @@ export async function disponibilidadRoutes(fastify) {
       ],
       schema: {
         params: {
-          type: "object",
+          type: "object", required: ["id"], additionalProperties: false,
           properties: {
             id: { type: "integer", minimum: 1 }
           }
@@ -77,6 +78,7 @@ export async function disponibilidadRoutes(fastify) {
         querystring: {
           type: "object",
           required: ["medicoId"],
+          additionalProperties: false,
           properties: {
             medicoId: { type: "integer", minimum: 1 }
           }
@@ -93,6 +95,22 @@ export async function disponibilidadRoutes(fastify) {
 
       return { message: "Bloque desactivado. Las citas existentes se conservan." };
     }
+  );
+
+
+  fastify.put(
+    "/:id",
+    {
+      schema: {
+        params: {
+          type: "object", required: ["id"], additionalProperties: false,
+          properties: { id: { type: "integer", minimum: 1 } }
+        },
+        body: configurarDisponibilidadSchema.body
+      },
+      preHandler: [fastify.authenticate, authorize("ADMINISTRADOR")]
+    },
+    fastify.disponibilidadController.actualizar
   );
 
 

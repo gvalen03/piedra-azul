@@ -1,5 +1,6 @@
 import { Disponibilidad } from "../domain/disponibilidad.entity.js";
 import { FranjaHoraria } from "../domain/franja-horaria.js";
+import { DiaSemana } from "../domain/dia-semana.js";
 
 export class DisponibilidadService {
   constructor({ disponibilidadRepository, citaRepository, ahora = () => new Date() }) {
@@ -8,18 +9,31 @@ export class DisponibilidadService {
     this.ahora = ahora;
   }
 
-  async configurar(dto) {
+  validarConfiguracion(dto) {
     const fallo = mensaje => { throw Object.assign(new Error(mensaje), { statusCode: 400 }); };
     const hora = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!Number.isSafeInteger(dto.medicoId) || dto.medicoId <= 0) fallo("Selecciona un profesional válido");
+    if (!Object.values(DiaSemana).includes(dto.diaSemana)) fallo("Selecciona un día de atención válido");
     if (!hora.test(dto.horaInicio) || !hora.test(dto.horaFin)) fallo("Usa horarios válidos en formato HH:mm");
     if (dto.horaInicio >= dto.horaFin) fallo("La hora de inicio debe ser menor que la hora de fin");
     if (!Number.isInteger(dto.intervaloMinutos) || dto.intervaloMinutos <= 0) fallo("El intervalo debe ser un entero mayor que cero");
-    if (!Number.isInteger(dto.semanasHabilitadas) || dto.semanasHabilitadas <= 0) fallo("Las semanas deben ser un entero mayor que cero");
+    if (!Number.isSafeInteger(dto.semanasHabilitadas) || dto.semanasHabilitadas <= 0) fallo("Las semanas deben ser un entero mayor que cero");
     const minutos = valor => Number(valor.slice(0,2)) * 60 + Number(valor.slice(3,5));
     if (dto.intervaloMinutos > minutos(dto.horaFin) - minutos(dto.horaInicio)) fallo("La duración de la cita no cabe en el bloque");
+  }
 
+  async configurar(dto) {
+    this.validarConfiguracion(dto);
     const disponibilidad = new Disponibilidad(dto);
     return await this.disponibilidadRepository.guardar(disponibilidad);
+  }
+
+  async actualizar(id, dto) {
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      throw Object.assign(new Error("El bloque seleccionado no es válido"), { statusCode: 400 });
+    }
+    this.validarConfiguracion(dto);
+    return this.disponibilidadRepository.actualizar(id, new Disponibilidad(dto));
   }
 
   async obtenerFranjasDisponibles({ medicoId, fecha, excluirCitaId }) {

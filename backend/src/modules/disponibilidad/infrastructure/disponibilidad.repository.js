@@ -28,6 +28,45 @@ export class DisponibilidadRepository {
     finally { client.release(); }
   }
 
+  async actualizar(id, d) {
+    const client = await this.db.connect();
+    try {
+      await client.query("BEGIN");
+      const medico = await client.query(
+        "SELECT id FROM medicos WHERE id=$1 AND activo=TRUE FOR UPDATE",
+        [d.medicoId]
+      );
+      if (!medico.rows.length) throw Object.assign(new Error("Médico no disponible"), { statusCode: 400 });
+
+      const actual = await client.query(
+        "SELECT id FROM disponibilidades WHERE id=$1 AND medico_id=$2 AND activo=TRUE FOR UPDATE",
+        [id, d.medicoId]
+      );
+      if (!actual.rows.length) throw Object.assign(new Error("Bloque no encontrado"), { statusCode: 404 });
+
+      const cruce = await client.query(`SELECT id FROM disponibilidades WHERE medico_id=$1 AND dia_semana=$2 AND id<>$5
+        AND ((activo=TRUE AND hora_inicio < $4::time AND hora_fin > $3::time)
+          OR (hora_inicio=$3::time AND hora_fin=$4::time))`,
+      [d.medicoId, d.diaSemana, d.horaInicio, d.horaFin, id]);
+      if (cruce.rows.length) throw Object.assign(new Error("El horario se superpone o ya existe un bloque con las mismas horas"), { statusCode: 409 });
+
+      const result = await client.query(
+        `UPDATE disponibilidades SET dia_semana=$3, hora_inicio=$4, hora_fin=$5,
+          intervalo_minutos=$6, semanas_habilitadas=$7,
+          updated_at=CURRENT_TIMESTAMP
+         WHERE id=$1 AND medico_id=$2 AND activo=TRUE RETURNING *`,
+        [id, d.medicoId, d.diaSemana, d.horaInicio, d.horaFin, d.intervaloMinutos, d.semanasHabilitadas]
+      );
+      await client.query("COMMIT");
+      return result.rows[0] ?? null;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async buscarPorMedico(medicoId) {
     const result = await this.db.query(
       `SELECT * FROM disponibilidades WHERE medico_id=$1 AND activo=TRUE ORDER BY dia_semana, hora_inicio`,
