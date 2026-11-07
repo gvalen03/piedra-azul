@@ -17,3 +17,6 @@ dist/
 # IDE
 .idea/
 .vscode/
+
+# Configuración de GitHub Pages
+/.github/workflows/pages.yml
