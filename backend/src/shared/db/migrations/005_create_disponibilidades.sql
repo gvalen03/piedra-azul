@@ -1,12 +1,15 @@
+
+-- Necesaria para la restricción de solapamiento.
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 CREATE TABLE IF NOT EXISTS disponibilidades (
     id BIGSERIAL PRIMARY KEY,
 
-    medico_id BIGINT NOT NULL,
+    profesional_id BIGINT NOT NULL,
 
     dia_semana VARCHAR(20) NOT NULL,
 
     hora_inicio TIME NOT NULL,
-
     hora_fin TIME NOT NULL,
 
     intervalo_minutos INTEGER NOT NULL,
@@ -18,9 +21,9 @@ CREATE TABLE IF NOT EXISTS disponibilidades (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_disponibilidad_medico
-        FOREIGN KEY (medico_id)
-        REFERENCES medicos(id)
+    CONSTRAINT fk_disponibilidad_profesional
+        FOREIGN KEY (profesional_id)
+        REFERENCES profesionales(id)
         ON DELETE RESTRICT,
 
     CONSTRAINT chk_disponibilidad_dia
@@ -37,34 +40,27 @@ CREATE TABLE IF NOT EXISTS disponibilidades (
         ),
 
     CONSTRAINT chk_disponibilidad_horario
-        CHECK (
-            hora_inicio < hora_fin
-        ),
+        CHECK (hora_inicio < hora_fin),
 
     CONSTRAINT chk_disponibilidad_intervalo
-        CHECK (
-            intervalo_minutos > 0
-        ),
+        CHECK (intervalo_minutos > 0),
 
     CONSTRAINT chk_disponibilidad_semanas
-        CHECK (
-            semanas_habilitadas > 0
+        CHECK (semanas_habilitadas > 0),
+
+    CONSTRAINT ex_disponibilidad_solapamiento
+        EXCLUDE USING gist (
+            profesional_id WITH =,
+            dia_semana WITH =,
+            tsrange(
+                DATE '2000-01-01' + hora_inicio,
+                DATE '2000-01-01' + hora_fin,
+                '[)'
+            ) WITH &&
         )
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS
-uq_disponibilidad_medico_dia_horario
-ON disponibilidades (
-    medico_id,
-    dia_semana,
-    hora_inicio,
-    hora_fin
+        WHERE (activo = TRUE)
 );
 
 CREATE INDEX IF NOT EXISTS
-idx_disponibilidades_medico
-ON disponibilidades(medico_id);
-
-CREATE INDEX IF NOT EXISTS
-idx_disponibilidades_medico_dia
-ON disponibilidades(medico_id, dia_semana);
+idx_disponibilidades_profesional_dia
+ON disponibilidades(profesional_id, dia_semana);
