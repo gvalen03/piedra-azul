@@ -11,7 +11,7 @@ export function useAuth() {
       nombre: data.nombre,
       rol: data.rol,
       pacienteId: data.pacienteId,
-      medicoId: data.medicoId
+      profesionalId: data.profesionalId
     };
 
     setUser(usuario);

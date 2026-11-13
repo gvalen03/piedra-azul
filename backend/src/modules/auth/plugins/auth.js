@@ -27,22 +27,24 @@ export const authPlugin = fp(async function authPlugin(fastify, options) {
     }
 
     const identidad = config.provider === "keycloak" ? "u.keycloak_subject" : "u.username";
-    const result = await database.query(`SELECT u.id, u.username, u.nombre, u.rol, u.activo, u.medico_id, u.paciente_id, u.updated_at,
-      m.activo AS medico_activo, p.estado AS paciente_estado
-      FROM usuarios u LEFT JOIN medicos m ON m.id=u.medico_id LEFT JOIN pacientes p ON p.id=u.paciente_id
+    const rolLocal = config.provider === "local" ? ", u.rol" : "";
+    const result = await database.query(`SELECT u.id, u.username, pe.nombre, u.activo, u.updated_at${rolLocal},
+      pr.id AS profesional_id, pa.id AS paciente_id, pr.activo AS profesional_activo, pa.estado AS paciente_estado
+      FROM usuarios u JOIN personas pe ON pe.id=u.persona_id
+      LEFT JOIN profesionales pr ON pr.persona_id=u.persona_id LEFT JOIN pacientes pa ON pa.persona_id=u.persona_id
       WHERE ${identidad}=$1`, [payload.sub]);
     const usuario = result.rows[0];
     if (!usuario?.activo ||
         (config.provider === "local" && new Date(usuario.updated_at).getTime() !== payload.version) ||
-        (usuario?.rol === "MEDICO_TERAPISTA" && !usuario.medico_activo) ||
-        (usuario?.rol === "PACIENTE" && usuario.paciente_estado !== "ACTIVO")) {
+        (rolToken === "MEDICO_TERAPISTA" && !usuario.profesional_activo) ||
+        (rolToken === "PACIENTE" && usuario.paciente_estado !== "ACTIVO")) {
       return reply.code(401).send({ error: "La cuenta o sus permisos cambiaron. Inicia sesión nuevamente o contacta al administrador." });
     }
-    if (usuario.rol !== rolToken) {
+    if (config.provider === "local" && usuario.rol !== rolToken) {
       return reply.code(403).send({ error: "El rol del token no coincide con los permisos registrados para esta cuenta." });
     }
-    request.user = { sub: usuario.username, username: usuario.username, usuarioId: Number(usuario.id), rol: usuario.rol,
-      medicoId: usuario.medico_id == null ? null : Number(usuario.medico_id),
+    request.user = { sub: usuario.username, username: usuario.username, usuarioId: Number(usuario.id), rol: rolToken,
+      profesionalId: usuario.profesional_id == null ? null : Number(usuario.profesional_id),
       pacienteId: usuario.paciente_id == null ? null : Number(usuario.paciente_id),
       keycloakSubject: config.provider === "keycloak" ? payload.sub : null,
       nombre: usuario.nombre };

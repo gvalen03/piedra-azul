@@ -3,20 +3,21 @@ import { A, useNavigate } from "@solidjs/router";
 import { useAuth } from "../../stores/auth.store.js";
 import { apiFetch } from "../../services/api.js";
 import AdminEditor, { roles } from "../../components/admin/AdminEditor.jsx";
-import DisponibilidadMedico from "../../components/medicos/DisponibilidadMedico.jsx";
 import "../../styles/modules/medico.css";
 import "../../styles/modules/admin.css";
 
-const secciones = { usuarios: "Usuarios", medicos: "Médicos", pacientes: "Pacientes" };
+const usaKeycloak = import.meta.env.VITE_AUTH_PROVIDER === "keycloak";
+const secciones = usaKeycloak
+  ? { usuarios: "Cuentas de acceso", profesionales: "Profesionales", pacientes: "Pacientes" }
+  : { usuarios: "Usuarios", profesionales: "Profesionales", pacientes: "Pacientes" };
 const activo = r => r.activo ?? r.estado === "ACTIVO";
 
 export default function AdminPage() {
   const auth = useAuth(), navigate = useNavigate();
-  const [tipo,setTipo] = createSignal("usuarios"), [datos,setDatos] = createSignal({ usuarios: [], medicos: [], pacientes: [] });
+  const [tipo,setTipo] = createSignal("usuarios"), [datos,setDatos] = createSignal({ usuarios: [], profesionales: [], pacientes: [] });
   const [busqueda,setBusqueda] = createSignal(""), [estado,setEstado] = createSignal(""), [rol,setRol] = createSignal("");
   const [editor,setEditor] = createSignal(null), [busy,setBusy] = createSignal(false), [error,setError] = createSignal(""), [mensaje,setMensaje] = createSignal("");
   const [listo,setListo] = createSignal(false);
-  const [medicoDisponibilidadId, setMedicoDisponibilidadId] = createSignal("");
 
   const visibles = createMemo(() => (datos()[tipo()] || []).filter(r =>
     (!estado() || activo(r) === (estado() === "ACTIVO")) &&
@@ -68,13 +69,13 @@ export default function AdminPage() {
     }
   };
   const perfilNombre = r => {
-    const perfil = r.rol === "MEDICO_TERAPISTA" ? datos().medicos.find(m => String(m.id) === String(r.medico_id)) : r.rol === "PACIENTE" ? datos().pacientes.find(p => String(p.id) === String(r.paciente_id)) : null;
+    const perfil = r.rol === "MEDICO_TERAPISTA" ? datos().profesionales.find(p => String(p.id) === String(r.profesional_id)) : r.rol === "PACIENTE" ? datos().pacientes.find(p => String(p.id) === String(r.paciente_id)) : null;
     return perfil ? `${perfil.nombre} ${perfil.apellido}` : "Sin perfil asociado";
   };
 
   return <div class="medico-page admin-page"><header class="medico-topbar"><div class="medico-container medico-topbar-inner"><A class="medico-brand" href="/admin"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" /></svg></span>PiedraAzul</A><div class="medico-account"><span>{auth.user()?.nombre}<small>Administración</small></span><button class="medico-outline" disabled={busy()} onClick={() => { auth.cerrarSesion(); navigate("/", { replace:true }); }}>Cerrar sesión</button></div></div></header>
 
-    <main class="medico-container medico-main"><div class="medico-heading"><div><span class="medico-eyebrow">ATENCIÓN Y BIENESTAR</span><h1>Administración</h1><p>Organiza cada encuentro, cuida cada detalle.</p></div><span class="medico-label">Gestión de personas y accesos</span></div>
+    <main class="medico-container medico-main"><div class="medico-heading"><div><span class="medico-eyebrow">ADMINISTRACIÓN</span><h1>Gestión de usuarios</h1><p>Administra las personas y sus accesos a Piedra Azul.</p></div><span class="medico-label">Gestión de personas y accesos</span></div>
 
       <div class="medico-stats"><For each={Object.entries(secciones)}>{([key,label]) => <div class="medico-stat"><span>{label} activos</span><strong>{listo() ? datos()[key].filter(activo).length : "—"}</strong><small>{listo() ? `${datos()[key].length} registros en total` : "Consultando registros"}</small></div>}</For></div>
 
@@ -87,13 +88,14 @@ export default function AdminPage() {
       <Show when={mensaje()}><p class="admin-success" role="status">{mensaje()}</p></Show>
       <Show when={busy()}><p class="admin-help" role="status">Procesando…</p></Show>
       <div classList={{ "admin-grid": true, "admin-grid-editor": !!editor() }}>
-        <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">☷</span><div><h2>{secciones[tipo()]}</h2><p>{tipo() === "usuarios" ? "Gestiona las cuentas y sus permisos." : "Crea los perfiles antes de vincular sus cuentas."}</p></div></div>
-          <div class="admin-list-body"><div class="admin-actions"><button class="btn btn-primary" disabled={busy() || !listo()} onClick={() => setEditor({ registro:null })}>Crear {tipo() === "usuarios" ? "usuario" : tipo() === "medicos" ? "médico" : "paciente"}</button><button class="medico-outline" disabled={busy()} onClick={actualizar}>Actualizar</button></div>
+        <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">☷</span><div><h2>{secciones[tipo()]}</h2><p>{tipo() === "usuarios" ? "Consulta quién puede ingresar y qué función tiene en el sistema." : "Registra y administra la información de las personas."}</p></div></div>
+          <div class="admin-list-body"><div class="admin-actions"><button class="btn btn-primary" disabled={busy() || !listo()} onClick={() => setEditor({ registro:null })}>{tipo() === "usuarios" ? "＋ Crear cuenta" : `Crear ${tipo() === "profesionales" ? "profesional" : "paciente"}`}</button><button class="medico-outline" disabled={busy()} onClick={actualizar}>Actualizar</button></div>
+            <Show when={tipo() === "usuarios" && usaKeycloak}><aside class="admin-info"><strong>¿Para qué sirve esta sección?</strong><p>Registrar una persona permite almacenar sus datos en el sistema. Crear una cuenta de acceso permite que esa persona inicie sesión y utilice las funcionalidades autorizadas según su rol.</p></aside></Show>
             <div class="admin-filters"><label for="admin-buscar">Buscar<input id="admin-buscar" type="search" placeholder="Nombre, correo, usuario o documento" value={busqueda()} onInput={e => setBusqueda(e.currentTarget.value)} /></label><label for="admin-filtro-estado">Estado<select id="admin-filtro-estado" value={estado()} onChange={e => setEstado(e.currentTarget.value)}><option value="">Todos</option><option value="ACTIVO">Activos</option><option value="INACTIVO">Inactivos</option></select></label><Show when={tipo() === "usuarios"}><label for="admin-filtro-rol">Rol<select id="admin-filtro-rol" value={rol()} onChange={e => setRol(e.currentTarget.value)}><option value="">Todos los roles</option><For each={Object.entries(roles)}>{([value,label]) => <option value={value}>{label}</option>}</For></select></label></Show></div>
-            <Show when={listo() && !visibles().length}><p class="medico-empty">No hay registros que coincidan con la búsqueda.</p></Show>
+            <Show when={listo() && !visibles().length}><div class="medico-empty"><h3>{tipo() === "usuarios" ? "Todavía no hay cuentas de acceso" : "No hay registros que coincidan con la búsqueda"}</h3><p>{tipo() === "usuarios" ? "Crea una cuenta para permitir que una persona ingrese al sistema con los permisos correspondientes." : "Prueba con otra búsqueda o crea un registro."}</p></div></Show>
             <ul class="admin-list"><For each={visibles()}>{r => <li><div class="admin-record"><div><strong>{r.nombre} {r.apellido || ""}</strong><small>{tipo() === "usuarios" ? `${r.username} · ${roles[r.rol]}` : `Documento: ${r.numero_documento}`}</small><small>{r.email || "Sin correo registrado"}</small><Show when={tipo() === "usuarios" && ["MEDICO_TERAPISTA", "PACIENTE"].includes(r.rol)}><small>Perfil: {perfilNombre(r)}</small></Show></div><span class={`medico-badge ${activo(r) ? "estado-atendida" : "estado-cancelada"}`}>{activo(r) ? "Activo" : "Inactivo"}</span></div><Show when={tipo() !== "usuarios" || Number(r.id) !== Number(auth.user()?.usuarioId)} fallback={<small class="admin-help">Tu cuenta actual</small>}><div class="admin-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>{tipo() === "usuarios" ? "Editar" : "Editar / Desactivar"}</button><Show when={tipo() !== "usuarios"}><button class="medico-outline" disabled={busy()} onClick={() => eliminar(r)}>Eliminar</button></Show></div></Show></li>}</For></ul>
           </div></section>
-        <Show keyed when={editor()}>{ed => <AdminEditor tipo={tipo()} registro={ed.registro} medicos={datos().medicos} pacientes={datos().pacientes} busy={busy()} onSave={guardar} onClose={() => setEditor(null)} />}</Show>
+        <Show keyed when={editor()}>{ed => <AdminEditor tipo={tipo()} keycloak={usaKeycloak} registro={ed.registro} profesionales={datos().profesionales} pacientes={datos().pacientes} busy={busy()} onSave={guardar} onClose={() => setEditor(null)} />}</Show>
       </div>
       <footer class="medico-footer">PiedraAzul · Atención y bienestar</footer>
     </main>

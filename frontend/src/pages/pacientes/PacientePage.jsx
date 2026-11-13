@@ -33,7 +33,7 @@ export default function PacientePage() {
   const asignarPerfil = p => { setPerfil(p); setEmail(p.email || ""); setTelefono(p.telefono || ""); setDireccion(p.direccion || ""); };
   const cargar = () => ejecutar(async () => {
     const resultados = await Promise.allSettled([
-      cargarCitas(), api("/pacientes/me").then(asignarPerfil), api("/medicos").then(data => setMedicos(data.filter(m => m.activo)))
+      cargarCitas(), api("/pacientes/me").then(asignarPerfil), api("/profesionales").then(data => setMedicos(data.filter(m => m.activo)))
     ]);
     const fallos = resultados.filter(r => r.status === "rejected");
     if (fallos.length) throw new Error([...new Set(fallos.map(r => r.reason.message))].join(" · "));
@@ -61,10 +61,10 @@ export default function PacientePage() {
         </div></section>
       </Show>
       <Show when={vista() === "reserva"}><div class="medico-grid"><section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">＋</span><div><h2>Reserva tu próxima cita</h2><p>Elige un médico y una fecha para consultar sus horarios.</p></div></div><div class="paciente-body"><fieldset disabled={ocupado() || !auth.user()?.pacienteId || perfil()?.estado !== "ACTIVO"}>
-        <form onSubmit={e => { e.preventDefault(); ejecutar(async () => { limpiarFranjas(); setFranjas(await api(`/disponibilidad/franjas?medicoId=${medico()}&fecha=${fecha()}`)); setConsultado(true); }); }}><label for="reserva-medico">Médico<select id="reserva-medico" required value={medico()} onChange={e => { setMedico(e.currentTarget.value); limpiarFranjas(); }}><option value="">Selecciona un médico</option><For each={medicos()}>{m => <option value={m.id}>{m.nombre} {m.apellido}</option>}</For></select></label><label for="reserva-fecha">Fecha<input id="reserva-fecha" type="date" required min={hoy()} value={fecha()} onInput={e => { setFecha(e.currentTarget.value); limpiarFranjas(); }} /></label><button class="medico-outline">Consultar horarios</button></form>
+        <form onSubmit={e => { e.preventDefault(); ejecutar(async () => { limpiarFranjas(); setFranjas(await api(`/disponibilidad/franjas?profesionalId=${medico()}&fecha=${fecha()}`)); setConsultado(true); }); }}><label for="reserva-profesional">Profesional<select id="reserva-profesional" required value={medico()} onChange={e => { setMedico(e.currentTarget.value); limpiarFranjas(); }}><option value="">Selecciona un profesional</option><For each={medicos()}>{m => <option value={m.id}>{m.nombre} {m.apellido}</option>}</For></select></label><label for="reserva-fecha">Fecha<input id="reserva-fecha" type="date" required min={hoy()} value={fecha()} onInput={e => { setFecha(e.currentTarget.value); limpiarFranjas(); }} /></label><button class="medico-outline">Consultar horarios</button></form>
         <Show when={consultado()}><form onSubmit={e => { e.preventDefault(); ejecutar(async () => {
           try {
-            await api("/citas/mis-citas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ medicoId: Number(medico()), fecha: fecha(), horaInicio: hora(), motivo: motivo().trim() || null }) });
+            await api("/citas/mis-citas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profesionalId: Number(medico()), fecha: fecha(), horaInicio: hora(), motivo: motivo().trim() || null }) });
           } catch (e) { limpiarFranjas(); throw e; }
           limpiarFranjas(); setMotivo(""); setVista("citas"); setFiltro("proximas"); setMensaje("Tu cita fue reservada. Puedes confirmar tu asistencia en Mis citas."); await cargarCitas();
         }); }}><Show when={franjas().length} fallback={<p class="medico-empty">No hay horarios libres para esta fecha. Prueba otro día.</p>}><label for="reserva-hora">Horario disponible<select id="reserva-hora" required value={hora()} onChange={e => setHora(e.currentTarget.value)}><option value="">Selecciona una hora</option><For each={franjas()}>{f => <option value={f.horaInicio}>{f.horaInicio} – {f.horaFin}</option>}</For></select></label><label for="reserva-motivo">Motivo de consulta (opcional)<textarea id="reserva-motivo" rows="3" maxLength="2000" value={motivo()} onInput={e => setMotivo(e.currentTarget.value)} /></label><button class="btn btn-primary">Reservar cita</button></Show></form></Show>

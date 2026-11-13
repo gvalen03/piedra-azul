@@ -19,10 +19,10 @@ const user = {
   nombre: "Cuenta sintética",
   rol: "ADMINISTRADOR",
   activo: true,
-  medico_id: null,
+  profesional_id: null,
   paciente_id: null,
   updated_at: new Date(),
-  medico_activo: null,
+  profesional_activo: null,
   paciente_estado: null
 };
 
@@ -113,7 +113,7 @@ test("Keycloak verifica firma, issuer, audience, tiempos y mapea el sub al usuar
     nombre: "Cuenta sintética",
     rol: "ADMINISTRADOR",
     pacienteId: null,
-    medicoId: null
+    profesionalId: null
   });
   assert.match(lookups[0].sql, /u\.keycloak_subject=\$1/);
   assert.deepEqual(lookups[0].params, [subject]);
@@ -183,9 +183,9 @@ test("la matriz Keycloak permite el rol correspondiente y devuelve 403/401 en lo
       keycloak_subject: tokenSubject,
       username: `synthetic-${role.toLowerCase()}`,
       rol: role,
-      medico_id: role === "MEDICO_TERAPISTA" ? 41 : null,
+      profesional_id: role === "MEDICO_TERAPISTA" ? 41 : null,
       paciente_id: role === "PACIENTE" ? 51 : null,
-      medico_activo: role === "MEDICO_TERAPISTA" ? true : null,
+      profesional_activo: role === "MEDICO_TERAPISTA" ? true : null,
       paciente_estado: role === "PACIENTE" ? "ACTIVO" : null
     }];
   }));
@@ -220,7 +220,7 @@ test("la matriz Keycloak permite el rol correspondiente y devuelve 403/401 en lo
   assert.equal(unauthenticated.statusCode, 401);
 });
 
-test("rol de Keycloak debe coincidir con la cuenta local, y el usuario debe estar activo", async t => {
+test("Keycloak administra el rol y la cuenta local debe permanecer activa", async t => {
   const { publicKey, privateKey } = await generateKeyPair("RS256");
   const { server, jwksUri } = await startJwksServer(publicKey);
   t.after(() => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())));
@@ -234,12 +234,12 @@ test("rol de Keycloak debe coincidir con la cuenta local, y el usuario debe esta
     })
   }, t);
   const mismatchedRole = await tokenFor(privateKey);
-  const forbidden = await app.inject({
+  const authorized = await app.inject({
     method: "GET",
     url: "/api/auth/session",
     headers: { authorization: `Bearer ${mismatchedRole}` }
   });
-  assert.equal(forbidden.statusCode, 403);
+  assert.equal(authorized.statusCode, 200);
 
   const inactiveToken = await tokenFor(privateKey, { tokenSubject: "inactive" });
   const inactive = await app.inject({

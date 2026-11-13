@@ -12,14 +12,7 @@
     <packaging>pom</packaging>
     <name>Piedra Azul - Proyecto Principal</name>
 
-    <modules>
-        <module>ms-auth</module>
-        <module>ms-pacientes</module>
-        <module>ms-agenda</module>
-        <module>ms-historial</module>
-        <module>ms-auditoria</module>
-        <module>api-gateway</module>
-        <module>piedra-azul-ui/piedra-azul-ui</module>
-    </modules>
+    <!-- La aplicación activa es el monolito modular Node.js de backend/ y
+         frontend/. No se declaran módulos Maven ni microservicios. -->
 
 </project>

@@ -3,13 +3,13 @@ export function crearCitaController({ citaService }) {
     cancelar: async (request, reply) => reply.send(await citaService.cancelar(request.params.id, request.user.sub)),
     reprogramar: async (request, reply) => reply.send(await citaService.reprogramar(request.params.id, request.body, request.user.sub)),
     franjasReprogramacion: async (request, reply) => reply.send(await citaService.franjasReprogramacion(request.params.id, request.query.fecha)),
-    consultarPorMedicoYFecha: async (request, reply) => {
+    consultarPorProfesionalYFecha: async (request, reply) => {
       try {
-        const { medicoId, fecha } = request.query;
+        const { profesionalId, fecha } = request.query;
 
         const resultado =
-          await citaService.consultarPorMedicoYFecha(
-            medicoId,
+          await citaService.consultarPorProfesionalYFecha(
+            profesionalId,
             fecha
           );
 

@@ -11,13 +11,13 @@ const manana = () => {
 };
 function repositorio({ ocupada = false, estado = "CONFIRMADA", futura = true } = {}) {
   const llamadas = [];
-  const cita = { id: "7", medico_id: "3", paciente_id: "4", estado, futura, fecha: manana(), hora_inicio: "08:00:00", hora_fin: "09:00:00" };
+  const cita = { id: "7", profesional_id: "3", paciente_id: "4", estado, futura, fecha: manana(), hora_inicio: "08:00:00", hora_fin: "09:00:00" };
   const client = {
     query: async (sql, params) => {
       llamadas.push([sql, params]);
-      if (sql.trimStart().startsWith("SELECT medico_id")) return { rows: [{ medico_id: "3" }] };
+      if (sql.trimStart().startsWith("SELECT profesional_id")) return { rows: [{ profesional_id: "3" }] };
       if (sql.includes("AS futura")) return { rows: [cita] };
-      if (sql.includes("FROM medicos") && !sql.includes("disponibilidades")) return { rows: [{ id: "3" }] };
+      if (sql.includes("FROM profesionales") && !sql.includes("disponibilidades")) return { rows: [{ id: "3" }] };
       if (sql.includes("FROM pacientes")) return { rows: [{ id: "4" }] };
       if (sql.includes("FROM disponibilidades")) return { rows: [{ hora_inicio: "08:00", hora_fin: "10:00", intervalo_minutos: 30, semanas_habilitadas: 4 }] };
       if (sql.includes("FROM citas") && sql.includes("estado <>")) return { rows: [cita, ...(ocupada ? [{ id:"8", hora_inicio:"08:30", hora_fin:"09:00" }] : [])] };
@@ -34,7 +34,7 @@ test("reprograma la misma cita, excluye su horario original y vuelve a PROGRAMAD
   const update = llamadas.find(([sql]) => sql.trimStart().startsWith("UPDATE citas"));
   assert.deepEqual(update[1], [7, manana(), "08:30", "09:00"]);
   assert.equal(llamadas.some(([sql]) => sql.includes("INSERT INTO citas")), false);
-  assert.ok(llamadas.findIndex(([sql]) => sql.includes("FROM medicos")) < llamadas.findIndex(([sql]) => sql.includes("AS futura")));
+  assert.ok(llamadas.findIndex(([sql]) => sql.includes("FROM profesionales")) < llamadas.findIndex(([sql]) => sql.includes("AS futura")));
   assert.equal(llamadas.find(([sql]) => sql.includes("INSERT INTO auditorias"))[1][3], "agendador");
   assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["COMMIT", "release"]);
 });
@@ -64,7 +64,7 @@ test("solo agendador y administrador pueden cancelar, reprogramar y consultar fr
     req.user = { rol:req.headers.authorization, sub:"prueba" };
   });
   const handler = async () => { llamadas++; return {}; };
-  app.decorate("citaController", { cancelar:handler, reprogramar:handler, franjasReprogramacion:handler, confirmar:handler, consultarPorMedicoYFecha:handler, agendar:handler });
+  app.decorate("citaController", { cancelar:handler, reprogramar:handler, franjasReprogramacion:handler, confirmar:handler, consultarPorProfesionalYFecha:handler, agendar:handler });
   await app.register(citaRoutes);
   for (const rol of [undefined,"PACIENTE","MEDICO_TERAPISTA","AGENDADOR","ADMINISTRADOR"]) {
     const headers = rol ? { authorization:rol } : {};

@@ -3,7 +3,7 @@ export const configurarDisponibilidadSchema = {
     type: "object",
     additionalProperties: false,
     required: [
-      "medicoId",
+      "profesionalId",
       "diaSemana",
       "horaInicio",
       "horaFin",
@@ -11,7 +11,7 @@ export const configurarDisponibilidadSchema = {
       "semanasHabilitadas"
     ],
     properties: {
-      medicoId: {
+      profesionalId: {
         type: "integer", minimum: 1
       },
 

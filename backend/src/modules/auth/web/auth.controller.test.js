@@ -10,7 +10,7 @@ function crearReply() {
 }
 
 test("login responde 200 con la sesión devuelta por el servicio", async () => {
-  const sesion = { token: "token", rol: "PACIENTE", nombre: "Paciente", usuarioId: 5, pacienteId: 34, medicoId: null };
+  const sesion = { token: "token", rol: "PACIENTE", nombre: "Paciente", usuarioId: 5, pacienteId: 34, profesionalId: null };
   const authService = { login: mock.fn(async () => sesion) };
   const reply = crearReply();
   const resultado = await crearAuthController({ authService }).login({

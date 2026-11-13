@@ -12,7 +12,7 @@ export class DisponibilidadService {
   validarConfiguracion(dto) {
     const fallo = mensaje => { throw Object.assign(new Error(mensaje), { statusCode: 400 }); };
     const hora = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!Number.isSafeInteger(dto.medicoId) || dto.medicoId <= 0) fallo("Selecciona un profesional válido");
+    if (!Number.isSafeInteger(dto.profesionalId) || dto.profesionalId <= 0) fallo("Selecciona un profesional válido");
     if (!Object.values(DiaSemana).includes(dto.diaSemana)) fallo("Selecciona un día de atención válido");
     if (!hora.test(dto.horaInicio) || !hora.test(dto.horaFin)) fallo("Usa horarios válidos en formato HH:mm");
     if (dto.horaInicio >= dto.horaFin) fallo("La hora de inicio debe ser menor que la hora de fin");
@@ -36,9 +36,9 @@ export class DisponibilidadService {
     return this.disponibilidadRepository.actualizar(id, new Disponibilidad(dto));
   }
 
-  async obtenerFranjasDisponibles({ medicoId, fecha, excluirCitaId }) {
+  async obtenerFranjasDisponibles({ profesionalId, fecha, excluirCitaId }) {
     const diaSemana = this.obtenerDiaSemana(fecha);
-    const configuraciones = await this.disponibilidadRepository.buscarPorMedicoYDia(medicoId, diaSemana);
+    const configuraciones = await this.disponibilidadRepository.buscarPorProfesionalYDia(profesionalId, diaSemana);
     const partes = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit",
       hour: "2-digit", minute: "2-digit", hourCycle: "h23"
@@ -48,7 +48,7 @@ export class DisponibilidadService {
     const dias = (Date.parse(fecha) - Date.parse(hoy)) / 86400000;
     const franjas = configuraciones.filter(c => dias >= 0 && dias < c.semanas_habilitadas * 7)
       .flatMap(c => this.generarFranjas(c));
-    const citas = (await this.citaRepository.listarPorMedicoYFecha(medicoId, fecha)) ?? [];
+    const citas = (await this.citaRepository.listarPorProfesionalYFecha(profesionalId, fecha)) ?? [];
     return franjas.filter(f => (fecha !== hoy || f.horaInicio > horaActual) && !citas.some(c =>
       String(c.id) !== String(excluirCitaId ?? "") && c.hora_inicio.slice(0,5) < f.horaFin && c.hora_fin.slice(0,5) > f.horaInicio
     )).sort((a,b) => a.horaInicio.localeCompare(b.horaInicio));

@@ -6,7 +6,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
 
     username VARCHAR(100) NOT NULL UNIQUE,
 
-    keycloak_subject VARCHAR(255) NOT NULL UNIQUE,
+    -- Keycloak es la fuente de autoridad de identidad y roles. El vínculo se
+    -- completa al aprovisionar la cuenta; por eso puede ser nulo al crearla.
+    keycloak_subject VARCHAR(255) UNIQUE,
 
     activo BOOLEAN NOT NULL DEFAULT TRUE,
 

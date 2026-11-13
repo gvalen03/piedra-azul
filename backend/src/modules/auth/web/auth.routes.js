@@ -16,6 +16,6 @@ export async function authRoutes(fastify) {
     nombre: request.user.nombre,
     rol: request.user.rol,
     pacienteId: request.user.pacienteId,
-    medicoId: request.user.medicoId
+    profesionalId: request.user.profesionalId
   }));
 }

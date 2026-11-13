@@ -12,10 +12,10 @@ export class CitaService {
     this.eventBus = eventBus;
   }
 
-  async consultarPorMedicoYFecha(medicoId, fecha) {
+  async consultarPorProfesionalYFecha(profesionalId, fecha) {
     const citas =
-      await this.citaRepository.listarAgendaMedico(
-        medicoId,
+      await this.citaRepository.listarAgendaProfesional(
+        profesionalId,
         fecha
       );
 
@@ -27,7 +27,7 @@ export class CitaService {
 
   async agendar({
     pacienteId,
-    medicoId,
+    profesionalId,
     fecha,
     horaInicio,
     motivo
@@ -35,7 +35,7 @@ export class CitaService {
     const franjasDisponibles =
       await this.disponibilidadService
         .obtenerFranjasDisponibles({
-          medicoId,
+          profesionalId,
           fecha
         });
 
@@ -53,7 +53,7 @@ export class CitaService {
 
     const ocupada =
       await this.citaRepository.existeCitaEnHorario(
-        medicoId,
+        profesionalId,
         fecha,
         horaInicio
       );
@@ -66,7 +66,7 @@ export class CitaService {
 
     const cita = new Cita({
       pacienteId,
-      medicoId,
+      profesionalId,
       fecha,
       horaInicio,
       horaFin: franjaSeleccionada.horaFin,
@@ -99,7 +99,7 @@ export class CitaService {
     const cita = await this.citaRepository.buscarPorId(id);
     if (!cita) throw Object.assign(new Error("Cita no encontrada"), { statusCode: 404 });
     if (!["PROGRAMADA", "CONFIRMADA"].includes(cita.estado)) throw Object.assign(new Error("La cita ya no admite reprogramación"), { statusCode: 409 });
-    return this.disponibilidadService.obtenerFranjasDisponibles({ medicoId: cita.medico_id, fecha, excluirCitaId: id });
+    return this.disponibilidadService.obtenerFranjasDisponibles({ profesionalId: cita.profesional_id, fecha, excluirCitaId: id });
   }
 
     async confirmar(id, actor) {

@@ -5,7 +5,7 @@ import { useAuth } from "./stores/auth.store.js";
 
 import LoginPage from "./pages/auth/LoginPage.jsx";
 import PacientePage from "./pages/pacientes/PacientePage.jsx";
-import MedicoPage from "./pages/medicos/MedicoPage.jsx";
+import ProfessionalPage from "./pages/profesionales/ProfesionalPage.jsx";
 import CitasPage from "./pages/citas/CitasPage.jsx";
 import AdminPage from "./pages/admin/AdminPage.jsx";
 
@@ -39,14 +39,14 @@ function App() {
       />
 
       <Route
-        path="/medico"
+        path="/profesional"
         component={() => (
           <ProtectedRoute
             allowedRoles={[
               "MEDICO_TERAPISTA"
             ]}
           >
-            <MedicoPage />
+            <ProfessionalPage />
           </ProtectedRoute>
         )}
       />

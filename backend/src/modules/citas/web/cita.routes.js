@@ -55,11 +55,11 @@ export async function citaRoutes(fastify) {
     },
     preHandler: [fastify.authenticate, authorize("MEDICO_TERAPISTA")]
   }, async (request, reply) => {
-    const medicoId = Number(request.user.medicoId);
-    if (!Number.isSafeInteger(medicoId) || medicoId <= 0) {
-      return reply.code(403).send({ error: "Tu usuario no tiene un médico asociado. Contacta al administrador." });
+    const profesionalId = Number(request.user.profesionalId);
+    if (!Number.isSafeInteger(profesionalId) || profesionalId <= 0) {
+      return reply.code(403).send({ error: "Tu usuario no tiene un profesional asociado. Contacta al administrador." });
     }
-    const citas = await fastify.citaRepository.listarAgendaMedico(medicoId, request.query.fecha);
+    const citas = await fastify.citaRepository.listarAgendaProfesional(profesionalId, request.query.fecha);
     return { citas };
   });
 
@@ -76,7 +76,7 @@ export async function citaRoutes(fastify) {
       ]
     },
     fastify.citaController
-      .consultarPorMedicoYFecha
+      .consultarPorProfesionalYFecha
   );
 
   fastify.post(

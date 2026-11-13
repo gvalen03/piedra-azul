@@ -34,6 +34,9 @@ export function loadAuthConfig(env = process.env) {
     issuer: normalizedIssuer,
     audience: env.KEYCLOAK_AUDIENCE,
     clientId: env.KEYCLOAK_CLIENT_ID || env.KEYCLOAK_AUDIENCE,
-    jwksUri: jwksUrl.toString()
+    jwksUri: jwksUrl.toString(),
+    provisioner: env.KEYCLOAK_PROVISIONER_CLIENT_ID && env.KEYCLOAK_PROVISIONER_CLIENT_SECRET
+      ? { clientId: env.KEYCLOAK_PROVISIONER_CLIENT_ID, clientSecret: env.KEYCLOAK_PROVISIONER_CLIENT_SECRET }
+      : null
   };
 }

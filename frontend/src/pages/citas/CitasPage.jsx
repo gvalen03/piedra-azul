@@ -25,7 +25,7 @@ function CitasPage() {
   const [medicos, setMedicos] =
     createSignal([]);
 
-  const [medicoId, setMedicoId] =
+  const [profesionalId, setProfesionalId] =
     createSignal("");
 
   const [fecha, setFecha] =
@@ -111,7 +111,7 @@ function CitasPage() {
   // =========================
 
   const cargarMedicos = async () => {
-    const data = await apiJson("/medicos");
+    const data = await apiJson("/profesionales");
 
     setMedicos(
       data.filter((medico) => medico.activo)
@@ -127,7 +127,7 @@ function CitasPage() {
   // =========================
 
   const validarSeleccion = () => {
-    if (!medicoId() || !fecha()) {
+    if (!profesionalId() || !fecha()) {
       throw new Error(
         "Selecciona un médico y una fecha."
       );
@@ -147,7 +147,7 @@ function CitasPage() {
 
     try {
       const data = await apiJson(
-        `/citas?medicoId=${medicoId()}&fecha=${fecha()}`
+        `/citas?profesionalId=${profesionalId()}&fecha=${fecha()}`
       );
 
       setCitas(data.citas);
@@ -211,7 +211,7 @@ function CitasPage() {
       validarSeleccion();
 
       const data = await apiJson(
-        `/disponibilidad/franjas?medicoId=${medicoId()}&fecha=${fecha()}`
+        `/disponibilidad/franjas?profesionalId=${profesionalId()}&fecha=${fecha()}`
       );
 
       setFranjas(data);
@@ -315,8 +315,8 @@ function CitasPage() {
               pacienteId: Number(
                 paciente().id
               ),
-              medicoId: Number(
-                medicoId()
+              profesionalId: Number(
+                profesionalId()
               ),
               fecha: fecha(),
               horaInicio: horaInicio(),
@@ -415,7 +415,7 @@ function CitasPage() {
           </div>
         </Show>
 
-        <Show when={esError()}><button class="btn citas-btn-outline" disabled={ocupado()} onClick={() => ejecutar(async () => { await cargarMedicos(); if (medicoId() && fecha()) await cargarCitas(); })}>Actualizar datos</button></Show>
+        <Show when={esError()}><button class="btn citas-btn-outline" disabled={ocupado()} onClick={() => ejecutar(async () => { await cargarMedicos(); if (profesionalId() && fecha()) await cargarCitas(); })}>Actualizar datos</button></Show>
         <Show when={ocupado()}><p role="status">Procesando…</p></Show>
         <Show when={vista() === "pacientes"}><RegistroPaciente documento={documentoPaciente()} onBusy={setOcupado} onCancel={() => setVista("citas")} onRegistered={p => { setPaciente(p); setDocumentoPaciente(p.numero_documento); setVista("citas"); setEsError(false); setMensaje("Paciente registrado y seleccionado. Ya puedes agendar su cita."); }} /></Show>
         <Show when={vista() === "citas"}>
@@ -513,9 +513,9 @@ function CitasPage() {
                       <select
                         id="medico"
                         class="form-input"
-                        value={medicoId()}
+                        value={profesionalId()}
                         onInput={(event) => {
-                          setMedicoId(
+                          setProfesionalId(
                             event.target.value
                           );
                           limpiarSeleccion();

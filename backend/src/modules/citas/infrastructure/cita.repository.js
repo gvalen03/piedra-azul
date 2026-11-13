@@ -13,23 +13,23 @@ export class CitaRepository {
   // Agenda del médico
   // =========================
 
-  async listarAgendaMedico(medicoId, fecha) {
+  async listarAgendaProfesional(profesionalId, fecha) {
     const result = await this.db.query(
       `
       SELECT
         c.*,
         c.fecha::text AS fecha,
-        p.nombre AS paciente_nombre,
-        p.apellido AS paciente_apellido,
-        p.numero_documento AS paciente_documento
+        pe.nombre AS paciente_nombre,
+        pe.apellido AS paciente_apellido,
+        pe.numero_documento AS paciente_documento
       FROM citas c
-      JOIN pacientes p
-        ON p.id = c.paciente_id
-      WHERE c.medico_id = $1
+      JOIN pacientes p ON p.id = c.paciente_id
+      JOIN personas pe ON pe.id = p.persona_id
+      WHERE c.profesional_id = $1
         AND c.fecha = $2
       ORDER BY c.hora_inicio ASC
       `,
-      [medicoId, fecha]
+      [profesionalId, fecha]
     );
 
     return result.rows;
@@ -45,18 +45,18 @@ export class CitaRepository {
     try {
       await client.query("BEGIN");
 
-      const medico = await client.query(
+      const profesional = await client.query(
         `
         SELECT id
-        FROM medicos
+        FROM profesionales
         WHERE id = $1
           AND activo = TRUE
         FOR UPDATE
         `,
-        [cita.medicoId]
+        [cita.profesionalId]
       );
 
-      if (!medico.rows.length) {
+      if (!profesional.rows.length) {
         throw new Error(
           "El médico no está disponible"
         );
@@ -93,7 +93,7 @@ export class CitaRepository {
       const franjas =
         await disponibilidadService
           .obtenerFranjasDisponibles({
-            medicoId: cita.medicoId,
+            profesionalId: cita.profesionalId,
             fecha: cita.fecha
           });
 
@@ -114,7 +114,7 @@ export class CitaRepository {
         `
         INSERT INTO citas (
           paciente_id,
-          medico_id,
+          profesional_id,
           fecha,
           hora_inicio,
           hora_fin,
@@ -134,7 +134,7 @@ export class CitaRepository {
         `,
         [
           cita.pacienteId,
-          cita.medicoId,
+          cita.profesionalId,
           cita.fecha,
           cita.horaInicio,
           cita.horaFin,
@@ -178,21 +178,21 @@ export class CitaRepository {
   // Listar por médico y fecha
   // =========================
 
-  async listarPorMedicoYFecha(
-    medicoId,
+  async listarPorProfesionalYFecha(
+    profesionalId,
     fecha
   ) {
     const result = await this.db.query(
       `
       SELECT *
       FROM citas
-      WHERE medico_id = $1
+      WHERE profesional_id = $1
         AND fecha = $2
         AND estado <> 'CANCELADA'
       ORDER BY hora_inicio ASC
       `,
       [
-        medicoId,
+        profesionalId,
         fecha
       ]
     );
@@ -205,7 +205,7 @@ export class CitaRepository {
   // =========================
 
   async existeCitaEnHorario(
-    medicoId,
+    profesionalId,
     fecha,
     horaInicio
   ) {
@@ -214,14 +214,14 @@ export class CitaRepository {
       SELECT EXISTS (
         SELECT 1
         FROM citas
-        WHERE medico_id = $1
+        WHERE profesional_id = $1
           AND fecha = $2
           AND hora_inicio = $3
           AND estado <> 'CANCELADA'
       ) AS existe
       `,
       [
-        medicoId,
+        profesionalId,
         fecha,
         horaInicio
       ]
@@ -282,11 +282,11 @@ export class CitaRepository {
       SELECT
         c.*,
         c.fecha::text AS fecha,
-        m.nombre AS medico_nombre,
-        m.apellido AS medico_apellido
+        pe.nombre AS medico_nombre,
+        pe.apellido AS medico_apellido
       FROM citas c
-      JOIN medicos m
-        ON m.id = c.medico_id
+      JOIN profesionales pr ON pr.id = c.profesional_id
+      JOIN personas pe ON pe.id = pr.persona_id
       WHERE c.paciente_id = $1
       ORDER BY
         c.fecha DESC,
@@ -436,7 +436,7 @@ export class CitaRepository {
       const originalResult =
         await client.query(
           `
-          SELECT medico_id
+          SELECT profesional_id
           FROM citas
           WHERE id = $1
           `,
@@ -463,12 +463,12 @@ export class CitaRepository {
         await client.query(
           `
           SELECT id
-          FROM medicos
+          FROM profesionales
           WHERE id = $1
             AND activo = TRUE
           FOR UPDATE
           `,
-          [original.medico_id]
+          [original.profesional_id]
         );
 
       if (!medico.rows.length) {
@@ -552,7 +552,7 @@ export class CitaRepository {
       const franjas =
         await disponibilidadService
           .obtenerFranjasDisponibles({
-            medicoId: cita.medico_id,
+            profesionalId: cita.profesional_id,
             fecha,
             excluirCitaId: id
           });

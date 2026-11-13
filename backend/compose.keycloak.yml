@@ -8,4 +8,10 @@ services:
     ports:
       - "127.0.0.1:8081:8080"
     volumes:
+      # Conserva usuarios, roles y clientes entre reinicios o recreaciones.
+      - keycloak_data:/opt/keycloak/data
+      # Solo se importa al crear por primera vez el realm piedra-azul.
       - ./keycloak/realm-piedra-azul.json:/opt/keycloak/data/import/realm-piedra-azul.json:ro
+
+volumes:
+  keycloak_data:

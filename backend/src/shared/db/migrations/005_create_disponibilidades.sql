@@ -64,3 +64,8 @@ CREATE TABLE IF NOT EXISTS disponibilidades (
 CREATE INDEX IF NOT EXISTS
 idx_disponibilidades_profesional_dia
 ON disponibilidades(profesional_id, dia_semana);
+
+-- Permite que la misma franja se actualice de forma idempotente.
+CREATE UNIQUE INDEX IF NOT EXISTS
+uq_disponibilidades_profesional_franja
+ON disponibilidades(profesional_id, dia_semana, hora_inicio, hora_fin);

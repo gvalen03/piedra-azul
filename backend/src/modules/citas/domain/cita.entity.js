@@ -2,7 +2,7 @@ export class Cita {
   constructor({
     id = null,
     pacienteId,
-    medicoId,
+    profesionalId,
     fecha,
     horaInicio,
     horaFin,
@@ -11,7 +11,7 @@ export class Cita {
   }) {
     this.id = id;
     this.pacienteId = pacienteId;
-    this.medicoId = medicoId;
+    this.profesionalId = profesionalId;
     this.fecha = fecha;
     this.horaInicio = horaInicio;
     this.horaFin = horaFin;

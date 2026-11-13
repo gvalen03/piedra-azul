@@ -7,7 +7,7 @@ export class Usuario {
     email,
     rol,
     activo = true,
-    medicoId = null,
+    profesionalId = null,
     pacienteId = null
   }) {
     this.id = id;
@@ -17,7 +17,7 @@ export class Usuario {
     this.email = email;
     this.rol = rol;
     this.activo = activo;
-    this.medicoId = medicoId;
+    this.profesionalId = profesionalId;
     this.pacienteId = pacienteId;
   }
 }

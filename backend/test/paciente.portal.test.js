@@ -21,7 +21,7 @@ async function crear(t, user = { rol: "PACIENTE", pacienteId: 7 }) {
     listarPorPaciente: async id => { llamadas.push(["citas", id]); return []; },
     cambiarEstadoPaciente: async (id, pacienteId, estado) => { llamadas.push(["estado", id, pacienteId, estado]); return id === 10 ? { id, estado } : null; }
   });
-  app.decorate("citaController", { consultarPorMedicoYFecha: async () => ({}), confirmar: async () => ({}), agendar: async req => { llamadas.push(["reserva", req.body]); return req.body; } });
+  app.decorate("citaController", { consultarPorProfesionalYFecha: async () => ({}), confirmar: async () => ({}), agendar: async req => { llamadas.push(["reserva", req.body]); return req.body; } });
   await app.register(pacienteRoutes, { prefix: "/pacientes" });
   await app.register(citaRoutes, { prefix: "/citas" });
   return { app, llamadas };
@@ -35,7 +35,7 @@ test("perfil y citas se consultan exclusivamente con la identidad de la sesión"
 });
 test("reserva propia ignora un paciente enviado por el cliente y bloquea la ruta general", async t => {
   const { app, llamadas } = await crear(t);
-  const payload = { pacienteId: 99, medicoId: 3, fecha: "2026-10-05", horaInicio: "08:00", motivo: null };
+  const payload = { pacienteId: 99, profesionalId: 3, fecha: "2026-10-05", horaInicio: "08:00", motivo: null };
   const response = await app.inject({ method: "POST", url: "/citas/mis-citas", payload });
   assert.equal(response.statusCode, 200, response.body);
   assert.equal(response.json().pacienteId, 7);

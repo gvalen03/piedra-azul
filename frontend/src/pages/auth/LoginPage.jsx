@@ -24,7 +24,7 @@ function LoginPage() {
   const navegarPorRol = rol => {
     const rutas = {
       PACIENTE: "/paciente",
-      MEDICO_TERAPISTA: "/medico",
+      MEDICO_TERAPISTA: "/profesional",
       AGENDADOR: "/citas",
       ADMINISTRADOR: "/admin"
     };
@@ -175,7 +175,7 @@ function LoginPage() {
                     setLoading(false);
                   }
                 }}>
-                  <span>{loading() ? "Conectando con Keycloak…" : "Continuar con Keycloak"}</span>
+                  <span>{loading() ? "Iniciando sesión…" : "Iniciar sesión"}</span>
                   <span class={loading() ? "login-spinner" : "login-arrow"} aria-hidden="true">{loading() ? "" : "→"}</span>
                 </button>
                 <span class="login-status" role="status">{loading() ? "Redirigiendo al inicio de sesión seguro." : ""}</span>

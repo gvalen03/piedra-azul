@@ -33,11 +33,11 @@ function repositorio({
     llamadas.push([sql, params]);
     if (sql.startsWith("SELECT id, username")) return { rows: [{ id: 1, username: propio ? "admin" : "otro", rol: "ADMINISTRADOR", activo: true }] };
     if (sql.includes("rol='ADMINISTRADOR' AND activo=TRUE AND id<>")) return { rows: ultimo ? [] : [{ id: 2 }] };
-    if (sql.startsWith("SELECT id FROM usuarios WHERE medico_id=")) return { rows: vinculado ? [{ id: 8 }] : [] };
+    if (sql.startsWith("SELECT id FROM usuarios WHERE persona_id=")) return { rows: vinculado ? [{ id: 8 }] : [] };
     if (sql.startsWith("SELECT id FROM usuarios WHERE username=")) return { rows: actorAdmin ? [{ id: 1 }] : [] };
-    if (sql.includes("FOR UPDATE")) return { rows: perfilExiste ? [{ id: 3, activo: true }] : [] };
+    if (sql.includes("FOR UPDATE")) return { rows: perfilExiste ? [{ id: 3, persona_id: 30, activo: true }] : [] };
     if (/^\s*SELECT\s+EXISTS/.test(sql)) {
-      const campos = [...sql.matchAll(/AS (tiene_\w+)/g)].map(([, campo]) => campo);
+      const campos = [...sql.matchAll(/AS (\w+)/g)].map(([, campo]) => campo);
       return { rows: [Object.fromEntries(campos.map(campo => [campo, Boolean(dependencias[campo])]))] };
     }
     if (sql.startsWith("DELETE FROM")) {
@@ -61,7 +61,7 @@ test("no permite eliminar el último administrador activo", async () => {
 test("rechaza perfiles faltantes y vinculados a otras cuentas", async () => {
   const { repo } = repositorio({ vinculado: true });
   await assert.rejects(repo.guardarUsuario(null, { ...usuario, rol: "MEDICO_TERAPISTA" }, "admin"), /Selecciona el perfil/);
-  await assert.rejects(repo.guardarUsuario(null, { ...usuario, rol: "MEDICO_TERAPISTA", medicoId: 3 }, "admin"), { statusCode: 409 });
+  await assert.rejects(repo.guardarUsuario(null, { ...usuario, rol: "MEDICO_TERAPISTA", profesionalId: 3 }, "admin"), { statusCode: 409 });
 });
 test("guarda usuario y auditoría juntos sin exponer contraseña", async () => {
   const { repo, llamadas } = repositorio();
@@ -74,12 +74,12 @@ test("guarda usuario y auditoría juntos sin exponer contraseña", async () => {
 });
 test("revierte cambios si falla auditoría", async () => {
   const { repo, llamadas } = repositorio({ falloAuditoria: true });
-  await assert.rejects(repo.guardarPerfil("medicos", null, { nombre: "Ana", apellido: "G", numeroDocumento: "1", activo: true }, "admin"), /Auditoría/);
+  await assert.rejects(repo.guardarPerfil("profesionales", null, { nombre: "Ana", apellido: "G", numeroDocumento: "1", activo: true }, "admin"), /Auditoría/);
   assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["ROLLBACK", "release"]);
 });
 for (const [tipo, campos] of [
-  ["medicos", ["tiene_citas", "tiene_controles", "tiene_disponibilidades", "tiene_cuenta"]],
-  ["pacientes", ["tiene_citas", "tiene_historia", "tiene_controles", "tiene_cuenta"]]
+  ["profesionales", ["citas", "controles", "disponibilidad", "cuenta"]],
+  ["pacientes", ["citas", "historia", "controles", "cuenta"]]
 ]) {
   for (const campo of campos) {
     test(`bloquea la eliminación de ${tipo} con dependencia ${campo}`, async () => {
@@ -99,16 +99,15 @@ for (const [tipo, campos] of [
 }
 test("elimina perfiles libres y conserva auditoría mínima dentro de la transacción", async () => {
   const { repo, llamadas } = repositorio();
-  assert.deepEqual(await repo.eliminarPerfil("medicos", 3, "admin"), { id: 3, tipo: "medicos", eliminado: true });
+  assert.deepEqual(await repo.eliminarPerfil("profesionales", 3, "admin"), { id: 3, tipo: "profesionales", eliminado: true });
   const auditoria = llamadas.findIndex(([sql]) => sql.startsWith("INSERT INTO auditorias"));
-  const eliminacion = llamadas.findIndex(([sql]) => sql.startsWith("DELETE FROM medicos"));
+  const eliminacion = llamadas.findIndex(([sql]) => sql.startsWith("DELETE FROM profesionales"));
   assert.ok(auditoria >= 0 && auditoria < eliminacion);
   assert.deepEqual(llamadas[auditoria][1], [
-    "MEDICOS_ELIMINADO",
-    "Eliminación irreversible de perfil de médico",
+    "PROFESIONALES_ELIMINADO",
+    "Actualización de profesionales",
     "3",
     "admin",
-    '{"tipoEntidad":"medicos"}'
   ]);
   assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["COMMIT", "release"]);
 });
@@ -120,15 +119,15 @@ test("no elimina si falla la auditoría", async () => {
 });
 test("una FK no inventariada también bloquea y revierte la eliminación", async () => {
   const { repo, llamadas } = repositorio({ falloFk: true });
-  await assert.rejects(repo.eliminarPerfil("medicos", 3, "admin"), {
+  await assert.rejects(repo.eliminarPerfil("profesionales", 3, "admin"), {
     statusCode: 409,
-    message: /registros relacionados.*Desactívalo/
+    message: /perfil seleccionado ya no existe/
   });
   assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["ROLLBACK", "release"]);
 });
 test("no permite eliminar sin perfil ni con actor sin privilegios", async () => {
   const faltante = repositorio({ perfilExiste: false });
-  await assert.rejects(faltante.repo.eliminarPerfil("medicos", 3, "admin"), { statusCode: 404 });
+  await assert.rejects(faltante.repo.eliminarPerfil("profesionales", 3, "admin"), { statusCode: 404 });
   const sinPermiso = repositorio({ actorAdmin: false });
   await assert.rejects(sinPermiso.repo.eliminarPerfil("pacientes", 3, "admin"), { statusCode: 403 });
 });
@@ -150,9 +149,9 @@ test("administración requiere sesión vigente de administrador", async t => {
   const token = rol => ({ authorization: `Bearer ${jwt.sign({ rol, version: Date.parse(fecha) }, process.env.JWT_SECRET, { subject: "admin" })}` });
   assert.equal((await app.inject("/admin/usuarios")).statusCode, 401);
   assert.equal((await app.inject({ url: "/admin/usuarios", headers: token("ADMINISTRADOR") })).statusCode, 200);
-  assert.equal((await app.inject({ method: "POST", url: "/admin/medicos", headers: token("ADMINISTRADOR"), payload: { nombre: " ", apellido: "G", numeroDocumento: "1", activo: true } })).statusCode, 400);
-  assert.equal((await app.inject({ method: "DELETE", url: "/admin/medicos/3", headers: token("ADMINISTRADOR") })).statusCode, 200);
-  assert.deepEqual(eliminaciones, [["medicos", 3, "admin"]]);
+  assert.equal((await app.inject({ method: "POST", url: "/admin/profesionales", headers: token("ADMINISTRADOR"), payload: { nombre: " ", apellido: "G", numeroDocumento: "1", activo: true } })).statusCode, 400);
+  assert.equal((await app.inject({ method: "DELETE", url: "/admin/profesionales/3", headers: token("ADMINISTRADOR") })).statusCode, 200);
+  assert.deepEqual(eliminaciones, [["profesionales", 3, "admin"]]);
   assert.equal((await app.inject({ method: "DELETE", url: "/admin/usuarios/3", headers: token("ADMINISTRADOR") })).statusCode, 404);
   cuenta = { ...cuenta, rol: "AGENDADOR" };
   assert.equal((await app.inject({ url: "/admin/usuarios", headers: token("AGENDADOR") })).statusCode, 403);

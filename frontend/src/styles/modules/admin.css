@@ -18,4 +18,11 @@
 .admin-success { background:#e8f1ef; color:var(--color-primary); padding:16px; border-radius:10px; font-size:14px; }
 .admin-page .medico-tabs { flex-wrap:wrap; }
 .admin-page .medico-badge { flex-shrink:0; }
+.admin-info { margin:24px 0; padding:18px 20px; border-radius:12px; background:#f4f7f6; border:1px solid #dfe8e4; }
+.admin-info strong { display:block; font-size:15px; color:var(--color-text); }
+.admin-info p { margin:8px 0 0; color:var(--color-text-secondary); font-size:13px; line-height:1.65; }
+.admin-confirmation { padding:24px; }
+.admin-confirmation dl { display:grid; grid-template-columns:max-content 1fr; gap:10px 16px; margin:20px 0; font-size:13px; }
+.admin-confirmation dt { color:var(--color-text-secondary); }
+.admin-confirmation dd { margin:0; overflow-wrap:anywhere; }
 @media(max-width:850px) { .admin-grid-editor { grid-template-columns:1fr; } .admin-editor { grid-row:1; } }

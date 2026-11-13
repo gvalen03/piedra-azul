@@ -20,11 +20,11 @@ export function crearDisponibilidadController({
     },
 
     consultarFranjas: async (request, reply) => {
-      const { medicoId, fecha } = request.query;
+      const { profesionalId, fecha } = request.query;
 
       const franjas =
         await disponibilidadService.obtenerFranjasDisponibles({
-          medicoId,
+          profesionalId,
           fecha
         });
 
