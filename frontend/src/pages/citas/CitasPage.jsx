@@ -1,10 +1,11 @@
 import "../../styles/modules/citas.css";
 
 import { A, useNavigate } from "@solidjs/router";
-import { createSignal, onMount, For, Show } from "solid-js";
+import { createMemo, createSignal, onCleanup, onMount, For, Show } from "solid-js";
 
 import { useAuth } from "../../stores/auth.store.js";
 import { apiJson } from "../../services/api-json.js";
+import { descargarCsvAgenda } from "../../services/descarga-csv.js";
 
 import RegistroPaciente
   from "../../components/pacientes/RegistroPaciente.jsx";
@@ -22,8 +23,26 @@ function CitasPage() {
   const [paciente, setPaciente] =
     createSignal(null);
 
+  const [pacientesEncontrados, setPacientesEncontrados] =
+    createSignal([]);
+
+  const [buscandoPacientes, setBuscandoPacientes] =
+    createSignal(false);
+
+  const [historialPaciente, setHistorialPaciente] =
+    createSignal([]);
+
+  const [cargandoHistorialPaciente, setCargandoHistorialPaciente] =
+    createSignal(false);
+
+  const [errorHistorialPaciente, setErrorHistorialPaciente] =
+    createSignal("");
+
   const [medicos, setMedicos] =
     createSignal([]);
+
+  const [busquedaProfesional, setBusquedaProfesional] =
+    createSignal("");
 
   const [profesionalId, setProfesionalId] =
     createSignal("");
@@ -72,6 +91,22 @@ function CitasPage() {
 
   const [reprogramarId, setReprogramarId] =
     createSignal(null);
+
+  let temporizadorBusquedaPaciente;
+
+  const profesionalesEncontrados = createMemo(() => {
+    const termino = busquedaProfesional().trim().toLocaleLowerCase();
+
+    if (!termino) return [];
+
+    return medicos()
+      .filter((profesional) =>
+        `${profesional.nombre} ${profesional.apellido}`
+          .toLocaleLowerCase()
+          .includes(termino)
+      )
+      .slice(0, 10);
+  });
 
   // =========================
   // Utilidades
@@ -122,6 +157,8 @@ function CitasPage() {
     ejecutar(cargarMedicos);
   });
 
+  onCleanup(() => clearTimeout(temporizadorBusquedaPaciente));
+
   // =========================
   // Validaciones
   // =========================
@@ -129,7 +166,7 @@ function CitasPage() {
   const validarSeleccion = () => {
     if (!profesionalId() || !fecha()) {
       throw new Error(
-        "Selecciona un médico y una fecha."
+        "Selecciona un profesional y una fecha."
       );
     }
   };
@@ -175,31 +212,90 @@ function CitasPage() {
   // Paciente
   // =========================
 
-  const buscarPaciente = () =>
-    ejecutar(async () => {
-      setPaciente(null);
+  const buscarPacientes = (valor) => {
+    clearTimeout(temporizadorBusquedaPaciente);
+    setPaciente(null);
+    setHistorialPaciente([]);
+    setErrorHistorialPaciente("");
 
-      const documento =
-        documentoPaciente().trim();
+    const busqueda = valor.trim();
 
-      if (!documento) {
-        throw new Error(
-          "Ingresa el documento del paciente."
+    if (busqueda.length < 2) {
+      setPacientesEncontrados([]);
+      setBuscandoPacientes(false);
+      return;
+    }
+
+    temporizadorBusquedaPaciente = setTimeout(async () => {
+      setBuscandoPacientes(true);
+
+      try {
+        const data = await apiJson(
+          `/pacientes?busqueda=${encodeURIComponent(busqueda)}`
         );
+
+        if (documentoPaciente().trim() === busqueda) {
+          setPacientesEncontrados(data);
+        }
+      } catch (error) {
+        if (documentoPaciente().trim() === busqueda) {
+          setPacientesEncontrados([]);
+          setMensaje(error.message);
+          setEsError(true);
+        }
+      } finally {
+        if (documentoPaciente().trim() === busqueda) {
+          setBuscandoPacientes(false);
+        }
       }
+    }, 250);
+  };
 
-      const data = await apiJson(
-        `/pacientes/documento/${encodeURIComponent(documento)}`
-      );
+  const seleccionarPaciente = (seleccionado) => {
+    if (seleccionado.estado !== "ACTIVO") {
+      setMensaje("El paciente está inactivo. Contacta al administrador.");
+      setEsError(true);
+      return;
+    }
 
-      if (data.estado !== "ACTIVO") {
-        throw new Error(
-          "El paciente está inactivo. Contacta al administrador."
-        );
+    setPaciente(seleccionado);
+    setDocumentoPaciente(seleccionado.numero_documento);
+    setPacientesEncontrados([]);
+    setMensaje("");
+    setEsError(false);
+
+    cargarHistorialPaciente(seleccionado);
+  };
+
+  const cargarHistorialPaciente = async (seleccionado) => {
+    setCargandoHistorialPaciente(true);
+    setHistorialPaciente([]);
+    setErrorHistorialPaciente("");
+
+    try {
+      const data = await apiJson(`/pacientes/${seleccionado.id}/citas`);
+
+      if (paciente()?.id === seleccionado.id) {
+        setHistorialPaciente(data.citas);
       }
+    } catch (error) {
+      if (paciente()?.id === seleccionado.id) {
+        setErrorHistorialPaciente(error.message);
+      }
+    } finally {
+      if (paciente()?.id === seleccionado.id) {
+        setCargandoHistorialPaciente(false);
+      }
+    }
+  };
 
-      setPaciente(data);
-    });
+  const seleccionarProfesional = (seleccionado) => {
+    setProfesionalId(String(seleccionado.id));
+    setBusquedaProfesional(
+      `${seleccionado.nombre} ${seleccionado.apellido}`
+    );
+    limpiarSeleccion();
+  };
 
   // =========================
   // Disponibilidad
@@ -220,6 +316,16 @@ function CitasPage() {
 
   const consultarCitas = () =>
     ejecutar(cargarCitas);
+
+  const exportarCitasCsv = () =>
+    ejecutar(async () => {
+      validarSeleccion();
+      await descargarCsvAgenda({
+        profesionalId: profesionalId(),
+        fecha: fecha()
+      });
+      setMensaje("Descarga del CSV iniciada.");
+    });
 
   // =========================
   // Actualizar agenda
@@ -451,31 +557,53 @@ function CitasPage() {
                   </h3>
 
                   <label for="documentoPaciente">
-                    Documento del paciente
+                    Buscar paciente
                   </label>
 
-                  <div class="citas-search">
+                  <div class="citas-reactive-search">
                     <input
                       id="documentoPaciente"
                       class="form-input"
-                      placeholder="Número de documento"
+                      type="search"
+                      autocomplete="off"
+                      placeholder="Nombre, correo o documento"
                       value={documentoPaciente()}
                       onInput={(event) => {
-                        setDocumentoPaciente(
-                          event.target.value
-                        );
-                        setPaciente(null);
+                        const valor = event.target.value;
+                        setDocumentoPaciente(valor);
+                        buscarPacientes(valor);
                       }}
                     />
-
-                    <button
-                      class="btn citas-btn-outline"
-                      type="button"
-                      onClick={buscarPaciente}
-                    >
-                      Buscar paciente
-                    </button>
                   </div>
+
+                  <Show when={buscandoPacientes()}>
+                    <small class="citas-search-status" role="status">
+                      Buscando pacientes…
+                    </small>
+                  </Show>
+
+                  <Show when={pacientesEncontrados().length > 0}>
+                    <ul class="citas-search-results" aria-label="Pacientes encontrados">
+                      <For each={pacientesEncontrados()}>
+                        {(encontrado) => (
+                          <li>
+                            <button
+                              type="button"
+                              onClick={() => seleccionarPaciente(encontrado)}
+                            >
+                              <strong>{encontrado.nombre} {encontrado.apellido}</strong>
+                              <span>{encontrado.numero_documento} · {encontrado.email || "Sin correo"}</span>
+                              <small>{encontrado.estado === "ACTIVO" ? "Activo" : "Inactivo"}</small>
+                            </button>
+                          </li>
+                        )}
+                      </For>
+                    </ul>
+                  </Show>
+
+                  <Show when={documentoPaciente().trim().length >= 2 && !buscandoPacientes() && !pacientesEncontrados().length && !paciente()}>
+                    <small class="citas-search-status">No se encontraron pacientes.</small>
+                  </Show>
 
                   <button class="btn citas-btn-outline agendador-register" type="button" onClick={() => setVista("pacientes")}>Registrar un nuevo paciente</button>
                   <Show when={paciente()}>
@@ -496,6 +624,40 @@ function CitasPage() {
                       </div>
                     </div>
                   </Show>
+
+                  <Show when={paciente()}>
+                    <section class="citas-patient-history" aria-live="polite">
+                      <div>
+                        <small>HISTORIAL DE CITAS</small>
+                        <strong>Citas registradas del paciente</strong>
+                      </div>
+
+                      <Show when={cargandoHistorialPaciente()}>
+                        <p>Consultando historial…</p>
+                      </Show>
+
+                      <Show when={errorHistorialPaciente()}>
+                        <p class="citas-history-error">{errorHistorialPaciente()}</p>
+                      </Show>
+
+                      <Show when={!cargandoHistorialPaciente() && !errorHistorialPaciente() && !historialPaciente().length}>
+                        <p>Este paciente aún no tiene citas registradas.</p>
+                      </Show>
+
+                      <Show when={historialPaciente().length > 0}>
+                        <ul>
+                          <For each={historialPaciente()}>
+                            {(cita) => (
+                              <li>
+                                <strong>{cita.fecha?.slice(0, 10)} · {cita.hora_inicio?.slice(0, 5)}</strong>
+                                <span>{cita.medico_nombre} {cita.medico_apellido} · {cita.estado}</span>
+                              </li>
+                            )}
+                          </For>
+                        </ul>
+                      </Show>
+                    </section>
+                  </Show>
                 </div>
 
                 <div class="citas-step">
@@ -506,34 +668,45 @@ function CitasPage() {
 
                   <div class="citas-fields">
                     <div>
-                      <label for="medico">
-                        Médico
+                      <label for="profesional">
+                        Profesional
                       </label>
 
-                      <select
-                        id="medico"
+                      <input
+                        id="profesional"
                         class="form-input"
-                        value={profesionalId()}
+                        type="search"
+                        autocomplete="off"
+                        placeholder="Nombre del profesional"
+                        value={busquedaProfesional()}
                         onInput={(event) => {
-                          setProfesionalId(
-                            event.target.value
-                          );
+                          setBusquedaProfesional(event.target.value);
+                          setProfesionalId("");
                           limpiarSeleccion();
                         }}
-                      >
-                        <option value="">
-                          Selecciona un médico
-                        </option>
+                      />
 
-                        <For each={medicos()}>
-                          {(medico) => (
-                            <option value={medico.id}>
-                              {medico.nombre}{" "}
-                              {medico.apellido}
-                            </option>
-                          )}
-                        </For>
-                      </select>
+                      <Show when={profesionalesEncontrados().length > 0 && !profesionalId()}>
+                        <ul class="citas-search-results" aria-label="Profesionales encontrados">
+                          <For each={profesionalesEncontrados()}>
+                            {(profesional) => (
+                              <li>
+                                <button
+                                  type="button"
+                                  onClick={() => seleccionarProfesional(profesional)}
+                                >
+                                  <strong>{profesional.nombre} {profesional.apellido}</strong>
+                                  <span>Profesional activo</span>
+                                </button>
+                              </li>
+                            )}
+                          </For>
+                        </ul>
+                      </Show>
+
+                      <Show when={busquedaProfesional().trim().length >= 2 && !profesionalId() && !profesionalesEncontrados().length}>
+                        <small class="citas-search-status">No se encontraron profesionales activos.</small>
+                      </Show>
                     </div>
 
                     <div>
@@ -677,7 +850,7 @@ function CitasPage() {
 
                   <div>
                     <h2 id="agenda-title">
-                      Citas del médico
+                      Citas del profesional
                     </h2>
 
                     <p>
@@ -726,6 +899,16 @@ function CitasPage() {
                       : "Consultar citas"}
                   </button>
 
+                  <button
+                    type="button"
+                    class="btn citas-btn-outline citas-query"
+                    onClick={exportarCitasCsv}
+                    disabled={ocupado() || !profesionalId() || !fecha()}
+                    title="Descarga las citas activas de la fecha en formato CSV"
+                  >
+                    Exportar CSV
+                  </button>
+
                   <Show
                     when={citas().length > 0}
                     fallback={
@@ -739,7 +922,7 @@ function CitasPage() {
                         </h3>
 
                         <p>
-                          Selecciona un médico y una fecha.
+                          Selecciona un profesional y una fecha.
                           Luego consulta sus citas para
                           verlas aquí.
                         </p>
@@ -809,7 +992,7 @@ function CitasPage() {
 
                   <p class="citas-agenda-note">
                     La disponibilidad se consulta según el
-                    médico y la fecha seleccionados.
+                    profesional y la fecha seleccionados.
                   </p>
                 </div>
               </aside>

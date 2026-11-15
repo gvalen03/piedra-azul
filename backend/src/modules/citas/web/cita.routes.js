@@ -3,6 +3,7 @@ import { authorize }
 
 import {
   consultarCitasSchema,
+  exportarCitasSchema,
   agendarCitaSchema,
   confirmarCitaSchema
 } from "../schemas/cita.schema.js";
@@ -62,6 +63,25 @@ export async function citaRoutes(fastify) {
     const citas = await fastify.citaRepository.listarAgendaProfesional(profesionalId, request.query.fecha);
     return { citas };
   });
+
+  fastify.get("/exportar", {
+    schema: exportarCitasSchema,
+    preValidation: [fastify.authenticate, authorize("AGENDADOR", "MEDICO_TERAPISTA")],
+    preHandler: async (request, reply) => {
+      if (request.user.rol !== "MEDICO_TERAPISTA") return;
+
+      const profesionalId = Number(request.user.profesionalId);
+      if (!Number.isSafeInteger(profesionalId) || profesionalId <= 0) {
+        return reply.code(403).send({ error: "Tu usuario no tiene un profesional asociado. Contacta al administrador." });
+      }
+
+      if (request.query.profesionalId !== undefined && Number(request.query.profesionalId) !== profesionalId) {
+        return reply.code(403).send({ error: "Solo puedes exportar tu propia agenda." });
+      }
+
+      request.query.profesionalId = profesionalId;
+    }
+  }, (request, reply) => fastify.citaController.exportarCsv(request, reply));
 
   fastify.get(
     "/",

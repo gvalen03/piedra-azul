@@ -12,7 +12,7 @@ const cases = [
   ["pacientes", pacienteRoutes, "pacienteController", "registrar", {
     nombre: "Ana", apellido: "Perez", numeroDocumento: "123",
     fechaNacimiento: "1990-01-01", telefono: "123", genero: "MUJER"
-  }, ["buscarPorDocumento"]],
+  }, ["buscarPorDocumento", "buscar"]],
   ["disponibilidad", disponibilidadRoutes, "disponibilidadController", "configurar", {
     profesionalId: 1, diaSemana: "LUNES", horaInicio: "09:00", horaFin: "10:00",
     intervaloMinutos: 30, semanasHabilitadas: 1

@@ -26,11 +26,11 @@ export default function DisponibilidadProfesional(props) {
     setEditandoId(null); setDia("LUNES"); setInicio("08:00"); setFin("12:00"); setIntervalo(30); setSemanas(4);
   };
   onMount(() => ejecutar(cargar));
-  return <section aria-label="Disponibilidad médica">
+  return <section aria-label="Disponibilidad del profesional">
     <Show when={error()}><p class="medico-error" role="alert">{error()}</p></Show>
     <Show when={mensaje()}><p class="disponibilidad-success" role="status">{mensaje()}</p></Show>
     <div class="medico-grid">
-      <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">＋</span><div><h2>Horarios de atención</h2><p>Define cuándo pueden reservar una cita con este médico.</p></div></div>
+      <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">＋</span><div><h2>Horarios de atención</h2><p>Define cuándo pueden reservar una cita con este profesional.</p></div></div>
         <form class="disponibilidad-form" onSubmit={e => { e.preventDefault(); ejecutar(async () => {
           const payload = { profesionalId: Number(props.profesionalId), diaSemana: dia(), horaInicio: inicio(), horaFin: fin(), intervaloMinutos: Number(intervalo()), semanasHabilitadas: Number(semanas()) };
           const editando = editandoId();

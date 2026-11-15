@@ -48,4 +48,8 @@ export class PacienteService {
 
     return paciente;
   }
+
+  async buscarPorTexto(busqueda) {
+    return this.pacienteRepository.buscarPorTexto(busqueda.trim());
+  }
 }

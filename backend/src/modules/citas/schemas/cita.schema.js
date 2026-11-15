@@ -18,6 +18,24 @@ export const consultarCitasSchema = {
   }
 };
 
+export const exportarCitasSchema = {
+  querystring: {
+    type: "object",
+    additionalProperties: false,
+    required: ["fecha"],
+    properties: {
+      profesionalId: {
+        type: "integer",
+        minimum: 1
+      },
+      fecha: {
+        type: "string",
+        format: "date"
+      }
+    }
+  }
+};
+
 export const agendarCitaSchema = {
   body: {
     type: "object",

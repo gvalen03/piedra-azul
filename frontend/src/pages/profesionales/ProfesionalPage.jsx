@@ -2,6 +2,7 @@ import AtencionProfesional from "../../components/profesionales/AtencionProfesio
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { A, useNavigate } from "@solidjs/router";
 import { apiFetch } from "../../services/api.js";
+import { descargarCsvAgenda } from "../../services/descarga-csv.js";
 import { useAuth } from "../../stores/auth.store.js";
 import "../../styles/modules/medico.css";
 
@@ -26,6 +27,8 @@ function ProfessionalPage() {
   const [seleccion, setSeleccion] = createSignal(null);
   const [cargando, setCargando] = createSignal(false);
   const [error, setError] = createSignal("");
+  const [exportando, setExportando] = createSignal(false);
+  const [errorCsv, setErrorCsv] = createSignal("");
   let solicitud = 0;
   const visibles = createMemo(() => citas().filter(cita =>
     (!estado() || cita.estado === estado()) &&
@@ -51,6 +54,22 @@ function ProfessionalPage() {
     date.setDate(date.getDate() + dias);
     cambiarFecha(`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`);
   };
+  const exportarCsv = async () => {
+    if (!fecha()) {
+      setErrorCsv("Selecciona una fecha para exportar tu agenda.");
+      return;
+    }
+
+    setErrorCsv("");
+    setExportando(true);
+    try {
+      await descargarCsvAgenda({ fecha: fecha() });
+    } catch (err) {
+      setErrorCsv(err.message);
+    } finally {
+      setExportando(false);
+    }
+  };
   onMount(consultar);
 
   return (
@@ -70,7 +89,9 @@ function ProfessionalPage() {
           <div><label for="agenda-fecha">Fecha de consulta</label><input disabled={guardandoAtencion()} id="agenda-fecha" type="date" value={fecha()} onInput={e => cambiarFecha(e.currentTarget.value)} /></div>
           <div class="medico-day-controls"><button disabled={guardandoAtencion()} class="medico-outline" aria-label="Día anterior" onClick={() => moverDia(-1)}>←</button><button disabled={guardandoAtencion()} class="medico-outline" onClick={() => cambiarFecha(hoy())}>Hoy</button><button disabled={guardandoAtencion()} class="medico-outline" aria-label="Día siguiente" onClick={() => moverDia(1)}>→</button></div>
           <button class="btn btn-primary medico-refresh" disabled={cargando() || guardandoAtencion()} onClick={consultar}>{cargando() ? "Consultando…" : "Actualizar agenda"}</button>
+          <button class="medico-outline" disabled={exportando() || cargando() || guardandoAtencion()} onClick={exportarCsv} title="Descarga tus citas activas de la fecha en formato CSV">{exportando() ? "Exportando…" : "Exportar CSV"}</button>
         </section>
+        <Show when={errorCsv()}><div class="medico-error" role="alert">{errorCsv()}</div></Show>
         <div class="medico-stats">
           <For each={[["Citas del día", null], ["Por atender", "pendientes"], ["Atendidas", "ATENDIDA"]]}>{([label, filtro]) => <div class="medico-stat"><span>{label}</span><strong>{cargando() || error() ? "—" : citas().filter(c => !filtro || (filtro === "pendientes" ? ["PROGRAMADA", "CONFIRMADA"].includes(c.estado) : c.estado === filtro)).length}</strong><small>En la fecha seleccionada</small></div>}</For>
         </div>

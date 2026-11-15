@@ -15,6 +15,15 @@ export class PacienteRepository {
     const result = await this.db.query(`SELECT ${columnasPaciente} FROM pacientes pa JOIN personas pe ON pe.id=pa.persona_id
       WHERE pe.numero_documento=$1 LIMIT 1`, [numeroDocumento]); return result.rows[0] ?? null;
   }
+  async buscarPorTexto(busqueda) {
+    const textoEscapado = busqueda.replace(/[\\%_]/g, "\\$&");
+    const patron = `%${textoEscapado}%`;
+    const result = await this.db.query(`SELECT ${columnasPaciente} FROM pacientes pa JOIN personas pe ON pe.id=pa.persona_id
+      WHERE CONCAT_WS(' ', pe.nombre, pe.apellido, pe.numero_documento, pe.email) ILIKE $1 ESCAPE '\\'
+      ORDER BY pe.nombre, pe.apellido, pa.id
+      LIMIT 10`, [patron]);
+    return result.rows;
+  }
   async buscarPorEmail(email) {
     const result = await this.db.query(`SELECT ${columnasPaciente} FROM pacientes pa JOIN personas pe ON pe.id=pa.persona_id
       WHERE LOWER(pe.email)=LOWER($1) LIMIT 1`, [email]); return result.rows[0] ?? null;

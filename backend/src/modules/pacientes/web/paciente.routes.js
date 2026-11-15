@@ -54,8 +54,61 @@ export async function pacienteRoutes(fastify) {
   );
 
   fastify.get(
+    "/",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          additionalProperties: false,
+          required: ["busqueda"],
+          properties: {
+            busqueda: {
+              type: "string",
+              minLength: 2,
+              maxLength: 100
+            }
+          }
+        }
+      },
+      preHandler: [
+        fastify.authenticate,
+        authorize("AGENDADOR", "ADMINISTRADOR", "MEDICO_TERAPISTA")
+      ]
+    },
+    fastify.pacienteController.buscar
+  );
+
+  fastify.get(
     "/documento/:documento",
     { preHandler: [fastify.authenticate, authorize("AGENDADOR", "ADMINISTRADOR", "MEDICO_TERAPISTA")] },
     fastify.pacienteController.buscarPorDocumento
+  );
+
+  fastify.get(
+    "/:id/citas",
+    {
+      schema: {
+        params: {
+          type: "object",
+          additionalProperties: false,
+          required: ["id"],
+          properties: {
+            id: { type: "integer", minimum: 1 }
+          }
+        }
+      },
+      preHandler: [
+        fastify.authenticate,
+        authorize("AGENDADOR", "ADMINISTRADOR", "MEDICO_TERAPISTA")
+      ]
+    },
+    async (request, reply) => {
+      const paciente = await fastify.pacienteRepository.buscarPorId(request.params.id);
+      if (!paciente) return reply.code(404).send({ error: "Paciente no encontrado" });
+
+      return {
+        citas: await fastify.citaRepository.listarPorPaciente(request.params.id)
+      };
+    }
   );
 }

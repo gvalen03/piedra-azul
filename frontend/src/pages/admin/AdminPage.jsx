@@ -3,6 +3,7 @@ import { A, useNavigate } from "@solidjs/router";
 import { useAuth } from "../../stores/auth.store.js";
 import { apiFetch } from "../../services/api.js";
 import AdminEditor, { roles } from "../../components/admin/AdminEditor.jsx";
+import DisponibilidadAdmin from "../../components/admin/DisponibilidadAdmin.jsx";
 import "../../styles/modules/medico.css";
 import "../../styles/modules/admin.css";
 
@@ -87,7 +88,7 @@ export default function AdminPage() {
       <Show when={error()}><div class="medico-error" role="alert">{error()}<button class="medico-outline" disabled={busy()} onClick={actualizar}>Reintentar</button></div></Show>
       <Show when={mensaje()}><p class="admin-success" role="status">{mensaje()}</p></Show>
       <Show when={busy()}><p class="admin-help" role="status">Procesando…</p></Show>
-      <div classList={{ "admin-grid": true, "admin-grid-editor": !!editor() }}>
+      <Show when={tipo() === "disponibilidad"} fallback={<div classList={{ "admin-grid": true, "admin-grid-editor": !!editor() }}>
         <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">☷</span><div><h2>{secciones[tipo()]}</h2><p>{tipo() === "usuarios" ? "Consulta quién puede ingresar y qué función tiene en el sistema." : "Registra y administra la información de las personas."}</p></div></div>
           <div class="admin-list-body"><div class="admin-actions"><button class="btn btn-primary" disabled={busy() || !listo()} onClick={() => setEditor({ registro:null })}>{tipo() === "usuarios" ? "＋ Crear cuenta" : `Crear ${tipo() === "profesionales" ? "profesional" : "paciente"}`}</button><button class="medico-outline" disabled={busy()} onClick={actualizar}>Actualizar</button></div>
             <Show when={tipo() === "usuarios" && usaKeycloak}><aside class="admin-info"><strong>¿Para qué sirve esta sección?</strong><p>Registrar una persona permite almacenar sus datos en el sistema. Crear una cuenta de acceso permite que esa persona inicie sesión y utilice las funcionalidades autorizadas según su rol.</p></aside></Show>
@@ -96,7 +97,9 @@ export default function AdminPage() {
             <ul class="admin-list"><For each={visibles()}>{r => <li><div class="admin-record"><div><strong>{r.nombre} {r.apellido || ""}</strong><small>{tipo() === "usuarios" ? `${r.username} · ${roles[r.rol]}` : `Documento: ${r.numero_documento}`}</small><small>{r.email || "Sin correo registrado"}</small><Show when={tipo() === "usuarios" && ["MEDICO_TERAPISTA", "PACIENTE"].includes(r.rol)}><small>Perfil: {perfilNombre(r)}</small></Show></div><span class={`medico-badge ${activo(r) ? "estado-atendida" : "estado-cancelada"}`}>{activo(r) ? "Activo" : "Inactivo"}</span></div><Show when={tipo() !== "usuarios" || Number(r.id) !== Number(auth.user()?.usuarioId)} fallback={<small class="admin-help">Tu cuenta actual</small>}><div class="admin-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>{tipo() === "usuarios" ? "Editar" : "Editar / Desactivar"}</button><Show when={tipo() !== "usuarios"}><button class="medico-outline" disabled={busy()} onClick={() => eliminar(r)}>Eliminar</button></Show></div></Show></li>}</For></ul>
           </div></section>
         <Show keyed when={editor()}>{ed => <AdminEditor tipo={tipo()} keycloak={usaKeycloak} registro={ed.registro} profesionales={datos().profesionales} pacientes={datos().pacientes} busy={busy()} onSave={guardar} onClose={() => setEditor(null)} />}</Show>
-      </div>
+      </div>}>
+        <DisponibilidadAdmin profesionales={datos().profesionales} />
+      </Show>
       <footer class="medico-footer">PiedraAzul · Atención y bienestar</footer>
     </main>
   </div>;
