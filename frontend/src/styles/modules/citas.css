@@ -163,14 +163,68 @@
   color: #7b868b;
 }
 
-.citas-search {
-  display: flex;
-  gap: 10px;
+.citas-reactive-search {
+  position: relative;
 }
 
-.citas-search input {
-  flex: 1;
-  width: 0;
+.citas-reactive-search input {
+  width: 100%;
+}
+
+.citas-search-status {
+  display: block;
+  margin-top: 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.citas-search-results {
+  position: relative;
+  z-index: 2;
+  max-height: 216px;
+  margin: 8px 0 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px #213c4014;
+}
+
+.citas-search-results li + li {
+  border-top: 1px solid #edf0f1;
+}
+
+.citas-search-results button {
+  display: grid;
+  width: 100%;
+  padding: 10px;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.citas-search-results button:hover,
+.citas-search-results button:focus-visible {
+  background: var(--color-primary-light);
+  outline: none;
+}
+
+.citas-search-results strong,
+.citas-search-results span,
+.citas-search-results small {
+  display: block;
+}
+
+.citas-search-results span,
+.citas-search-results small {
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
 }
 
 .citas-page .btn {
@@ -236,6 +290,65 @@
 .citas-patient strong {
   font-size: 14px;
   margin-top: 3px;
+}
+
+.citas-patient-history {
+  margin-top: 14px;
+  padding: 14px;
+  background: #f7faf9;
+  border: 1px solid #dfeae6;
+  border-radius: 10px;
+}
+
+.citas-patient-history > div small,
+.citas-patient-history > div strong {
+  display: block;
+}
+
+.citas-patient-history > div small {
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.citas-patient-history > div strong {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.citas-patient-history p {
+  margin: 10px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.citas-patient-history ul {
+  max-height: 176px;
+  margin: 10px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.citas-patient-history li {
+  padding: 9px 0;
+  border-top: 1px solid #e3ece8;
+}
+
+.citas-patient-history li strong,
+.citas-patient-history li span {
+  display: block;
+  font-size: 12px;
+}
+
+.citas-patient-history li span {
+  margin-top: 3px;
+  color: var(--color-text-secondary);
+}
+
+.citas-history-error {
+  color: #92372d !important;
 }
 
 .citas-slots {
@@ -479,14 +592,6 @@
 
   .citas-fields {
     grid-template-columns: 1fr;
-  }
-
-  .citas-search {
-    flex-direction: column;
-  }
-
-  .citas-search input {
-    width: 100%;
   }
 
   .citas-submit {

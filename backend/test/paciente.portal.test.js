@@ -14,14 +14,22 @@ async function crear(t, user = { rol: "PACIENTE", pacienteId: 7 }) {
   });
   app.decorate("pacienteRepository", {
     buscarPorId: async id => { llamadas.push(["perfil", id]); return { id, nombre: "Ana", estado: "ACTIVO" }; },
+    buscarPorTexto: async busqueda => { llamadas.push(["busqueda", busqueda]); return [{ id: 8, nombre: "Ana", numero_documento: "123" }]; },
     actualizarContacto: async (id, body) => { llamadas.push(["contacto", id, body]); return { id, ...body }; }
   });
-  app.decorate("pacienteController", { registrar: async () => ({}), buscarPorDocumento: async () => ({}) });
+  app.decorate("pacienteController", {
+    registrar: async () => ({}),
+    buscarPorDocumento: async () => ({}),
+    buscar: async request => {
+      const pacientes = await app.pacienteRepository.buscarPorTexto(request.query.busqueda);
+      return pacientes;
+    }
+  });
   app.decorate("citaRepository", {
     listarPorPaciente: async id => { llamadas.push(["citas", id]); return []; },
     cambiarEstadoPaciente: async (id, pacienteId, estado) => { llamadas.push(["estado", id, pacienteId, estado]); return id === 10 ? { id, estado } : null; }
   });
-  app.decorate("citaController", { consultarPorMedicoYFecha: async () => ({}), confirmar: async () => ({}), agendar: async req => { llamadas.push(["reserva", req.body]); return req.body; } });
+  app.decorate("citaController", { consultarPorProfesionalYFecha: async () => ({}), confirmar: async () => ({}), agendar: async req => { llamadas.push(["reserva", req.body]); return req.body; } });
   await app.register(pacienteRoutes, { prefix: "/pacientes" });
   await app.register(citaRoutes, { prefix: "/citas" });
   return { app, llamadas };
@@ -33,9 +41,35 @@ test("perfil y citas se consultan exclusivamente con la identidad de la sesión"
   assert.deepEqual(llamadas, [["perfil", 7], ["citas", 7]]);
   assert.equal((await app.inject("/pacientes/documento/123")).statusCode, 403);
 });
+
+test("el personal autorizado puede buscar pacientes por coincidencia parcial", async t => {
+  const { app, llamadas } = await crear(t, { rol: "AGENDADOR" });
+  const respuesta = await app.inject("/pacientes?busqueda=An");
+
+  assert.equal(respuesta.statusCode, 200, respuesta.body);
+  assert.deepEqual(respuesta.json(), [{ id: 8, nombre: "Ana", numero_documento: "123" }]);
+  assert.deepEqual(llamadas, [["busqueda", "An"]]);
+});
+
+test("el personal autorizado consulta el historial de citas de un paciente seleccionado", async t => {
+  const { app, llamadas } = await crear(t, { rol: "AGENDADOR" });
+  const respuesta = await app.inject("/pacientes/7/citas");
+
+  assert.equal(respuesta.statusCode, 200, respuesta.body);
+  assert.deepEqual(respuesta.json(), { citas: [] });
+  assert.deepEqual(llamadas, [["perfil", 7], ["citas", 7]]);
+});
+
+test("la búsqueda de pacientes rechaza roles no autorizados y textos demasiado cortos", async t => {
+  const { app, llamadas } = await crear(t);
+
+  assert.equal((await app.inject("/pacientes?busqueda=An")).statusCode, 403);
+  assert.equal((await app.inject("/pacientes?busqueda=A")).statusCode, 400);
+  assert.deepEqual(llamadas, []);
+});
 test("reserva propia ignora un paciente enviado por el cliente y bloquea la ruta general", async t => {
   const { app, llamadas } = await crear(t);
-  const payload = { pacienteId: 99, medicoId: 3, fecha: "2026-10-05", horaInicio: "08:00", motivo: null };
+  const payload = { pacienteId: 99, profesionalId: 3, fecha: "2026-10-05", horaInicio: "08:00", motivo: null };
   const response = await app.inject({ method: "POST", url: "/citas/mis-citas", payload });
   assert.equal(response.statusCode, 200, response.body);
   assert.equal(response.json().pacienteId, 7);
@@ -66,10 +100,10 @@ for (const [user, status] of [[null, 401], [{ rol: "AGENDADOR" }, 403], [{ rol: 
 }
 test("cambios de estado limitan propietario, fecha y estado de forma atómica", async () => {
   const repo = new CitaRepository({ query: async (sql, params) => {
-    assert.match(sql, /paciente_id=\$2/);
-    assert.match(sql, /CURRENT_TIMESTAMP AT TIME ZONE 'America\/Bogota'/);
-    assert.match(sql, /estado='PROGRAMADA'/);
-    assert.match(sql, /estado='CONFIRMADA' AND \$3='CANCELADA'/);
+    assert.match(sql, /paciente_id\s*=\s*\$2/);
+    assert.match(sql, /CURRENT_TIMESTAMP\s+AT\s+TIME\s+ZONE\s+'America\/Bogota'/);
+    assert.match(sql, /estado\s*=\s*'PROGRAMADA'/);
+    assert.match(sql, /estado\s*=\s*'CONFIRMADA'\s+AND\s+\$3\s*=\s*'CANCELADA'/);
     assert.deepEqual(params, [10, 7, "CANCELADA"]);
     return { rows: [] };
   } });

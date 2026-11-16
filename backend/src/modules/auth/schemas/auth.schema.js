@@ -51,7 +51,7 @@ export const loginSchema = {
           ]
         },
 
-        medicoId: {
+        profesionalId: {
           anyOf: [
             { type: "integer" },
             { type: "null" }
@@ -65,7 +65,7 @@ export const loginSchema = {
         "nombre",
         "usuarioId",
         "pacienteId",
-        "medicoId"
+        "profesionalId"
       ]
     },
 

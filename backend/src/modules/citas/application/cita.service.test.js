@@ -4,10 +4,10 @@ import assert from "node:assert/strict";
 import { CitaService } from "./cita.service.js";
 
 test(
-  "consultarPorMedicoYFecha retorna la cantidad y las citas",
+  "consultarPorProfesionalYFecha retorna la cantidad y las citas",
   async () => {
     const citaRepository = {
-      listarAgendaMedico: async () => [
+      listarAgendaProfesional: async () => [
         { id: 1 },
         { id: 2 }
       ]
@@ -20,7 +20,7 @@ test(
     });
 
     const resultado =
-      await service.consultarPorMedicoYFecha(
+      await service.consultarPorProfesionalYFecha(
         1,
         "2026-09-28"
       );
@@ -59,7 +59,7 @@ test(
 
     const cita = await service.agendar({
       pacienteId: 1,
-      medicoId: 1,
+      profesionalId: 1,
       fecha: "2026-09-28",
       horaInicio: "09:00",
       motivo: "Consulta de prueba"
@@ -89,7 +89,7 @@ test(
       () =>
         service.agendar({
           pacienteId: 1,
-          medicoId: 1,
+          profesionalId: 1,
           fecha: "2026-09-28",
           horaInicio: "09:00",
           motivo: "Consulta"
@@ -125,7 +125,7 @@ test(
       () =>
         service.agendar({
           pacienteId: 1,
-          medicoId: 1,
+          profesionalId: 1,
           fecha: "2026-09-28",
           horaInicio: "09:00",
           motivo: "Consulta"

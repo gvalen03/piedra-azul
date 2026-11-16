@@ -8,7 +8,7 @@ for (const rol of ["ADMINISTRADOR", "MEDICO_TERAPISTA", "AGENDADOR", "PACIENTE"]
     const datos = { username: "prueba", password: "hash", nombre: "Prueba", email: "prueba@example.com", rol };
     const usuario = UsuarioFactory.crear(datos);
     assert.ok(usuario instanceof Usuario);
-    assert.deepEqual({ ...usuario }, { ...datos, id: null, activo: true, medicoId: null, pacienteId: null });
+    assert.deepEqual({ ...usuario }, { ...datos, id: null, activo: true, profesionalId: null, pacienteId: null });
   });
 }
 
@@ -18,11 +18,11 @@ for (const rol of ["INVALIDO", "paciente", "", null, undefined]) {
   });
 }
 
-test("crear conserva la vinculación con el paciente o médico", () => {
+test("crear conserva la vinculación con el paciente o profesional", () => {
   const paciente = UsuarioFactory.crear({ rol: "PACIENTE", pacienteId: 34 });
-  const medico = UsuarioFactory.crear({ rol: "MEDICO_TERAPISTA", medicoId: 12 });
+  const profesional = UsuarioFactory.crear({ rol: "MEDICO_TERAPISTA", profesionalId: 12 });
   assert.equal(paciente.pacienteId, 34);
-  assert.equal(paciente.medicoId, null);
-  assert.equal(medico.medicoId, 12);
-  assert.equal(medico.pacienteId, null);
+  assert.equal(paciente.profesionalId, null);
+  assert.equal(profesional.profesionalId, 12);
+  assert.equal(profesional.pacienteId, null);
 });

@@ -6,12 +6,12 @@ export async function historialRoutes(app) {
     if (!Number.isSafeInteger(id) || id <= 0) return reply.code(403).send({ error: "Tu cuenta no tiene un registro asociado. Contacta al administrador." });
     request.identidad = id;
   };
-  const medico = [app.authenticate, authorize("MEDICO_TERAPISTA"), identidad("medicoId")];
+  const profesional = [app.authenticate, authorize("MEDICO_TERAPISTA"), identidad("profesionalId")];
   app.get("/mio", { preHandler: [app.authenticate, authorize("PACIENTE"), identidad("pacienteId")] },
     async request => ({ controles: await app.historialRepository.listarControlesPorPaciente(request.identidad) }));
-  app.get("/citas/:citaId", { preHandler: medico, schema: { params: citaParams } },
+  app.get("/citas/:citaId", { preHandler: profesional, schema: { params: citaParams } },
     async request => ({ controles: await app.historialService.obtenerPorCita(request.params.citaId, request.identidad) }));
-  app.post("/citas/:citaId", { preHandler: medico, schema: registrarControlSchema }, async (request, reply) => {
+  app.post("/citas/:citaId", { preHandler: profesional, schema: registrarControlSchema }, async (request, reply) => {
     const control = await app.historialService.registrarControl(request.params.citaId, request.identidad, request.body);
     return reply.code(201).send(control);
   });

@@ -36,7 +36,7 @@ export class AuthService {
       username: usuario.username,
       rol: usuario.rol,
       pacienteId: usuario.pacienteId,
-      medicoId: usuario.medicoId
+      profesionalId: usuario.profesionalId
     });
 
 
@@ -47,7 +47,7 @@ export class AuthService {
       nombre: usuario.nombre,
       usuarioId: usuario.id,
       pacienteId: usuario.pacienteId,
-      medicoId: usuario.medicoId
+      profesionalId: usuario.profesionalId
     };
   }
 }

@@ -3,13 +3,13 @@ export function crearCitaController({ citaService }) {
     cancelar: async (request, reply) => reply.send(await citaService.cancelar(request.params.id, request.user.sub)),
     reprogramar: async (request, reply) => reply.send(await citaService.reprogramar(request.params.id, request.body, request.user.sub)),
     franjasReprogramacion: async (request, reply) => reply.send(await citaService.franjasReprogramacion(request.params.id, request.query.fecha)),
-    consultarPorMedicoYFecha: async (request, reply) => {
+    consultarPorProfesionalYFecha: async (request, reply) => {
       try {
-        const { medicoId, fecha } = request.query;
+        const { profesionalId, fecha } = request.query;
 
         const resultado =
-          await citaService.consultarPorMedicoYFecha(
-            medicoId,
+          await citaService.consultarPorProfesionalYFecha(
+            profesionalId,
             fecha
           );
 
@@ -21,6 +21,26 @@ export function crearCitaController({ citaService }) {
 
         return reply.code(500).send({
           error: mensaje
+        });
+      }
+    },
+
+    exportarCsv: async (request, reply) => {
+      try {
+        const { nombreArchivo, contenido } = await citaService.exportarCsv(
+          request.query.profesionalId,
+          request.query.fecha
+        );
+
+        return reply
+          .header("Content-Type", "text/csv; charset=utf-8")
+          .header("Content-Disposition", `attachment; filename="${nombreArchivo}"`)
+          .header("Cache-Control", "no-store")
+          .header("X-Content-Type-Options", "nosniff")
+          .send(contenido);
+      } catch (error) {
+        return reply.code(error.statusCode || 500).send({
+          error: error.message || "Error al exportar las citas"
         });
       }
     },

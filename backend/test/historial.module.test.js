@@ -22,7 +22,7 @@ function repositorio(cita, fallaInsert = false, previo = false) {
 test("guarda control y estado en una misma transacción", async () => {
   const { repo, llamadas } = repositorio({ paciente_id: 8, estado: "CONFIRMADA", iniciada: true });
   await repo.registrarAtencion(3, 7, datos);
-  assert.match(llamadas[1][0], /medico_id=\$2 FOR UPDATE/);
+  assert.match(llamadas[1][0], /profesional_id=\$2 FOR UPDATE/);
   assert.deepEqual(llamadas[1][1], [3, 7]);
   const insert = llamadas.findIndex(([sql]) => sql.startsWith("INSERT INTO controles"));
   const update = llamadas.findIndex(([sql]) => sql.startsWith("UPDATE citas"));
@@ -57,12 +57,12 @@ test("rutas usan identidad de sesión y niegan acceso entre roles", async t => {
   let identidad;
   app.decorate("authenticate", async (req, reply) => {
     if (!req.headers.authorization) return reply.code(401).send({});
-    req.user = { rol: req.headers.authorization, medicoId: 7, pacienteId: 8 };
+    req.user = { rol: req.headers.authorization, profesionalId: 7, pacienteId: 8 };
   });
   app.decorate("historialRepository", { listarControlesPorPaciente: async id => { identidad = id; return []; } });
   app.decorate("historialService", {
-    obtenerPorCita: async (cita, medico) => { identidad = [cita, medico]; return []; },
-    registrarControl: async (cita, medico, body) => { identidad = [cita, medico, body]; return { id: 1 }; }
+    obtenerPorCita: async (cita, profesional) => { identidad = [cita, profesional]; return []; },
+    registrarControl: async (cita, profesional, body) => { identidad = [cita, profesional, body]; return { id: 1 }; }
   });
   await app.register(historialRoutes);
   assert.equal((await app.inject("/mio")).statusCode, 401);
@@ -72,7 +72,7 @@ test("rutas usan identidad de sesión y niegan acceso entre roles", async t => {
   const headers = { authorization: "MEDICO_TERAPISTA" };
   assert.equal((await app.inject({ url: "/citas/3", headers })).statusCode, 200);
   assert.deepEqual(identidad, [3, 7]);
-  assert.equal((await app.inject({ method: "POST", url: "/citas/3", headers, payload: { ...datos, medicoId: 99, pacienteId: 99 } })).statusCode, 201);
+  assert.equal((await app.inject({ method: "POST", url: "/citas/3", headers, payload: { ...datos, profesionalId: 99, pacienteId: 99 } })).statusCode, 201);
   assert.deepEqual(identidad, [3, 7, datos]);
   assert.equal((await app.inject({ method: "POST", url: "/citas/3", headers, payload: { ...datos, motivoConsulta: " " } })).statusCode, 400);
 });

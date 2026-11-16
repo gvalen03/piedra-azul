@@ -9,7 +9,7 @@ export class UsuarioFactory {
     email,
     rol,
     pacienteId = null,
-    medicoId = null
+    profesionalId = null
   }) {
     if (!Object.values(Rol).includes(rol)) {
       throw new Error(`Rol no válido: ${rol}`);
@@ -23,7 +23,7 @@ export class UsuarioFactory {
       rol,
       activo: true,
       pacienteId,
-      medicoId
+      profesionalId
     });
   }
 }

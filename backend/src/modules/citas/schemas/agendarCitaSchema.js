@@ -3,7 +3,7 @@ export const agendarCitaSchema = {
     type: "object",
     required: [
       "pacienteId",
-      "medicoId",
+      "profesionalId",
       "fecha",
       "horaInicio"
     ],
@@ -11,7 +11,7 @@ export const agendarCitaSchema = {
       pacienteId: {
         type: "integer"
       },
-      medicoId: {
+      profesionalId: {
         type: "integer"
       },
       fecha: {

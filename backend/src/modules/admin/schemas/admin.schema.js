@@ -8,10 +8,10 @@ export const usuarioSchema = {
     username: { ...texto(100), pattern: "^[a-zA-Z0-9._-]+$" }, nombre: texto(150), email,
     rol: { type: "string", enum: ["ADMINISTRADOR", "AGENDADOR", "MEDICO_TERAPISTA", "PACIENTE"] },
     activo: { type: "boolean" }, password: { type: "string", minLength: 8, maxLength: 72 },
-    medicoId: { type: ["integer", "null"], minimum: 1 }, pacienteId: { type: ["integer", "null"], minimum: 1 }
+    profesionalId: { type: ["integer", "null"], minimum: 1 }, pacienteId: { type: ["integer", "null"], minimum: 1 }
   }
 };
-export const medicoSchema = {
+export const profesionalSchema = {
   type: "object", additionalProperties: false,
   required: ["nombre", "apellido", "numeroDocumento", "activo"],
   properties: { nombre: texto(100), apellido: texto(100), numeroDocumento: texto(50),

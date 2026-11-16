@@ -2,14 +2,32 @@ export const consultarCitasSchema = {
   querystring: {
     type: "object",
     required: [
-      "medicoId",
+      "profesionalId",
       "fecha"
     ],
     properties: {
-      medicoId: {
+      profesionalId: {
         type: "integer"
       },
 
+      fecha: {
+        type: "string",
+        format: "date"
+      }
+    }
+  }
+};
+
+export const exportarCitasSchema = {
+  querystring: {
+    type: "object",
+    additionalProperties: false,
+    required: ["fecha"],
+    properties: {
+      profesionalId: {
+        type: "integer",
+        minimum: 1
+      },
       fecha: {
         type: "string",
         format: "date"
@@ -23,7 +41,7 @@ export const agendarCitaSchema = {
     type: "object",
     required: [
       "pacienteId",
-      "medicoId",
+      "profesionalId",
       "fecha",
       "horaInicio"
     ],
@@ -32,7 +50,7 @@ export const agendarCitaSchema = {
         type: "integer"
       },
 
-      medicoId: {
+      profesionalId: {
         type: "integer"
       },
 

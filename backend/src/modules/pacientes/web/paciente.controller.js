@@ -43,6 +43,14 @@ export function crearPacienteController({ pacienteService }) {
           error: mensaje
         });
       }
+    },
+
+    buscar: async (request, reply) => {
+      const pacientes = await pacienteService.buscarPorTexto(
+        request.query.busqueda
+      );
+
+      return reply.send(pacientes);
     }
   };
 }

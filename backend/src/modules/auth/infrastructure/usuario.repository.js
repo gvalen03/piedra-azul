@@ -1,143 +1,42 @@
+const usuarioSelect = `
+  SELECT u.id, u.username, u.password, u.rol, u.activo, u.created_at, u.updated_at,
+    pe.nombre, pe.email,
+    pr.id AS profesional_id, pa.id AS paciente_id,
+    CASE WHEN u.rol='MEDICO_TERAPISTA' THEN COALESCE(pr.activo, FALSE)
+         WHEN u.rol='PACIENTE' THEN pa.estado='ACTIVO' ELSE TRUE END AS perfil_activo
+  FROM usuarios u
+  JOIN personas pe ON pe.id=u.persona_id
+  LEFT JOIN profesionales pr ON pr.persona_id=u.persona_id
+  LEFT JOIN pacientes pa ON pa.persona_id=u.persona_id`;
+
 export class UsuarioRepository {
-  constructor(db) {
-    this.db = db;
-  }
-
+  constructor(db) { this.db = db; }
   mapearUsuario(row) {
-    if (!row) {
-      return null;
-    }
-
-    return {
-      // PostgreSQL devuelve BIGINT como texto; el dominio y el JWT usan números.
-      id: Number(row.id),
-      username: row.username,
-      password: row.password,
-      nombre: row.nombre,
-      email: row.email,
-      rol: row.rol,
-      activo: row.activo,
-      perfilActivo: row.perfil_activo,
-      medicoId: row.medico_id == null ? null : Number(row.medico_id),
-      pacienteId: row.paciente_id == null ? null : Number(row.paciente_id),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
-    };
+    if (!row) return null;
+    return { id: Number(row.id), username: row.username, password: row.password, nombre: row.nombre,
+      email: row.email, rol: row.rol, activo: row.activo, perfilActivo: row.perfil_activo,
+      profesionalId: row.profesional_id == null ? null : Number(row.profesional_id), pacienteId: row.paciente_id == null ? null : Number(row.paciente_id),
+      createdAt: row.created_at, updatedAt: row.updated_at };
   }
-
   async buscarPorUsername(username) {
-    const resultado = await this.db.query(
-      `
-      SELECT
-        id,
-        username,
-        password,
-        nombre,
-        email,
-        rol,
-        activo,
-        medico_id,
-        paciente_id,
-        created_at,
-        updated_at,
-        CASE WHEN rol='MEDICO_TERAPISTA' THEN EXISTS(SELECT 1 FROM medicos m WHERE m.id=usuarios.medico_id AND m.activo=TRUE)
-             WHEN rol='PACIENTE' THEN EXISTS(SELECT 1 FROM pacientes p WHERE p.id=usuarios.paciente_id AND p.estado='ACTIVO')
-             ELSE TRUE END AS perfil_activo
-      FROM usuarios
-      WHERE username = $1
-      LIMIT 1
-      `,
-      [username]
-    );
-
-    return this.mapearUsuario(resultado.rows[0]);
+    const result = await this.db.query(`${usuarioSelect} WHERE u.username=$1 LIMIT 1`, [username]); return this.mapearUsuario(result.rows[0]);
   }
-
   async listarPorRol(rol) {
-    const resultado = await this.db.query(
-      `
-      SELECT *
-      FROM usuarios
-      WHERE rol = $1
-      `,
-      [rol]
-    );
-
-    return resultado.rows.map((row) =>
-      this.mapearUsuario(row)
-    );
+    const result = await this.db.query(`${usuarioSelect} WHERE u.rol=$1`, [rol]); return result.rows.map(row => this.mapearUsuario(row));
   }
-
   async existePorUsername(username) {
-    const resultado = await this.db.query(
-      `
-      SELECT EXISTS(
-        SELECT 1
-        FROM usuarios
-        WHERE username = $1
-      ) AS existe
-      `,
-      [username]
-    );
-
-    return resultado.rows[0].existe;
+    const result = await this.db.query("SELECT EXISTS(SELECT 1 FROM usuarios WHERE username=$1) AS existe", [username]); return result.rows[0].existe;
   }
-
   async existePorEmail(email) {
-    const resultado = await this.db.query(
-      `
-      SELECT EXISTS(
-        SELECT 1
-        FROM usuarios
-        WHERE email = $1
-      ) AS existe
-      `,
-      [email]
-    );
-
-    return resultado.rows[0].existe;
+    const result = await this.db.query("SELECT EXISTS(SELECT 1 FROM personas WHERE LOWER(email)=LOWER($1)) AS existe", [email]); return result.rows[0].existe;
   }
-
   async buscarPorPacienteId(pacienteId) {
-    const resultado = await this.db.query(
-      `
-      SELECT *
-      FROM usuarios
-      WHERE paciente_id = $1
-      LIMIT 1
-      `,
-      [pacienteId]
-    );
-
-    return this.mapearUsuario(resultado.rows[0]);
+    const result = await this.db.query(`${usuarioSelect} WHERE pa.id=$1 LIMIT 1`, [pacienteId]); return this.mapearUsuario(result.rows[0]);
   }
-
   async existePorPacienteId(pacienteId) {
-    const resultado = await this.db.query(
-      `
-      SELECT EXISTS(
-        SELECT 1
-        FROM usuarios
-        WHERE paciente_id = $1
-      ) AS existe
-      `,
-      [pacienteId]
-    );
-
-    return resultado.rows[0].existe;
+    const result = await this.db.query("SELECT EXISTS(SELECT 1 FROM usuarios u JOIN pacientes pa ON pa.persona_id=u.persona_id WHERE pa.id=$1) AS existe", [pacienteId]); return result.rows[0].existe;
   }
-
   async buscarPorId(id) {
-    const resultado = await this.db.query(
-      `
-      SELECT *
-      FROM usuarios
-      WHERE id = $1
-      LIMIT 1
-      `,
-      [id]
-    );
-
-    return this.mapearUsuario(resultado.rows[0]);
+    const result = await this.db.query(`${usuarioSelect} WHERE u.id=$1 LIMIT 1`, [id]); return this.mapearUsuario(result.rows[0]);
   }
 }

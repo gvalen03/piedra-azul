@@ -56,3 +56,20 @@ test("PacienteService registra un paciente y audita la acción", async () => {
   assert.equal(paciente.id, 1);
   assert.equal(paciente.email, "ana@test.com");
 });
+
+test("PacienteService delega la búsqueda parcial de pacientes", async () => {
+  let termino;
+  const service = new PacienteService({
+    pacienteRepository: {
+      buscarPorTexto: async (busqueda) => {
+        termino = busqueda;
+        return [{ id: 1, nombre: "Ana" }];
+      }
+    }
+  });
+
+  const pacientes = await service.buscarPorTexto("  Ana  ");
+
+  assert.equal(termino, "Ana");
+  assert.deepEqual(pacientes, [{ id: 1, nombre: "Ana" }]);
+});

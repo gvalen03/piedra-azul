@@ -1,7 +1,7 @@
 export class Disponibilidad {
   constructor({
     id = null,
-    medicoId,
+    profesionalId,
     diaSemana,
     horaInicio,
     horaFin,
@@ -10,7 +10,7 @@ export class Disponibilidad {
     activo = true
   }) {
     this.id = id;
-    this.medicoId = medicoId;
+    this.profesionalId = profesionalId;
     this.diaSemana = diaSemana;
     this.horaInicio = horaInicio;
     this.horaFin = horaFin;

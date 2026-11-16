@@ -3,7 +3,7 @@ export class ControlMedico {
     id = null,
     historiaClinicaId,
     citaId,
-    medicoId,
+    profesionalId,
     fecha = new Date(),
     motivoConsulta,
     observaciones,
@@ -14,7 +14,7 @@ export class ControlMedico {
     this.id = id;
     this.historiaClinicaId = historiaClinicaId;
     this.citaId = citaId;
-    this.medicoId = medicoId;
+    this.profesionalId = profesionalId;
     this.fecha = fecha;
     this.motivoConsulta = motivoConsulta;
     this.observaciones = observaciones;

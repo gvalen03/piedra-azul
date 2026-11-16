@@ -36,22 +36,28 @@ import { JwtService }
 
 import { PasswordService }
   from "./shared/security/password.service.js";
+import { loadAuthConfig }
+  from "./shared/security/auth.config.js";
+import { KeycloakAdminClient } from "./shared/security/keycloak-admin.client.js";
+import { AprovisionamientoRepository } from "./modules/aprovisionamiento/infrastructure/aprovisionamiento.repository.js";
+import { AprovisionamientoService } from "./modules/aprovisionamiento/application/aprovisionamiento.service.js";
+import { crearAprovisionamientoController } from "./modules/aprovisionamiento/web/aprovisionamiento.controller.js";
 
 // =========================
-// MEDICOS
+// PROFESIONALES
 // =========================
 
-import { medicoRoutes }
-  from "./modules/medicos/web/medico.routes.js";
+import { profesionalRoutes }
+  from "./modules/profesional/web/profesional.routes.js";
 
-import { MedicoRepository }
-  from "./modules/medicos/infrastructure/medico.repository.js";
+import { ProfesionalRepository }
+  from "./modules/profesional/infrastructure/profesional.repository.js";
 
-import { MedicoService }
-  from "./modules/medicos/application/medico.service.js";
+import { ProfesionalService }
+  from "./modules/profesional/application/profesional.service.js";
 
-import { crearMedicoController }
-  from "./modules/medicos/web/medico.controller.js";
+import { crearProfesionalController }
+  from "./modules/profesional/web/profesional.controller.js";
 
 // =========================
 // DISPONIBILIDAD
@@ -120,6 +126,7 @@ import { eventBus }
 
 
 export async function buildApp() {
+  const authConfig = loadAuthConfig();
   const app = Fastify({
     logger: true
   });
@@ -131,8 +138,8 @@ export async function buildApp() {
   const usuarioRepository =
     new UsuarioRepository(db);
 
-  const medicoRepository =
-    new MedicoRepository(db);
+  const profesionalRepository =
+    new ProfesionalRepository(db);
 
   const citaRepository =
     new CitaRepository(db);
@@ -152,8 +159,8 @@ export async function buildApp() {
 
   const jwtService =
     new JwtService({
-      secret: process.env.JWT_SECRET,
-      expiresIn: process.env.JWT_EXPIRES_IN
+      secret: authConfig.secret,
+      expiresIn: authConfig.expiresIn
     });
 
   const passwordService =
@@ -175,9 +182,9 @@ export async function buildApp() {
       passwordService
     });
 
-  const medicoService =
-    new MedicoService({
-      medicoRepository
+  const profesionalService =
+    new ProfesionalService({
+      profesionalRepository
     });
 
   app.decorate("disponibilidadRepository", disponibilidadRepository);
@@ -192,7 +199,8 @@ export async function buildApp() {
     new CitaService({
       citaRepository,
       disponibilidadService,
-      eventBus
+      eventBus,
+      profesionalRepository
     });
 
   const pacienteService =
@@ -210,9 +218,9 @@ export async function buildApp() {
       authService
     });
 
-  const medicoController =
-    crearMedicoController({
-      medicoService
+  const profesionalController =
+    crearProfesionalController({
+      profesionalService
     });
 
   const disponibilidadController =
@@ -240,13 +248,13 @@ export async function buildApp() {
   );
 
   app.decorate(
-    "medicoRepository",
-    medicoRepository
+    "profesionalRepository",
+    profesionalRepository
   );
 
   app.decorate(
-    "medicoController",
-    medicoController
+    "profesionalController",
+    profesionalController
   );
 
   app.decorate(
@@ -276,11 +284,20 @@ export async function buildApp() {
   // =========================
 
   await app.register(cors, {
-    origin: true
+    origin: true,
+    exposedHeaders: ["Content-Disposition"]
   });
 
-  await app.register(authPlugin);
+  app.decorate("authProvider", authConfig.provider);
+  await app.register(authPlugin, { config: authConfig });
   const adminRepository = new AdminRepository(db);
+  const aprovisionamientoRepository = new AprovisionamientoRepository(db);
+  const keycloakAdminClient = authConfig.provider === "keycloak" && authConfig.provisioner
+    ? new KeycloakAdminClient({ issuer: authConfig.issuer, ...authConfig.provisioner })
+    : null;
+  app.decorate("aprovisionamientoController", crearAprovisionamientoController({
+    service: new AprovisionamientoService({ repository: aprovisionamientoRepository, keycloakClient: keycloakAdminClient })
+  }));
   app.decorate("adminRepository", adminRepository);
   app.decorate("adminService", new AdminService({ repository: adminRepository, passwordService }));
   await app.register(adminRoutes, { prefix: "/api/admin" });
@@ -304,8 +321,8 @@ export async function buildApp() {
     prefix: "/api/auth"
   });
 
-  await app.register(medicoRoutes, {
-    prefix: "/api/medicos"
+  await app.register(profesionalRoutes, {
+    prefix: "/api/profesionales"
   });
 
   await app.register(

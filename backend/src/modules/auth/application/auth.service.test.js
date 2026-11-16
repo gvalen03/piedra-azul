@@ -6,7 +6,7 @@ function preparar(usuario = {}) {
   const datos = usuario === null ? null : {
     id: 5, username: "prueba", password: "hash", nombre: "Usuario de prueba",
     rol: "PACIENTE", activo: true, perfilActivo: true,
-    pacienteId: 34, medicoId: null, updatedAt: "2026-09-27T10:00:00Z",
+    pacienteId: 34, profesionalId: null, updatedAt: "2026-09-27T10:00:00Z",
     ...usuario
   };
   const usuarioRepository = { buscarPorUsername: mock.fn(async () => datos) };
@@ -18,16 +18,16 @@ function preparar(usuario = {}) {
   };
 }
 
-for (const [rol, pacienteId, medicoId] of [
+for (const [rol, pacienteId, profesionalId] of [
   ["PACIENTE", 34, null], ["MEDICO_TERAPISTA", null, 12],
   ["ADMINISTRADOR", null, null], ["AGENDADOR", null, null]
 ]) {
   test(`login devuelve la sesión y genera los claims para ${rol}`, async () => {
-    const { service, usuarioRepository, passwordService, jwtService } = preparar({ rol, pacienteId, medicoId });
+    const { service, usuarioRepository, passwordService, jwtService } = preparar({ rol, pacienteId, profesionalId });
     const resultado = await service.login("prueba", "contraseña");
 
     assert.deepEqual(resultado, {
-      token: "token-de-prueba", rol, nombre: "Usuario de prueba", usuarioId: 5, pacienteId, medicoId
+      token: "token-de-prueba", rol, nombre: "Usuario de prueba", usuarioId: 5, pacienteId, profesionalId
     });
     assert.equal(usuarioRepository.buscarPorUsername.mock.callCount(), 1);
     assert.deepEqual(usuarioRepository.buscarPorUsername.mock.calls[0].arguments, ["prueba"]);
@@ -36,7 +36,7 @@ for (const [rol, pacienteId, medicoId] of [
     assert.equal(jwtService.generarToken.mock.callCount(), 1);
     assert.deepEqual(jwtService.generarToken.mock.calls[0].arguments, [{
       version: Date.parse("2026-09-27T10:00:00Z"), usuarioId: 5,
-      username: "prueba", rol, pacienteId, medicoId
+      username: "prueba", rol, pacienteId, profesionalId
     }]);
   });
 }
