@@ -1,3 +1,6 @@
+import multipart from "@fastify/multipart";
+import archivoRoutes from "./modules/archivos/archivo.routes.js";
+
 import { AdminRepository } from "./modules/admin/infrastructure/admin.repository.js";
 import { AdminService } from "./modules/admin/application/admin.service.js";
 import { adminRoutes } from "./modules/admin/web/admin.routes.js";
@@ -307,6 +310,13 @@ export async function buildApp() {
   // Routes
   // =========================
 
+  await app.register(multipart, {
+    limits: {
+      fileSize: 5 * 1024 * 1024,
+      files: 1
+    }
+  });
+
   await app.register(authRoutes, {
     prefix: "/api/auth"
   });
@@ -329,6 +339,8 @@ export async function buildApp() {
   await app.register(pacienteRoutes, {
     prefix: "/api/pacientes"
   });
+
+  await app.register(archivoRoutes);
 
   // =========================
   // Health
