@@ -64,7 +64,7 @@ test("solo agendador y administrador pueden cancelar, reprogramar y consultar fr
     req.user = { rol:req.headers.authorization, sub:"prueba" };
   });
   const handler = async () => { llamadas++; return {}; };
-  app.decorate("citaController", { cancelar:handler, reprogramar:handler, franjasReprogramacion:handler, confirmar:handler, consultarPorProfesionalYFecha:handler, agendar:handler });
+  app.decorate("citaController", { cancelar:handler, cancelarPorPaciente:handler, reprogramar:handler, franjasReprogramacion:handler, confirmar:handler, consultarPorProfesionalYFecha:handler, agendar:handler });
   await app.register(citaRoutes);
   for (const rol of [undefined,"PACIENTE","MEDICO_TERAPISTA","AGENDADOR","ADMINISTRADOR"]) {
     const headers = rol ? { authorization:rol } : {};

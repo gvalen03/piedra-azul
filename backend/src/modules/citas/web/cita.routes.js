@@ -5,7 +5,8 @@ import {
   consultarCitasSchema,
   exportarCitasSchema,
   agendarCitaSchema,
-  confirmarCitaSchema
+  confirmarCitaSchema,
+  cancelarCitaPacienteSchema
 } from "../schemas/cita.schema.js";
 
 export async function citaRoutes(fastify) {
@@ -39,7 +40,9 @@ export async function citaRoutes(fastify) {
     request.body = { ...request.body, pacienteId: request.pacienteId };
     return fastify.citaController.agendar(request, reply);
   });
-  for (const [accion, estado] of [["confirmar", "CONFIRMADA"], ["cancelar", "CANCELADA"]]) {
+  fastify.patch("/mis-citas/:id/cancelar", { preHandler: permisosPaciente, schema: cancelarCitaPacienteSchema },
+    (request, reply) => fastify.citaController.cancelarPorPaciente(request, reply));
+  for (const [accion, estado] of [["confirmar", "CONFIRMADA"]]) {
     fastify.patch(`/mis-citas/:id/${accion}`, { preHandler: permisosPaciente, schema: confirmarCitaSchema }, async (request, reply) => {
       const cita = await fastify.citaRepository.cambiarEstadoPaciente(request.params.id, request.pacienteId, estado);
       if (!cita) return reply.code(409).send({ error: "La cita no está disponible para esta acción. Actualiza tus citas." });

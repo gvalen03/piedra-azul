@@ -154,6 +154,16 @@ export class CitaService {
     return this.citaRepository.actualizarEstado(id, EstadoCita.CANCELADA, actor);
   }
 
+  async cancelarPorPaciente(id, pacienteId, justificacion) {
+    const motivo = justificacion?.trim();
+    if (!motivo) throw Object.assign(new Error("La justificación de la cancelación es obligatoria"), { statusCode: 400 });
+    const cita = await this.citaRepository.cancelarPorPaciente(id, pacienteId, motivo);
+    if (!cita) {
+      throw Object.assign(new Error("No puedes cancelar esta cita: debe ser tuya, estar programada o confirmada y faltarle al menos dos días"), { statusCode: 409 });
+    }
+    return cita;
+  }
+
   async reprogramar(id, datos, actor) {
     return this.citaRepository.reprogramar(id, datos, actor);
   }

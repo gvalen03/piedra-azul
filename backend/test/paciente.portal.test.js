@@ -29,7 +29,7 @@ async function crear(t, user = { rol: "PACIENTE", pacienteId: 7 }) {
     listarPorPaciente: async id => { llamadas.push(["citas", id]); return []; },
     cambiarEstadoPaciente: async (id, pacienteId, estado) => { llamadas.push(["estado", id, pacienteId, estado]); return id === 10 ? { id, estado } : null; }
   });
-  app.decorate("citaController", { consultarPorProfesionalYFecha: async () => ({}), confirmar: async () => ({}), agendar: async req => { llamadas.push(["reserva", req.body]); return req.body; } });
+  app.decorate("citaController", { consultarPorProfesionalYFecha: async () => ({}), confirmar: async () => ({}), cancelarPorPaciente: async req => { llamadas.push(["cancelar", req.params.id, req.pacienteId, req.body.justificacion]); return { id: Number(req.params.id), estado: "CANCELADA" }; }, agendar: async req => { llamadas.push(["reserva", req.body]); return req.body; } });
   await app.register(pacienteRoutes, { prefix: "/pacientes" });
   await app.register(citaRoutes, { prefix: "/citas" });
   return { app, llamadas };
@@ -84,11 +84,12 @@ test("solo modifica contacto, valida teléfono y no acepta cambios de identidad"
   assert.equal((await app.inject({ method: "PATCH", url: "/pacientes/me", payload: { ...payload, telefono: "   " } })).statusCode, 400);
   assert.equal(llamadas.length, 1);
 });
-test("confirmar y cancelar usan identidad propia y respetan conflictos", async t => {
+test("confirmar y cancelar usan identidad propia, exigen justificación y respetan conflictos", async t => {
   const { app, llamadas } = await crear(t);
   assert.equal((await app.inject({ method: "PATCH", url: "/citas/mis-citas/10/confirmar" })).statusCode, 200);
-  assert.equal((await app.inject({ method: "PATCH", url: "/citas/mis-citas/99/cancelar" })).statusCode, 409);
-  assert.deepEqual(llamadas, [["estado", 10, 7, "CONFIRMADA"], ["estado", 99, 7, "CANCELADA"]]);
+  assert.equal((await app.inject({ method: "PATCH", url: "/citas/mis-citas/99/cancelar" })).statusCode, 400);
+  assert.equal((await app.inject({ method: "PATCH", url: "/citas/mis-citas/99/cancelar", payload: { justificacion: "No podré asistir" } })).statusCode, 200);
+  assert.deepEqual(llamadas, [["estado", 10, 7, "CONFIRMADA"], ["cancelar", 99, 7, "No podré asistir"]]);
   assert.equal((await app.inject({ method: "PATCH", url: "/citas/10/confirmar" })).statusCode, 403);
 });
 for (const [user, status] of [[null, 401], [{ rol: "AGENDADOR" }, 403], [{ rol: "PACIENTE", pacienteId: null }, 403]]) {
@@ -108,4 +109,14 @@ test("cambios de estado limitan propietario, fecha y estado de forma atómica", 
     return { rows: [] };
   } });
   assert.equal(await repo.cambiarEstadoPaciente(10, 7, "CANCELADA"), null);
+});
+test("cancelación del paciente exige dos días de anticipación y guarda la justificación", async () => {
+  const repo = new CitaRepository({ query: async (sql, params) => {
+    assert.match(sql, /justificacion_cancelacion\s*=\s*\$3/);
+    assert.match(sql, /INTERVAL '2 days'/);
+    assert.match(sql, /paciente_id\s*=\s*\$2/);
+    assert.deepEqual(params, [10, 7, "No podré asistir"]);
+    return { rows: [] };
+  } });
+  assert.equal(await repo.cancelarPorPaciente(10, 7, "No podré asistir"), null);
 });

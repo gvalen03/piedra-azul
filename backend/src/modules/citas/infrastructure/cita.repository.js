@@ -272,6 +272,27 @@ export class CitaRepository {
     return result.rows[0] ?? null;
   }
 
+  async cancelarPorPaciente(id, pacienteId, justificacion) {
+    const result = await this.db.query(
+      `
+      UPDATE citas
+      SET estado = 'CANCELADA',
+          justificacion_cancelacion = $3,
+          cancelada_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+        AND paciente_id = $2
+        AND estado IN ('PROGRAMADA', 'CONFIRMADA')
+        AND (fecha + hora_inicio) >= (
+          (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota') + INTERVAL '2 days'
+        )
+      RETURNING *
+      `,
+      [id, pacienteId, justificacion]
+    );
+    return result.rows[0] ?? null;
+  }
+
   // =========================
   // Citas del paciente
   // =========================
