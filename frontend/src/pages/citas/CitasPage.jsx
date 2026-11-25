@@ -13,6 +13,10 @@ import RegistroPaciente
 import ReprogramarCita
   from "../../components/citas/ReprogramarCita.jsx";
 
+import Paginacion from "../../components/common/Paginacion.jsx";
+
+const TAMANO_PAGINA_BUSQUEDA = 5;
+
 function CitasPage() {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -23,11 +27,11 @@ function CitasPage() {
   const [paciente, setPaciente] =
     createSignal(null);
 
-  const [pacientesEncontrados, setPacientesEncontrados] =
+  const [pacientes, setPacientes] =
     createSignal([]);
 
-  const [buscandoPacientes, setBuscandoPacientes] =
-    createSignal(false);
+  const [paginaPacientes, setPaginaPacientes] = createSignal(1);
+  const [paginaProfesionales, setPaginaProfesionales] = createSignal(1);
 
   const [historialPaciente, setHistorialPaciente] =
     createSignal([]);
@@ -92,22 +96,48 @@ function CitasPage() {
   const [reprogramarId, setReprogramarId] =
     createSignal(null);
 
-  let temporizadorBusquedaPaciente;
   let temporizadorConsultaCitas;
   let solicitudCitas = 0;
 
   const profesionalesEncontrados = createMemo(() => {
     const termino = busquedaProfesional().trim().toLocaleLowerCase();
 
-    if (!termino) return [];
-
     return medicos()
       .filter((profesional) =>
         `${profesional.nombre} ${profesional.apellido}`
           .toLocaleLowerCase()
           .includes(termino)
-      )
-      .slice(0, 10);
+      );
+  });
+
+  const totalPaginasProfesionales = createMemo(() =>
+    Math.max(1, Math.ceil(profesionalesEncontrados().length / TAMANO_PAGINA_BUSQUEDA))
+  );
+
+  const profesionalesPaginados = createMemo(() => {
+    const pagina = Math.min(paginaProfesionales(), totalPaginasProfesionales());
+    const inicio = (pagina - 1) * TAMANO_PAGINA_BUSQUEDA;
+    return profesionalesEncontrados().slice(inicio, inicio + TAMANO_PAGINA_BUSQUEDA);
+  });
+
+  const pacientesEncontrados = createMemo(() => {
+    const termino = documentoPaciente().trim().toLocaleLowerCase();
+
+    return pacientes().filter((registro) =>
+      `${registro.nombre} ${registro.apellido} ${registro.numero_documento} ${registro.email || ""}`
+        .toLocaleLowerCase()
+        .includes(termino)
+    );
+  });
+
+  const totalPaginasPacientes = createMemo(() =>
+    Math.max(1, Math.ceil(pacientesEncontrados().length / TAMANO_PAGINA_BUSQUEDA))
+  );
+
+  const pacientesPaginados = createMemo(() => {
+    const pagina = Math.min(paginaPacientes(), totalPaginasPacientes());
+    const inicio = (pagina - 1) * TAMANO_PAGINA_BUSQUEDA;
+    return pacientesEncontrados().slice(inicio, inicio + TAMANO_PAGINA_BUSQUEDA);
   });
 
   // =========================
@@ -155,12 +185,17 @@ function CitasPage() {
     );
   };
 
+  const cargarPacientes = async () => {
+    setPacientes(await apiJson("/pacientes"));
+  };
+
   onMount(() => {
-    ejecutar(cargarMedicos);
+    ejecutar(async () => {
+      await Promise.all([cargarMedicos(), cargarPacientes()]);
+    });
   });
 
   onCleanup(() => {
-    clearTimeout(temporizadorBusquedaPaciente);
     clearTimeout(temporizadorConsultaCitas);
   });
 
@@ -238,43 +273,11 @@ function CitasPage() {
   // Paciente
   // =========================
 
-  const buscarPacientes = (valor) => {
-    clearTimeout(temporizadorBusquedaPaciente);
+  const buscarPacientes = () => {
     setPaciente(null);
     setHistorialPaciente([]);
     setErrorHistorialPaciente("");
-
-    const busqueda = valor.trim();
-
-    if (busqueda.length < 2) {
-      setPacientesEncontrados([]);
-      setBuscandoPacientes(false);
-      return;
-    }
-
-    temporizadorBusquedaPaciente = setTimeout(async () => {
-      setBuscandoPacientes(true);
-
-      try {
-        const data = await apiJson(
-          `/pacientes?busqueda=${encodeURIComponent(busqueda)}`
-        );
-
-        if (documentoPaciente().trim() === busqueda) {
-          setPacientesEncontrados(data);
-        }
-      } catch (error) {
-        if (documentoPaciente().trim() === busqueda) {
-          setPacientesEncontrados([]);
-          setMensaje(error.message);
-          setEsError(true);
-        }
-      } finally {
-        if (documentoPaciente().trim() === busqueda) {
-          setBuscandoPacientes(false);
-        }
-      }
-    }, 250);
+    setPaginaPacientes(1);
   };
 
   const seleccionarPaciente = (seleccionado) => {
@@ -286,7 +289,6 @@ function CitasPage() {
 
     setPaciente(seleccionado);
     setDocumentoPaciente(seleccionado.numero_documento);
-    setPacientesEncontrados([]);
     setMensaje("");
     setEsError(false);
 
@@ -598,20 +600,14 @@ function CitasPage() {
                       onInput={(event) => {
                         const valor = event.target.value;
                         setDocumentoPaciente(valor);
-                        buscarPacientes(valor);
+                        buscarPacientes();
                       }}
                     />
                   </div>
 
-                  <Show when={buscandoPacientes()}>
-                    <small class="citas-search-status" role="status">
-                      Buscando pacientes…
-                    </small>
-                  </Show>
-
-                  <Show when={pacientesEncontrados().length > 0}>
+                  <Show when={pacientesPaginados().length > 0 && !paciente()}>
                     <ul class="citas-search-results" aria-label="Pacientes encontrados">
-                      <For each={pacientesEncontrados()}>
+                      <For each={pacientesPaginados()}>
                         {(encontrado) => (
                           <li>
                             <button
@@ -626,9 +622,15 @@ function CitasPage() {
                         )}
                       </For>
                     </ul>
+                    <Paginacion
+                      etiqueta="Paginación de pacientes"
+                      pagina={Math.min(paginaPacientes(), totalPaginasPacientes())}
+                      totalPaginas={totalPaginasPacientes()}
+                      onCambiar={setPaginaPacientes}
+                    />
                   </Show>
 
-                  <Show when={documentoPaciente().trim().length >= 2 && !buscandoPacientes() && !pacientesEncontrados().length && !paciente()}>
+                  <Show when={documentoPaciente().trim() && !pacientesEncontrados().length && !paciente()}>
                     <small class="citas-search-status">No se encontraron pacientes.</small>
                   </Show>
 
@@ -709,13 +711,14 @@ function CitasPage() {
                         onInput={(event) => {
                           setBusquedaProfesional(event.target.value);
                           setProfesionalId("");
+                          setPaginaProfesionales(1);
                           limpiarSeleccion();
                         }}
                       />
 
-                      <Show when={profesionalesEncontrados().length > 0 && !profesionalId()}>
+                      <Show when={profesionalesPaginados().length > 0 && !profesionalId()}>
                         <ul class="citas-search-results" aria-label="Profesionales encontrados">
-                          <For each={profesionalesEncontrados()}>
+                          <For each={profesionalesPaginados()}>
                             {(profesional) => (
                               <li>
                                 <button
@@ -729,9 +732,15 @@ function CitasPage() {
                             )}
                           </For>
                         </ul>
+                        <Paginacion
+                          etiqueta="Paginación de profesionales"
+                          pagina={Math.min(paginaProfesionales(), totalPaginasProfesionales())}
+                          totalPaginas={totalPaginasProfesionales()}
+                          onCambiar={setPaginaProfesionales}
+                        />
                       </Show>
 
-                      <Show when={busquedaProfesional().trim().length >= 2 && !profesionalId() && !profesionalesEncontrados().length}>
+                      <Show when={busquedaProfesional().trim() && !profesionalId() && !profesionalesEncontrados().length}>
                         <small class="citas-search-status">No se encontraron profesionales activos.</small>
                       </Show>
                     </div>

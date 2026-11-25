@@ -32,3 +32,24 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.paginacion button {
+  min-width: 92px;
+}
+
+@media (max-width: 480px) {
+  .paginacion {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}

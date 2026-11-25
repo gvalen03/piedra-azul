@@ -4,6 +4,7 @@ import { useAuth } from "../../stores/auth.store.js";
 import { apiFetch } from "../../services/api.js";
 import AdminEditor, { roles } from "../../components/admin/AdminEditor.jsx";
 import DisponibilidadAdmin from "../../components/admin/DisponibilidadAdmin.jsx";
+import Paginacion from "../../components/common/Paginacion.jsx";
 import "../../styles/modules/medico.css";
 import "../../styles/modules/admin.css";
 
@@ -12,11 +13,13 @@ const secciones = usaKeycloak
   ? { usuarios: "Cuentas de acceso", profesionales: "Profesionales", pacientes: "Pacientes" }
   : { usuarios: "Usuarios", profesionales: "Profesionales", pacientes: "Pacientes" };
 const activo = r => r.activo ?? r.estado === "ACTIVO";
+const TAMANO_PAGINA = 10;
 
 export default function AdminPage() {
   const auth = useAuth(), navigate = useNavigate();
   const [tipo,setTipo] = createSignal("usuarios"), [datos,setDatos] = createSignal({ usuarios: [], profesionales: [], pacientes: [] });
   const [busqueda,setBusqueda] = createSignal(""), [estado,setEstado] = createSignal(""), [rol,setRol] = createSignal("");
+  const [pagina, setPagina] = createSignal(1);
   const [editor,setEditor] = createSignal(null), [busy,setBusy] = createSignal(false), [error,setError] = createSignal(""), [mensaje,setMensaje] = createSignal("");
   const [listo,setListo] = createSignal(false);
 
@@ -25,6 +28,11 @@ export default function AdminPage() {
     (tipo() !== "usuarios" || !rol() || r.rol === rol()) &&
     `${r.nombre} ${r.apellido || ""} ${r.username || ""} ${r.numero_documento || ""} ${r.email || ""}`.toLocaleLowerCase().includes(busqueda().trim().toLocaleLowerCase())
   ));
+  const totalPaginas = createMemo(() => Math.max(1, Math.ceil(visibles().length / TAMANO_PAGINA)));
+  const registrosPaginados = createMemo(() => {
+    const paginaActual = Math.min(pagina(), totalPaginas());
+    return visibles().slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA);
+  });
 
   const api = async (path, options) => {
     const res = await apiFetch(`/admin/${path}`, options); const data = await res.json();
@@ -44,7 +52,7 @@ export default function AdminPage() {
 
   onMount(actualizar);
 
-  const cambiar = key => { setTipo(key); setEditor(null); setBusqueda(""); setEstado(""); setRol(""); setMensaje(""); };
+  const cambiar = key => { setTipo(key); setEditor(null); setBusqueda(""); setEstado(""); setRol(""); setPagina(1); setMensaje(""); };
 
   const guardar = async payload => {
     if (busy()) return; setBusy(true); setMensaje(""); setError("");
@@ -115,9 +123,9 @@ export default function AdminPage() {
         <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">☷</span><div><h2>{secciones[tipo()]}</h2><p>{tipo() === "usuarios" ? "Consulta quién puede ingresar y qué función tiene en el sistema." : "Registra y administra la información de las personas."}</p></div></div>
           <div class="admin-list-body"><div class="admin-actions"><button class="btn btn-primary" disabled={busy() || !listo()} onClick={() => setEditor({ registro:null })}>{tipo() === "usuarios" ? "＋ Crear cuenta" : `Crear ${tipo() === "profesionales" ? "profesional" : "paciente"}`}</button><button class="medico-outline" disabled={busy()} onClick={actualizar}>Actualizar</button></div>
             <Show when={tipo() === "usuarios" && usaKeycloak}><aside class="admin-info"><strong>¿Para qué sirve esta sección?</strong><p>Registrar una persona permite almacenar sus datos en el sistema. Crear una cuenta de acceso permite que esa persona inicie sesión y utilice las funcionalidades autorizadas según su rol.</p></aside></Show>
-            <div class="admin-filters"><label for="admin-buscar">Buscar<input id="admin-buscar" type="search" placeholder="Nombre, correo, usuario o documento" value={busqueda()} onInput={e => setBusqueda(e.currentTarget.value)} /></label><label for="admin-filtro-estado">Estado<select id="admin-filtro-estado" value={estado()} onChange={e => setEstado(e.currentTarget.value)}><option value="">Todos</option><option value="ACTIVO">Activos</option><option value="INACTIVO">Inactivos</option></select></label><Show when={tipo() === "usuarios"}><label for="admin-filtro-rol">Rol<select id="admin-filtro-rol" value={rol()} onChange={e => setRol(e.currentTarget.value)}><option value="">Todos los roles</option><For each={Object.entries(roles)}>{([value,label]) => <option value={value}>{label}</option>}</For></select></label></Show></div>
+            <div class="admin-filters"><label for="admin-buscar">Buscar<input id="admin-buscar" type="search" placeholder="Nombre, correo, usuario o documento" value={busqueda()} onInput={e => { setBusqueda(e.currentTarget.value); setPagina(1); }} /></label><label for="admin-filtro-estado">Estado<select id="admin-filtro-estado" value={estado()} onChange={e => { setEstado(e.currentTarget.value); setPagina(1); }}><option value="">Todos</option><option value="ACTIVO">Activos</option><option value="INACTIVO">Inactivos</option></select></label><Show when={tipo() === "usuarios"}><label for="admin-filtro-rol">Rol<select id="admin-filtro-rol" value={rol()} onChange={e => { setRol(e.currentTarget.value); setPagina(1); }}><option value="">Todos los roles</option><For each={Object.entries(roles)}>{([value,label]) => <option value={value}>{label}</option>}</For></select></label></Show></div>
             <Show when={listo() && !visibles().length}><div class="medico-empty"><h3>{tipo() === "usuarios" ? "Todavía no hay cuentas de acceso" : "No hay registros que coincidan con la búsqueda"}</h3><p>{tipo() === "usuarios" ? "Crea una cuenta para permitir que una persona ingrese al sistema con los permisos correspondientes." : "Prueba con otra búsqueda o crea un registro."}</p></div></Show>
-            <ul class="admin-list"><For each={visibles()}>{r => <li><div class="admin-record"><div><strong>{r.nombre} {r.apellido || ""}</strong><small>{tipo() === "usuarios" ? `${r.username} · ${roles[r.rol]}` : `Documento: ${r.numero_documento}`}</small><small>{r.email || "Sin correo registrado"}</small><Show when={tipo() === "usuarios" && ["MEDICO_TERAPISTA", "PACIENTE"].includes(r.rol)}><small>Perfil: {perfilNombre(r)}</small></Show></div><span class={`medico-badge ${activo(r) ? "estado-atendida" : "estado-cancelada"}`}>{activo(r) ? "Activo" : "Inactivo"}</span></div><Show when={tipo() === "usuarios" && Number(r.id) === Number(auth.user()?.usuarioId)} fallback={<div class="admin-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>Editar</button><button class={`medico-outline ${activo(r) ? "admin-action-deactivate" : "admin-action-activate"}`} disabled={busy()} onClick={() => cambiarEstado(r)}>{activo(r) ? "Desactivar" : "Activar"}</button><button class="medico-outline" disabled={busy()} onClick={() => eliminar(r)}>Eliminar</button></div>}><div class="admin-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>Editar</button></div><small class="admin-help">No puedes cambiar tu propio rol, desactivar ni eliminar tu cuenta.</small></Show></li>}</For></ul>
+            <ul class="admin-list"><For each={registrosPaginados()}>{r => <li><div class="admin-record"><div><strong>{r.nombre} {r.apellido || ""}</strong><small>{tipo() === "usuarios" ? `${r.username} · ${roles[r.rol]}` : `Documento: ${r.numero_documento}`}</small><small>{r.email || "Sin correo registrado"}</small><Show when={tipo() === "usuarios" && ["MEDICO_TERAPISTA", "PACIENTE"].includes(r.rol)}><small>Perfil: {perfilNombre(r)}</small></Show></div><span class={`medico-badge ${activo(r) ? "estado-atendida" : "estado-cancelada"}`}>{activo(r) ? "Activo" : "Inactivo"}</span></div><Show when={tipo() === "usuarios" && Number(r.id) === Number(auth.user()?.usuarioId)} fallback={<div class="admin-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>Editar</button><button class={`medico-outline ${activo(r) ? "admin-action-deactivate" : "admin-action-activate"}`} disabled={busy()} onClick={() => cambiarEstado(r)}>{activo(r) ? "Desactivar" : "Activar"}</button><button class="medico-outline" disabled={busy()} onClick={() => eliminar(r)}>Eliminar</button></div>}><div class="admin-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>Editar</button></div><small class="admin-help">No puedes cambiar tu propio rol, desactivar ni eliminar tu cuenta.</small></Show></li>}</For></ul><Paginacion etiqueta="Paginación de registros" pagina={Math.min(pagina(), totalPaginas())} totalPaginas={totalPaginas()} onCambiar={setPagina} />
           </div></section>
         <Show keyed when={editor()}>{ed => <AdminEditor tipo={tipo()} keycloak={usaKeycloak} esCuentaPropia={tipo() === "usuarios" && Number(ed.registro?.id) === Number(auth.user()?.usuarioId)} registro={ed.registro} profesionales={datos().profesionales} pacientes={datos().pacientes} busy={busy()} onSave={guardar} onClose={() => setEditor(null)} />}</Show>
       </div>}>

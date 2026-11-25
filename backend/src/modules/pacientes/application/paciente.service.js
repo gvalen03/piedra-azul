@@ -52,4 +52,8 @@ export class PacienteService {
   async buscarPorTexto(busqueda) {
     return this.pacienteRepository.buscarPorTexto(busqueda.trim());
   }
+
+  async listarTodos() {
+    return this.pacienteRepository.listarTodos();
+  }
 }

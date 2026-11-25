@@ -46,9 +46,9 @@ export function crearPacienteController({ pacienteService }) {
     },
 
     buscar: async (request, reply) => {
-      const pacientes = await pacienteService.buscarPorTexto(
-        request.query.busqueda
-      );
+      const pacientes = request.query.busqueda
+        ? await pacienteService.buscarPorTexto(request.query.busqueda)
+        : await pacienteService.listarTodos();
 
       return reply.send(pacientes);
     }

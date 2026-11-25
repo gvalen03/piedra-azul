@@ -4,6 +4,7 @@ import { A, useNavigate } from "@solidjs/router";
 import { apiFetch } from "../../services/api.js";
 import { descargarCsvAgenda } from "../../services/descarga-csv.js";
 import { useAuth } from "../../stores/auth.store.js";
+import Paginacion from "../../components/common/Paginacion.jsx";
 import "../../styles/modules/medico.css";
 
 const hoy = () => {
@@ -13,6 +14,7 @@ const hoy = () => {
 const estados = { PROGRAMADA: "Programada", CONFIRMADA: "Confirmada", ATENDIDA: "Atendida", CANCELADA: "Cancelada" };
 const nombre = (cita) => `${cita.paciente_nombre} ${cita.paciente_apellido}`;
 const hora = (valor) => valor?.slice(0, 5) || "—";
+const TAMANO_PAGINA = 8;
 
 function ProfessionalPage() {
   const [vista, setVista] = createSignal("agenda");
@@ -24,6 +26,7 @@ function ProfessionalPage() {
   const [citas, setCitas] = createSignal([]);
   const [estado, setEstado] = createSignal("");
   const [busqueda, setBusqueda] = createSignal("");
+  const [pagina, setPagina] = createSignal(1);
   const [seleccion, setSeleccion] = createSignal(null);
   const [cargando, setCargando] = createSignal(false);
   const [error, setError] = createSignal("");
@@ -34,9 +37,14 @@ function ProfessionalPage() {
     (!estado() || cita.estado === estado()) &&
     `${nombre(cita)} ${cita.paciente_documento}`.toLocaleLowerCase().includes(busqueda().trim().toLocaleLowerCase())
   ));
+  const totalPaginas = createMemo(() => Math.max(1, Math.ceil(visibles().length / TAMANO_PAGINA)));
+  const citasPaginadas = createMemo(() => {
+    const paginaActual = Math.min(pagina(), totalPaginas());
+    return visibles().slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA);
+  });
   const consultar = async () => {
     const actual = ++solicitud;
-    setError(""); setCitas([]); setSeleccion(null);
+    setError(""); setCitas([]); setSeleccion(null); setPagina(1);
     if (!fecha()) { setCargando(false); setError("Selecciona una fecha para consultar tu agenda."); return; }
     setCargando(true);
     try {
@@ -99,11 +107,11 @@ function ProfessionalPage() {
         <div class="medico-grid">
           <section class="medico-card" aria-labelledby="agenda-title" aria-busy={cargando()}>
             <div class="medico-card-header"><span class="medico-icon" aria-hidden="true">☷</span><div><h2 id="agenda-title">Mis citas</h2><p>Consulta los pacientes y horarios de tu jornada.</p></div></div>
-            <div class="medico-filters"><div><label for="agenda-busqueda">Buscar paciente</label><input id="agenda-busqueda" type="search" placeholder="Nombre o documento" value={busqueda()} onInput={e => setBusqueda(e.currentTarget.value)} /></div><div><label for="agenda-estado">Estado</label><select id="agenda-estado" value={estado()} onChange={e => setEstado(e.currentTarget.value)}><option value="">Todos los estados</option><For each={Object.entries(estados)}>{([value, label]) => <option value={value}>{label}</option>}</For></select></div></div>
+            <div class="medico-filters"><div><label for="agenda-busqueda">Buscar paciente</label><input id="agenda-busqueda" type="search" placeholder="Nombre o documento" value={busqueda()} onInput={e => { setBusqueda(e.currentTarget.value); setPagina(1); }} /></div><div><label for="agenda-estado">Estado</label><select id="agenda-estado" value={estado()} onChange={e => { setEstado(e.currentTarget.value); setPagina(1); }}><option value="">Todos los estados</option><For each={Object.entries(estados)}>{([value, label]) => <option value={value}>{label}</option>}</For></select></div></div>
             <Show when={!cargando()} fallback={<p class="medico-empty" role="status">Cargando tu agenda…</p>}>
               <Show when={!error()}>
                 <Show when={visibles().length} fallback={<div class="medico-empty"><span class="medico-icon" aria-hidden="true">▦</span><h3>{citas().length ? "Sin coincidencias" : "Tu agenda tiene espacio"}</h3><p>{citas().length ? "Prueba con otro nombre, documento o estado." : "No tienes citas registradas para esta fecha."}</p></div>}>
-                  <ul class="medico-appointments"><For each={visibles()}>{cita => <li><button disabled={guardandoAtencion()} class="medico-appointment" aria-pressed={seleccion()?.id === cita.id} onClick={() => setSeleccion(cita)}><span class="medico-time">{hora(cita.hora_inicio)}<small>{hora(cita.hora_fin)}</small></span><span class="medico-patient"><strong>{nombre(cita)}</strong><small>Documento: {cita.paciente_documento}</small></span><span class={`medico-badge estado-${cita.estado.toLowerCase()}`}>{estados[cita.estado] || cita.estado}</span><span aria-hidden="true">→</span></button></li>}</For></ul>
+                  <ul class="medico-appointments"><For each={citasPaginadas()}>{cita => <li><button disabled={guardandoAtencion()} class="medico-appointment" aria-pressed={seleccion()?.id === cita.id} onClick={() => setSeleccion(cita)}><span class="medico-time">{hora(cita.hora_inicio)}<small>{hora(cita.hora_fin)}</small></span><span class="medico-patient"><strong>{nombre(cita)}</strong><small>Documento: {cita.paciente_documento}</small></span><span class={`medico-badge estado-${cita.estado.toLowerCase()}`}>{estados[cita.estado] || cita.estado}</span><span aria-hidden="true">→</span></button></li>}</For></ul><Paginacion etiqueta="Paginación de la agenda" pagina={Math.min(pagina(), totalPaginas())} totalPaginas={totalPaginas()} onCambiar={setPagina} />
                 </Show>
               </Show>
             </Show>

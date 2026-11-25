@@ -60,7 +60,6 @@ export async function pacienteRoutes(fastify) {
         querystring: {
           type: "object",
           additionalProperties: false,
-          required: ["busqueda"],
           properties: {
             busqueda: {
               type: "string",

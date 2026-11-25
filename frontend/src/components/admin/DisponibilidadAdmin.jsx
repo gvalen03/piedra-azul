@@ -1,15 +1,17 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
 
 import DisponibilidadProfesional from "../profesionales/DisponibilidadProfesional.jsx";
+import Paginacion from "../common/Paginacion.jsx";
+
+const TAMANO_PAGINA = 5;
 
 export default function DisponibilidadAdmin(props) {
   const [busqueda, setBusqueda] = createSignal("");
   const [seleccion, setSeleccion] = createSignal(null);
+  const [pagina, setPagina] = createSignal(1);
 
   const coincidencias = createMemo(() => {
     const termino = busqueda().trim().toLocaleLowerCase();
-
-    if (termino.length < 2) return [];
 
     return props.profesionales
       .filter((profesional) => profesional.activo)
@@ -17,8 +19,13 @@ export default function DisponibilidadAdmin(props) {
         `${profesional.nombre} ${profesional.apellido}`
           .toLocaleLowerCase()
           .includes(termino)
-      )
-      .slice(0, 10);
+      );
+  });
+
+  const totalPaginas = createMemo(() => Math.max(1, Math.ceil(coincidencias().length / TAMANO_PAGINA)));
+  const coincidenciasPaginadas = createMemo(() => {
+    const paginaActual = Math.min(pagina(), totalPaginas());
+    return coincidencias().slice((paginaActual - 1) * TAMANO_PAGINA, paginaActual * TAMANO_PAGINA);
   });
 
   const seleccionar = (profesional) => {
@@ -48,12 +55,13 @@ export default function DisponibilidadAdmin(props) {
             onInput={(event) => {
               setBusqueda(event.currentTarget.value);
               setSeleccion(null);
+              setPagina(1);
             }}
           />
 
-          <Show when={coincidencias().length > 0 && !seleccion()}>
+          <Show when={coincidenciasPaginadas().length > 0 && !seleccion()}>
             <ul class="admin-professional-results" aria-label="Profesionales encontrados">
-              <For each={coincidencias()}>
+              <For each={coincidenciasPaginadas()}>
                 {(profesional) => (
                   <li>
                     <button type="button" onClick={() => seleccionar(profesional)}>
@@ -64,9 +72,10 @@ export default function DisponibilidadAdmin(props) {
                 )}
               </For>
             </ul>
+            <Paginacion etiqueta="Paginación de profesionales" pagina={Math.min(pagina(), totalPaginas())} totalPaginas={totalPaginas()} onCambiar={setPagina} />
           </Show>
 
-          <Show when={busqueda().trim().length >= 2 && !seleccion() && !coincidencias().length}>
+          <Show when={busqueda().trim() && !seleccion() && !coincidencias().length}>
             <p class="admin-help">No se encontraron profesionales activos.</p>
           </Show>
 

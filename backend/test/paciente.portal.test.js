@@ -15,13 +15,16 @@ async function crear(t, user = { rol: "PACIENTE", pacienteId: 7 }) {
   app.decorate("pacienteRepository", {
     buscarPorId: async id => { llamadas.push(["perfil", id]); return { id, nombre: "Ana", estado: "ACTIVO" }; },
     buscarPorTexto: async busqueda => { llamadas.push(["busqueda", busqueda]); return [{ id: 8, nombre: "Ana", numero_documento: "123" }]; },
+    listarTodos: async () => { llamadas.push(["lista"]); return [{ id: 8, nombre: "Ana", numero_documento: "123" }]; },
     actualizarContacto: async (id, body) => { llamadas.push(["contacto", id, body]); return { id, ...body }; }
   });
   app.decorate("pacienteController", {
     registrar: async () => ({}),
     buscarPorDocumento: async () => ({}),
     buscar: async request => {
-      const pacientes = await app.pacienteRepository.buscarPorTexto(request.query.busqueda);
+      const pacientes = request.query.busqueda
+        ? await app.pacienteRepository.buscarPorTexto(request.query.busqueda)
+        : await app.pacienteRepository.listarTodos();
       return pacientes;
     }
   });
@@ -49,6 +52,15 @@ test("el personal autorizado puede buscar pacientes por coincidencia parcial", a
   assert.equal(respuesta.statusCode, 200, respuesta.body);
   assert.deepEqual(respuesta.json(), [{ id: 8, nombre: "Ana", numero_documento: "123" }]);
   assert.deepEqual(llamadas, [["busqueda", "An"]]);
+});
+
+test("el personal autorizado puede listar pacientes sin escribir una búsqueda", async t => {
+  const { app, llamadas } = await crear(t, { rol: "AGENDADOR" });
+  const respuesta = await app.inject("/pacientes");
+
+  assert.equal(respuesta.statusCode, 200, respuesta.body);
+  assert.deepEqual(respuesta.json(), [{ id: 8, nombre: "Ana", numero_documento: "123" }]);
+  assert.deepEqual(llamadas, [["lista"]]);
 });
 
 test("el personal autorizado consulta el historial de citas de un paciente seleccionado", async t => {
