@@ -93,6 +93,8 @@ function CitasPage() {
     createSignal(null);
 
   let temporizadorBusquedaPaciente;
+  let temporizadorConsultaCitas;
+  let solicitudCitas = 0;
 
   const profesionalesEncontrados = createMemo(() => {
     const termino = busquedaProfesional().trim().toLocaleLowerCase();
@@ -157,7 +159,10 @@ function CitasPage() {
     ejecutar(cargarMedicos);
   });
 
-  onCleanup(() => clearTimeout(temporizadorBusquedaPaciente));
+  onCleanup(() => {
+    clearTimeout(temporizadorBusquedaPaciente);
+    clearTimeout(temporizadorConsultaCitas);
+  });
 
   // =========================
   // Validaciones
@@ -178,6 +183,8 @@ function CitasPage() {
   const cargarCitas = async () => {
     validarSeleccion();
 
+    const solicitud = ++solicitudCitas;
+
     setConsultandoCitas(true);
     setCitas([]);
     setCantidadCitas(0);
@@ -187,10 +194,14 @@ function CitasPage() {
         `/citas?profesionalId=${profesionalId()}&fecha=${fecha()}`
       );
 
-      setCitas(data.citas);
-      setCantidadCitas(data.cantidad);
+      if (solicitud === solicitudCitas) {
+        setCitas(data.citas);
+        setCantidadCitas(data.cantidad);
+      }
     } finally {
-      setConsultandoCitas(false);
+      if (solicitud === solicitudCitas) {
+        setConsultandoCitas(false);
+      }
     }
   };
 
@@ -201,11 +212,26 @@ function CitasPage() {
   };
 
   const limpiarSeleccion = () => {
+    solicitudCitas += 1;
+    setConsultandoCitas(false);
     limpiarFranjas();
     setCitas([]);
     setCantidadCitas(0);
     setCancelarId(null);
     setReprogramarId(null);
+  };
+
+  const programarConsultaCitas = () => {
+    clearTimeout(temporizadorConsultaCitas);
+
+    if (!profesionalId() || !fecha()) return;
+
+    temporizadorConsultaCitas = setTimeout(() => {
+      cargarCitas().catch((error) => {
+        setEsError(true);
+        setMensaje(error.message || "No se pudieron consultar las citas.");
+      });
+    }, 250);
   };
 
   // =========================
@@ -295,6 +321,7 @@ function CitasPage() {
       `${seleccionado.nombre} ${seleccionado.apellido}`
     );
     limpiarSeleccion();
+    programarConsultaCitas();
   };
 
   // =========================
@@ -724,6 +751,7 @@ function CitasPage() {
                             event.target.value
                           );
                           limpiarSeleccion();
+                          programarConsultaCitas();
                         }}
                       />
                     </div>

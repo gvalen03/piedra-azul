@@ -5,6 +5,7 @@
   "resetPasswordAllowed": true,
   "rememberMe": false,
   "verifyEmail": false,
+  "ssoSessionIdleTimeout": 900,
   "roles": {
     "realm": [
       { "name": "ADMINISTRADOR", "description": "Administración de Piedra Azul" },

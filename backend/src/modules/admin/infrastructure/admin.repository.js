@@ -12,7 +12,11 @@ const perfilSelect = tipo => tipo === "profesionales"
 export class AdminRepository {
   constructor(db) { this.db = db; }
   async listarCuentasAcceso() {
-    const result = await this.db.query(`SELECT u.id, u.username, u.activo, u.keycloak_subject,
+    const result = await this.db.query(`SELECT u.id, u.username,
+      CASE WHEN pr.id IS NOT NULL THEN u.activo AND pr.activo
+        WHEN pa.id IS NOT NULL THEN u.activo AND pa.estado='ACTIVO'
+        ELSE u.activo END AS activo,
+      u.keycloak_subject,
       pe.nombre, pe.apellido, pe.numero_documento, pe.email,
       pr.id AS profesional_id, pa.id AS paciente_id, provision.rol
       FROM usuarios u JOIN personas pe ON pe.id=u.persona_id
@@ -65,7 +69,8 @@ export class AdminRepository {
       if (id) {
         previo = (await client.query("SELECT id, username, rol, activo, persona_id FROM usuarios WHERE id=$1 FOR UPDATE", [id])).rows[0];
         if (!previo) throw fallo("Usuario no encontrado", 404);
-        if (previo.username === actor) throw fallo("No puedes modificar tu propia cuenta desde administración");
+        if (previo.username === actor && datos.rol !== previo.rol) throw fallo("No puedes cambiar tu propio rol desde administración", 403);
+        if (previo.username === actor && datos.activo !== previo.activo) throw fallo("No puedes desactivar tu propia cuenta desde administración", 403);
         if (previo.rol === "ADMINISTRADOR" && previo.activo && (!datos.activo || datos.rol !== "ADMINISTRADOR")) {
           const otros = await client.query("SELECT id FROM usuarios WHERE rol='ADMINISTRADOR' AND activo=TRUE AND id<>$1", [id]);
           if (!otros.rows.length) throw fallo("Debe permanecer al menos un administrador activo", 409);
@@ -94,13 +99,76 @@ export class AdminRepository {
       await this.auditar(client, "usuarios", usuario.id, actor, id ? "ACTUALIZADO" : "CREADO"); return usuario;
     });
   }
+  async cuentaKeycloakPropia(id, actor) {
+    const result = await this.db.query(`SELECT u.id, u.username, u.keycloak_subject, provision.rol
+      FROM usuarios u LEFT JOIN LATERAL (SELECT rol FROM aprovisionamientos_usuarios ap
+        WHERE ap.username=u.username AND ap.estado='COMPLETADO' ORDER BY ap.id DESC LIMIT 1) provision ON TRUE
+      WHERE u.id=$1`, [id]);
+    const cuenta = result.rows[0];
+    if (!cuenta) throw fallo("Cuenta no encontrada", 404);
+    if (cuenta.username !== actor) throw fallo("Solo puedes editar tu propia cuenta desde PiedraAzul", 403);
+    if (!cuenta.keycloak_subject) throw fallo("La cuenta no está vinculada a Keycloak", 409);
+    return cuenta;
+  }
+  async actualizarCuentaKeycloakPropia(id, datos, actor) {
+    return this.transaccion(async client => {
+      await this.verificarActor(client, actor);
+      const previo = (await client.query(`SELECT u.id, u.username, u.keycloak_subject, provision.rol
+        FROM usuarios u LEFT JOIN LATERAL (SELECT rol FROM aprovisionamientos_usuarios ap
+          WHERE ap.username=u.username AND ap.estado='COMPLETADO' ORDER BY ap.id DESC LIMIT 1) provision ON TRUE
+        WHERE u.id=$1 FOR UPDATE`, [id])).rows[0];
+      if (!previo) throw fallo("Cuenta no encontrada", 404);
+      if (previo.username !== actor) throw fallo("Solo puedes editar tu propia cuenta desde PiedraAzul", 403);
+      if (datos.rol !== previo.rol) throw fallo("No puedes cambiar tu propio rol desde administración", 403);
+      await client.query(`UPDATE personas SET nombre=$1, apellido=$2, numero_documento=$3, email=$4, updated_at=CURRENT_TIMESTAMP
+        WHERE id=(SELECT persona_id FROM usuarios WHERE id=$5)`, [datos.nombre, datos.apellido, datos.numeroDocumento, datos.email, id]);
+      await client.query("UPDATE usuarios SET username=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2", [datos.username, id]);
+      await this.auditar(client, "usuarios", id, datos.username, "ACTUALIZADO");
+      return { id: Number(id), username: datos.username, nombre: datos.nombre, apellido: datos.apellido, email: datos.email, rol: previo.rol };
+    });
+  }
+  async cuentaKeycloak(id, actor) {
+    const result = await this.db.query("SELECT id, username, keycloak_subject, activo FROM usuarios WHERE id=$1", [id]);
+    const cuenta = result.rows[0];
+    if (!cuenta) throw fallo("Cuenta no encontrada", 404);
+    if (cuenta.username === actor) throw fallo("No puedes cambiar el estado de tu propia cuenta", 403);
+    if (!cuenta.keycloak_subject) throw fallo("La cuenta no está vinculada a Keycloak", 409);
+    return cuenta;
+  }
+  async cambiarEstadoCuentaKeycloak(id, activo, actor) {
+    return this.transaccion(async client => {
+      await this.verificarActor(client, actor);
+      const cuenta = (await client.query("SELECT id, username, keycloak_subject, persona_id FROM usuarios WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      if (!cuenta) throw fallo("Cuenta no encontrada", 404);
+      if (cuenta.username === actor) throw fallo("No puedes cambiar el estado de tu propia cuenta", 403);
+      await client.query("UPDATE usuarios SET activo=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2", [activo, id]);
+      await client.query("UPDATE profesionales SET activo=$1, updated_at=CURRENT_TIMESTAMP WHERE persona_id=$2", [activo, cuenta.persona_id]);
+      await client.query("UPDATE pacientes SET estado=$1, updated_at=CURRENT_TIMESTAMP WHERE persona_id=$2", [activo ? "ACTIVO" : "INACTIVO", cuenta.persona_id]);
+      await this.auditar(client, "usuarios", id, actor, activo ? "ACTIVADO" : "DESACTIVADO");
+      return { id: Number(id), activo };
+    });
+  }
+  async cambiarEstadoPerfil(tipo, id, activo, actor) {
+    if (!perfiles.has(tipo)) throw fallo("Recurso inválido");
+    return this.transaccion(async client => {
+      await this.verificarActor(client, actor);
+      const tabla = tipo === "profesionales" ? "profesionales" : "pacientes";
+      const perfil = (await client.query(`SELECT persona_id FROM ${tabla} WHERE id=$1 FOR UPDATE`, [id])).rows[0];
+      if (!perfil) throw fallo("Registro no encontrado", 404);
+      if (tipo === "profesionales") await client.query("UPDATE profesionales SET activo=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2", [activo, id]);
+      else await client.query("UPDATE pacientes SET estado=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2", [activo ? "ACTIVO" : "INACTIVO", id]);
+      await client.query("UPDATE usuarios SET activo=$1, updated_at=CURRENT_TIMESTAMP WHERE persona_id=$2 AND activo IS DISTINCT FROM $1", [activo, perfil.persona_id]);
+      await this.auditar(client, tipo, id, actor, activo ? "ACTIVADO" : "DESACTIVADO");
+      return { id: Number(id), activo };
+    });
+  }
   async guardarPerfil(tipo, id, datos, actor) {
     if (!perfiles.has(tipo)) throw fallo("Recurso inválido");
     return this.transaccion(async client => {
       await this.verificarActor(client, actor); const editando = Boolean(id); let personaId;
       if (id) {
         const tabla = tipo === "profesionales" ? "profesionales" : "pacientes";
-        const perfil = await client.query(`SELECT persona_id FROM ${tabla} WHERE id=$1 FOR UPDATE`, [id]);
+        const perfil = await client.query(`SELECT persona_id, ${tipo === "profesionales" ? "activo" : "estado"} FROM ${tabla} WHERE id=$1 FOR UPDATE`, [id]);
         if (!perfil.rows.length) throw fallo("Registro no encontrado", 404); personaId = perfil.rows[0].persona_id;
         await client.query(`UPDATE personas SET nombre=$1, apellido=$2, numero_documento=$3, email=$4, telefono=$5,
           fecha_nacimiento=$6, direccion=$7, genero=$8, updated_at=CURRENT_TIMESTAMP WHERE id=$9`,
@@ -108,6 +176,11 @@ export class AdminRepository {
             tipo === "pacientes" ? datos.direccion : null, tipo === "pacientes" ? datos.genero : null, personaId]);
         await client.query(tipo === "profesionales" ? "UPDATE profesionales SET activo=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2" : "UPDATE pacientes SET eps=$1, estado=$2, updated_at=CURRENT_TIMESTAMP WHERE id=$3",
           tipo === "profesionales" ? [datos.activo, id] : [datos.eps, datos.estado, id]);
+        const estadoAnterior = tipo === "profesionales" ? perfil.rows[0].activo : perfil.rows[0].estado === "ACTIVO";
+        const estadoNuevo = tipo === "profesionales" ? datos.activo : datos.estado === "ACTIVO";
+        if (estadoAnterior !== estadoNuevo) {
+          await client.query("UPDATE usuarios SET activo=$1, updated_at=CURRENT_TIMESTAMP WHERE persona_id=$2 AND activo IS DISTINCT FROM $1", [estadoNuevo, personaId]);
+        }
       } else {
         const persona = await client.query(`INSERT INTO personas (nombre, apellido, numero_documento, email, telefono, fecha_nacimiento, direccion, genero)
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, [datos.nombre, datos.apellido, datos.numeroDocumento, datos.email, datos.telefono,

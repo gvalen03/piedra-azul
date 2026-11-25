@@ -4,6 +4,7 @@ const keycloakRealm = import.meta.env.VITE_KEYCLOAK_REALM || "piedra-azul";
 const clientId = import.meta.env.VITE_KEYCLOAK_CLIENT_ID || "piedra-azul-api";
 const apiUrl = (import.meta.env.VITE_API_URL || "http://localhost:3000/api").replace(/\/$/, "");
 const redirectUri = import.meta.env.VITE_KEYCLOAK_REDIRECT_URI || `${window.location.origin}/`;
+const motivoCierreKeycloak = "piedra-azul.motivo-cierre-keycloak";
 
 export const isKeycloakAuthEnabled = () => authProvider === "keycloak";
 
@@ -87,16 +88,18 @@ export async function completarSesionKeycloak() {
     throw new Error("Keycloak rechazó el código de autenticación.");
   }
 
+  if (tokens.refresh_token) sessionStorage.setItem("oidc_refresh_token", tokens.refresh_token);
+  if (tokens.id_token) sessionStorage.setItem("oidc_id_token", tokens.id_token);
+
   const profileResponse = await fetch(`${apiUrl}/auth/session`, {
     headers: { Authorization: `Bearer ${tokens.access_token}` }
   });
   const profile = await profileResponse.json();
   if (!profileResponse.ok) {
-    throw new Error(profile.message || profile.error || "No se pudo validar la cuenta con PiedraAzul.");
+    cerrarSesionKeycloak(profile.message || profile.error || "PiedraAzul rechazó la cuenta o sus permisos.");
+    throw new Error("La sesión fue cerrada para que puedas iniciar con otra cuenta.");
   }
 
-  sessionStorage.setItem("oidc_refresh_token", tokens.refresh_token || "");
-  sessionStorage.setItem("oidc_id_token", tokens.id_token || "");
   return { ...profile, token: tokens.access_token };
 }
 
@@ -128,8 +131,15 @@ export async function renovarTokenKeycloak() {
   return tokens.access_token;
 }
 
-export function cerrarSesionKeycloak() {
+export function leerMotivoCierreKeycloak() {
+  const motivo = sessionStorage.getItem(motivoCierreKeycloak);
+  sessionStorage.removeItem(motivoCierreKeycloak);
+  return motivo;
+}
+
+export function cerrarSesionKeycloak(motivo = "") {
   if (!isKeycloakAuthEnabled()) return;
+  if (motivo) sessionStorage.setItem(motivoCierreKeycloak, motivo);
   const logout = new URL(endpoint("logout"));
   const params = new URLSearchParams({
     client_id: clientId,
@@ -140,5 +150,7 @@ export function cerrarSesionKeycloak() {
   logout.search = params;
   sessionStorage.removeItem("oidc_refresh_token");
   sessionStorage.removeItem("oidc_id_token");
+  localStorage.removeItem("token");
+  localStorage.removeItem("usuario");
   window.location.assign(logout.toString());
 }

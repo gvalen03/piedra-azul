@@ -75,6 +75,26 @@ export class KeycloakAdminClient {
     if (!response.ok && response.status !== 204) throw fallo("Keycloak no pudo activar la cuenta");
   }
 
+  async establecerEstadoUsuario(userId, activo) {
+    const response = await this.request(`/users/${encodeURIComponent(userId)}`, {
+      method: "PUT", body: JSON.stringify({ enabled: activo })
+    });
+    if (!response.ok && response.status !== 204) throw fallo(`Keycloak no pudo ${activo ? "activar" : "desactivar"} la cuenta`);
+  }
+
+  async actualizarUsuario(userId, { username, email, nombre, apellido, password }) {
+    const response = await this.request(`/users/${encodeURIComponent(userId)}`, {
+      method: "PUT",
+      body: JSON.stringify({ username, email, firstName: nombre, lastName: apellido, enabled: true })
+    });
+    if (!response.ok && response.status !== 204) throw fallo("Keycloak no pudo actualizar la cuenta");
+    if (!password) return;
+    const passwordResponse = await this.request(`/users/${encodeURIComponent(userId)}/reset-password`, {
+      method: "PUT", body: JSON.stringify({ type: "password", value: password, temporary: false })
+    });
+    if (!passwordResponse.ok && passwordResponse.status !== 204) throw fallo("Keycloak no pudo actualizar la contraseña");
+  }
+
   async eliminarUsuarioCreado(userId) {
     const response = await this.request(`/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
     if (!response.ok && response.status !== 404) throw fallo("No fue posible compensar la cuenta creada en Keycloak");
