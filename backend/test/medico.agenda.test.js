@@ -10,7 +10,12 @@ async function appPara(t, user) {
   const llamadas = [];
   app.decorate("authenticate", async req => { req.user = user; });
   app.decorate("citaRepository", { listarAgendaProfesional: async (...args) => { llamadas.push(args); return [{ id: "7", paciente_nombre: "Ana" }]; } });
-  app.decorate("citaController", { consultarPorProfesionalYFecha: async () => ({}), agendar: async () => ({}), confirmar: async () => ({}) });
+  app.decorate("citaController", {
+    consultarPorProfesionalYFecha: async () => ({}),
+    agendar: async () => ({}),
+    confirmar: async () => ({}),
+    marcarInasistencia: async request => ({ id: Number(request.params.id), profesionalId: request.profesionalId, estado: "INASISTENCIA" })
+  });
   await app.register(citaRoutes);
   return { app, llamadas };
 }
@@ -38,4 +43,36 @@ test("repositorio limita la agenda al profesional y fecha con parámetros SQL", 
     return { rows: [] };
   } });
   assert.deepEqual(await repo.listarAgendaProfesional(12, "2026-09-27"), []);
+});
+
+test("solo el profesional dueño puede marcar una cita como inasistencia", async t => {
+  const { app } = await appPara(t, { rol: "MEDICO_TERAPISTA", profesionalId: 12 });
+  const respuesta = await app.inject({ method: "PATCH", url: "/mi-agenda/7/inasistencia" });
+  assert.equal(respuesta.statusCode, 200, respuesta.body);
+  assert.deepEqual(respuesta.json(), { id: 7, profesionalId: 12, estado: "INASISTENCIA" });
+
+  const { app: paciente } = await appPara(t, { rol: "PACIENTE", profesionalId: 12 });
+  assert.equal((await paciente.inject({ method: "PATCH", url: "/mi-agenda/7/inasistencia" })).statusCode, 403);
+});
+
+test("repositorio impide registrar inasistencia antes del inicio o fuera de la agenda propia", async () => {
+  const llamadas = [];
+  const client = {
+    query: async (sql, params) => {
+      llamadas.push([sql, params]);
+      if (sql.trimStart().startsWith("UPDATE citas")) return { rows: [] };
+      return { rows: [] };
+    },
+    release: () => llamadas.push(["release"])
+  };
+  const repo = new CitaRepository({ connect: async () => client });
+
+  await assert.rejects(() => repo.marcarInasistencia(7, 12, "profesional-12"), { statusCode: 409 });
+  const [sql, params] = llamadas.find(([query]) => query.trimStart().startsWith("UPDATE citas"));
+  assert.match(sql, /profesional_id\s*=\s*\$2/);
+  assert.match(sql, /estado IN \('PROGRAMADA', 'CONFIRMADA'\)/);
+  assert.match(sql, /America\/Bogota/);
+  assert.deepEqual(params, [7, 12]);
+  assert.equal(llamadas.at(-2)[0], "ROLLBACK");
+  assert.equal(llamadas.at(-1)[0], "release");
 });

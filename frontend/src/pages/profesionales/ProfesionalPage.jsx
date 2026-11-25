@@ -11,7 +11,7 @@ const hoy = () => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 };
-const estados = { PROGRAMADA: "Programada", CONFIRMADA: "Confirmada", ATENDIDA: "Atendida", CANCELADA: "Cancelada" };
+const estados = { PROGRAMADA: "Programada", CONFIRMADA: "Confirmada", ATENDIDA: "Atendida", CANCELADA: "Cancelada", INASISTENCIA: "Inasistencia" };
 const nombre = (cita) => `${cita.paciente_nombre} ${cita.paciente_apellido}`;
 const hora = (valor) => valor?.slice(0, 5) || "—";
 const TAMANO_PAGINA = 8;
@@ -78,6 +78,21 @@ function ProfessionalPage() {
       setExportando(false);
     }
   };
+  const marcarInasistencia = async cita => {
+    if (guardandoAtencion()) return;
+    setGuardandoAtencion(true); setError(""); setAviso("");
+    try {
+      const response = await apiFetch(`/citas/mi-agenda/${cita.id}/inasistencia`, { method: "PATCH" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No se pudo registrar la inasistencia.");
+      setAviso(`La cita de ${nombre(cita)} quedó marcada como inasistencia.`);
+      await consultar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardandoAtencion(false);
+    }
+  };
   onMount(consultar);
 
   return (
@@ -119,6 +134,7 @@ function ProfessionalPage() {
           <aside class="medico-card medico-detail" aria-labelledby="detalle-title">
             <div class="medico-card-header"><span class="medico-icon" aria-hidden="true">＋</span><div><h2 id="detalle-title">Detalle de la cita</h2><p>La información para tu próximo encuentro.</p></div></div>
             <div aria-live="polite"><Show keyed when={seleccion()} fallback={<div class="medico-empty"><span class="medico-icon" aria-hidden="true">▤</span><h3>Cada atención empieza aquí</h3><p>Selecciona una cita de tu agenda para ver la información del paciente.</p></div>}>{cita => <div class="medico-detail-body"><span class="medico-eyebrow">PACIENTE</span><h3>{nombre(cita)}</h3><dl><dt>Documento</dt><dd>{cita.paciente_documento}</dd><dt>Fecha</dt><dd>{new Intl.DateTimeFormat("es-CO", { dateStyle: "long" }).format(new Date(`${fecha()}T12:00:00`))}</dd><dt>Horario</dt><dd>{hora(cita.hora_inicio)} – {hora(cita.hora_fin)}</dd><dt>Estado</dt><dd>{estados[cita.estado] || cita.estado}</dd><dt>Motivo de consulta</dt><dd class="medico-reason">{cita.motivo || "No se registró un motivo de consulta."}</dd></dl><AtencionProfesional cita={cita} onBusy={setGuardandoAtencion} onSaved={async () => { setAviso("Atención registrada. La cita quedó marcada como atendida."); await consultar(); }} />
+            <Show when={["PROGRAMADA", "CONFIRMADA"].includes(cita.estado)}><button class="medico-outline" disabled={guardandoAtencion()} onClick={() => marcarInasistencia(cita)}>Marcar inasistencia</button></Show>
             <button disabled={guardandoAtencion()} class="medico-outline" onClick={() => setSeleccion(null)}>Cerrar detalle</button></div>}</Show></div>
           </aside>
         </div>

@@ -432,6 +432,43 @@ export class CitaRepository {
     }
   }
 
+  async marcarInasistencia(id, profesionalId, actor) {
+    const client = await this.db.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      const result = await client.query(
+        `
+        UPDATE citas
+        SET estado = 'INASISTENCIA', updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+          AND profesional_id = $2
+          AND estado IN ('PROGRAMADA', 'CONFIRMADA')
+          AND (fecha + hora_inicio) <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')
+        RETURNING *
+        `,
+        [id, profesionalId]
+      );
+
+      if (!result.rows.length) {
+        throw Object.assign(
+          new Error("La cita no puede marcarse como inasistencia. Debe ser de tu agenda, estar programada o confirmada y haber iniciado."),
+          { statusCode: 409 }
+        );
+      }
+
+      await this.auditar(client, id, actor, "CITA_INASISTENCIA");
+      await client.query("COMMIT");
+      return result.rows[0];
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   // =========================
   // Reprogramar cita
   // =========================

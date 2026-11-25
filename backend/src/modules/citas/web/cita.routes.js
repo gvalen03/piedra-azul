@@ -67,6 +67,17 @@ export async function citaRoutes(fastify) {
     return { citas };
   });
 
+  fastify.patch("/mi-agenda/:id/inasistencia", {
+    schema: confirmarCitaSchema,
+    preHandler: [fastify.authenticate, authorize("MEDICO_TERAPISTA"), async (request, reply) => {
+      const profesionalId = Number(request.user.profesionalId);
+      if (!Number.isSafeInteger(profesionalId) || profesionalId <= 0) {
+        return reply.code(403).send({ error: "Tu usuario no tiene un profesional asociado. Contacta al administrador." });
+      }
+      request.profesionalId = profesionalId;
+    }]
+  }, (request, reply) => fastify.citaController.marcarInasistencia(request, reply));
+
   fastify.get("/exportar", {
     schema: exportarCitasSchema,
     preValidation: [fastify.authenticate, authorize("AGENDADOR", "MEDICO_TERAPISTA")],

@@ -201,3 +201,23 @@ test("cancelarPorPaciente rechaza citas que no cumplen la regla de dos días", a
   const service = new CitaService({ citaRepository: { cancelarPorPaciente: async () => null }, disponibilidadService: {}, eventBus: null });
   await assert.rejects(() => service.cancelarPorPaciente(1, 2, "No podré asistir"), { statusCode: 409 });
 });
+
+test("marcarInasistencia delega exclusivamente la cita y el profesional recibidos", async () => {
+  const llamadas = [];
+  const service = new CitaService({
+    citaRepository: {
+      marcarInasistencia: async (...args) => {
+        llamadas.push(args);
+        return { id: args[0], estado: "INASISTENCIA" };
+      }
+    },
+    disponibilidadService: {},
+    eventBus: null
+  });
+
+  assert.deepEqual(await service.marcarInasistencia(15, 4, "profesional-4"), {
+    id: 15,
+    estado: "INASISTENCIA"
+  });
+  assert.deepEqual(llamadas, [[15, 4, "profesional-4"]]);
+});

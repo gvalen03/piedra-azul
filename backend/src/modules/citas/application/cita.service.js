@@ -164,6 +164,12 @@ export class CitaService {
     return cita;
   }
 
+  async marcarInasistencia(id, profesionalId, actor) {
+    const cita = await this.citaRepository.marcarInasistencia(id, profesionalId, actor);
+    if (this.eventBus) this.eventBus.emit("cita.inasistencia", cita);
+    return cita;
+  }
+
   async reprogramar(id, datos, actor) {
     return this.citaRepository.reprogramar(id, datos, actor);
   }

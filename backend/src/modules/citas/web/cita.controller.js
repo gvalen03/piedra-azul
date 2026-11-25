@@ -8,6 +8,19 @@ export function crearCitaController({ citaService }) {
         return reply.code(error.statusCode || 500).send({ error: error.message || "No se pudo cancelar la cita" });
       }
     },
+    marcarInasistencia: async (request, reply) => {
+      try {
+        return reply.send(await citaService.marcarInasistencia(
+          request.params.id,
+          request.profesionalId,
+          request.user.sub
+        ));
+      } catch (error) {
+        return reply.code(error.statusCode || 500).send({
+          error: error.message || "No se pudo registrar la inasistencia"
+        });
+      }
+    },
     reprogramar: async (request, reply) => reply.send(await citaService.reprogramar(request.params.id, request.body, request.user.sub)),
     franjasReprogramacion: async (request, reply) => reply.send(await citaService.franjasReprogramacion(request.params.id, request.query.fecha)),
     consultarPorProfesionalYFecha: async (request, reply) => {
