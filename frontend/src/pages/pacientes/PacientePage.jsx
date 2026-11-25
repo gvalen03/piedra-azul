@@ -9,12 +9,23 @@ const estados = { PROGRAMADA: "Programada", CONFIRMADA: "Confirmada", ATENDIDA: 
 const fechaTexto = f => new Intl.DateTimeFormat("es-CO", { dateStyle: "long" }).format(new Date(`${f.slice(0,10)}T12:00:00`));
 const futuro = c => new Date(`${c.fecha.slice(0,10)}T${c.hora_inicio.slice(0,8)}-05:00`) > new Date();
 const pendiente = c => ["PROGRAMADA", "CONFIRMADA"].includes(c.estado) && futuro(c);
+
+const cumplePlazoCancelacion = c => {
+  const inicio = new Date(`${c.fecha.slice(0,10)}T${c.hora_inicio.slice(0,8)}-05:00`);
+  const horasRestantes = (inicio.getTime() - Date.now()) / (1000 * 60 * 60);
+
+  return horasRestantes >= 48;
+};
+
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 export default function PacientePage() {
   const auth = useAuth(), navigate = useNavigate();
   const [vista, setVista] = createSignal("citas"), [citas, setCitas] = createSignal([]), [perfil, setPerfil] = createSignal(null), [medicos, setMedicos] = createSignal([]);
   const [ocupado, setOcupado] = createSignal(false), [error, setError] = createSignal(""), [mensaje, setMensaje] = createSignal("");
-  const [filtro, setFiltro] = createSignal("proximas"), [cancelar, setCancelar] = createSignal(null);
+  const [filtro, setFiltro] = createSignal("proximas");
+  const [cancelar, setCancelar] = createSignal(null);
+  const [justificacionCancelacion, setJustificacionCancelacion] = createSignal("");
+
   const [medico, setMedico] = createSignal(""), [fecha, setFecha] = createSignal(""), [franjas, setFranjas] = createSignal([]), [hora, setHora] = createSignal(""), [motivo, setMotivo] = createSignal(""), [consultado, setConsultado] = createSignal(false);
   const [email, setEmail] = createSignal(""), [telefono, setTelefono] = createSignal(""), [direccion, setDireccion] = createSignal("");
   const proximas = createMemo(() => citas().filter(pendiente).sort((a,b) => `${a.fecha}${a.hora_inicio}`.localeCompare(`${b.fecha}${b.hora_inicio}`)));
@@ -57,7 +68,40 @@ export default function PacientePage() {
         <div class="medico-stats"><div class="medico-stat"><span>Próximas citas</span><strong>{proximas().length}</strong><small>Encuentros por atender</small></div><div class="medico-stat"><span>Confirmadas</span><strong>{proximas().filter(c => c.estado === "CONFIRMADA").length}</strong><small>Tu asistencia confirmada</small></div><div class="medico-stat"><span>Atenciones registradas</span><strong>{citas().filter(c => c.estado === "ATENDIDA").length}</strong><small>Citas marcadas como atendidas</small></div></div>
         <section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">▦</span><div><h2>Mis encuentros</h2><p>Consulta y organiza tus citas médicas.</p></div></div><div class="paciente-body"><div class="paciente-actions"><label for="paciente-filtro">Ver citas<select id="paciente-filtro" value={filtro()} onChange={e => setFiltro(e.currentTarget.value)}><option value="proximas">Próximas</option><option value="anteriores">Anteriores y canceladas</option></select></label><button class="medico-outline" disabled={ocupado()} onClick={() => ejecutar(cargarCitas)}>Actualizar citas</button></div>
           <Show when={!ocupado() && !visibles().length}><div class="medico-empty"><h3>No hay citas en esta sección</h3><p>Cuando reserves una cita, podrás consultarla aquí.</p><button class="medico-outline" onClick={() => cambiarVista("reserva")}>Reservar una cita</button></div></Show>
-          <For each={visibles()}>{c => <article class="paciente-cita"><div><span class={`medico-badge estado-${c.estado.toLowerCase()}`}>{estados[c.estado]}</span><h3>{fechaTexto(c.fecha)} · {c.hora_inicio.slice(0,5)}</h3><p>{c.medico_nombre} {c.medico_apellido}</p><small>Horario: {c.hora_inicio.slice(0,5)} – {c.hora_fin.slice(0,5)} · Hora de Colombia</small><p class="paciente-motivo">{c.motivo || "Sin motivo registrado"}</p></div><Show when={pendiente(c)}><div class="paciente-actions"><Show when={c.estado === "PROGRAMADA"}><button class="btn btn-primary" disabled={ocupado()} onClick={() => cambiarEstado(c.id, "confirmar")}>Confirmar asistencia</button></Show><button class="medico-outline" disabled={ocupado()} onClick={() => setCancelar(c.id)}>Cancelar cita</button></div></Show><Show when={cancelar() === c.id}><div class="paciente-confirm"><p>¿Quieres cancelar esta cita? El horario quedará libre para otras reservas.</p><button class="medico-outline" disabled={ocupado()} onClick={() => cambiarEstado(c.id, "cancelar")}>Sí, cancelar cita</button> <button class="medico-outline" disabled={ocupado()} onClick={() => setCancelar(null)}>Conservar cita</button></div></Show></article>}</For>
+          <For each={visibles()}>{c => <article class="paciente-cita"><div><span class={`medico-badge estado-${c.estado.toLowerCase()}`}>{estados[c.estado]}</span><h3>{fechaTexto(c.fecha)} · {c.hora_inicio.slice(0,5)}</h3><p>{c.medico_nombre} {c.medico_apellido}</p><small>Horario: {c.hora_inicio.slice(0,5)} – {c.hora_fin.slice(0,5)} · Hora de Colombia</small><p class="paciente-motivo">{c.motivo || "Sin motivo registrado"}</p></div><Show when={pendiente(c)}><div class="paciente-actions"><Show when={c.estado === "PROGRAMADA"}><button class="btn btn-primary" disabled={ocupado()} onClick={() => cambiarEstado(c.id, "confirmar")}>Confirmar asistencia</button></Show><button class="medico-outline" disabled={ocupado()} onClick={() => { setJustificacionCancelacion(""); setCancelar(c.id); }}>Cancelar cita</button></div></Show><Show when={cancelar() === c.id}>
+              <div class="paciente-confirm">
+                <p>
+                  ¿Quieres cancelar esta cita? El horario quedará libre para otras reservas.
+                </p>
+                <Show when={!cumplePlazoCancelacion(c)}>
+                  <p role="alert">
+                    No puedes cancelar esta cita porque faltan menos de 48 horas
+                    para su inicio.
+                  </p>
+                </Show>
+                <label for={`justificacion-cancelacion-${c.id}`}>
+                  Justificación de la cancelación
+                </label>
+                <textarea
+                  id={`justificacion-cancelacion-${c.id}`}
+                  rows="3"
+                  placeholder="Explica por qué necesitas cancelar la cita"
+                  value={justificacionCancelacion()}
+                  onInput={e => setJustificacionCancelacion(e.currentTarget.value)}
+                />
+                <button
+                  class="medico-outline"
+                  disabled
+                  title="Pendiente de integración con el backend"
+                >
+                  Sí, cancelar cita
+                </button>{" "}
+                <button class="medico-outline" disabled={ocupado()} onClick={() => {
+                  setCancelar(null);
+                  setJustificacionCancelacion("");
+                }}>Conservar cita</button>
+              </div>
+            </Show></article>}</For>
         </div></section>
       </Show>
       <Show when={vista() === "reserva"}><div class="medico-grid"><section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">＋</span><div><h2>Reserva tu próxima cita</h2><p>Elige un médico y una fecha para consultar sus horarios.</p></div></div><div class="paciente-body"><fieldset disabled={ocupado() || !auth.user()?.pacienteId || perfil()?.estado !== "ACTIVO"}>
