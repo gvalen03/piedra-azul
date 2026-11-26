@@ -81,3 +81,15 @@ export const confirmarCitaSchema = {
     }
   }
 };
+
+export const cancelarCitaPacienteSchema = {
+  params: confirmarCitaSchema.params,
+  body: {
+    type: "object",
+    additionalProperties: false,
+    required: ["justificacion"],
+    properties: {
+      justificacion: { type: "string", minLength: 1, maxLength: 1000, pattern: "\\S" }
+    }
+  }
+};

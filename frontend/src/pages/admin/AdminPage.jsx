@@ -47,12 +47,23 @@ export default function AdminPage() {
   const cambiar = key => { setTipo(key); setEditor(null); setBusqueda(""); setEstado(""); setRol(""); setMensaje(""); };
 
   const guardar = async payload => {
-    if (busy()) return; setBusy(true); setMensaje("");
+    if (busy()) return; setBusy(true); setMensaje(""); setError("");
     try {
       const id = editor().registro?.id;
       await api(`${tipo()}${id ? `/${id}` : ""}`, { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       setEditor(null); setMensaje(id ? "Cambios guardados correctamente." : "Registro creado correctamente.");
+      if (tipo() === "usuarios" && Number(id) === Number(auth.user()?.usuarioId)) {
+        auth.cerrarSesion();
+        navigate("/", { replace: true });
+        return;
+      }
       try { await cargar(); } catch (e) { setError(`El registro se guardó, pero no se pudo actualizar el listado. ${e.message}`); }
+    } catch (e) {
+      const mensajeApi = e.message || "No se pudo completar la operación.";
+      const perfilYaVinculado = /perfil.*vinculad|ya existe una persona con ese documento o correo/i.test(mensajeApi);
+      setError(tipo() === "usuarios" && !editor().registro && perfilYaVinculado
+        ? "No se pudo crear la cuenta: este perfil ya está vinculado a otra cuenta."
+        : mensajeApi);
     } finally { setBusy(false); }
   };
   const eliminar = async registro => {
@@ -68,6 +79,18 @@ export default function AdminPage() {
     } finally {
       setBusy(false);
     }
+  };
+  const cambiarEstado = async registro => {
+    if (busy()) return;
+    const categoria = tipo(), activoNuevo = !activo(registro);
+    setBusy(true); setError(""); setMensaje("");
+    try {
+      await api(`${categoria}/${registro.id}/estado`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: activoNuevo }) });
+      const etiqueta = categoria === "usuarios" ? "Usuario" : categoria === "profesionales" ? "Profesional" : "Paciente";
+      setMensaje(`${etiqueta} ${registro.nombre} ${registro.apellido || ""} ${activoNuevo ? "activo" : "inactivo"}.`);
+      await cargar();
+    } catch (e) { setError(e.message); }
+    finally { setBusy(false); }
   };
   const perfilNombre = r => {
     const perfil = r.rol === "MEDICO_TERAPISTA" ? datos().profesionales.find(p => String(p.id) === String(r.profesional_id)) : r.rol === "PACIENTE" ? datos().pacientes.find(p => String(p.id) === String(r.paciente_id)) : null;
@@ -94,9 +117,9 @@ export default function AdminPage() {
             <Show when={tipo() === "usuarios" && usaKeycloak}><aside class="admin-info"><strong>¿Para qué sirve esta sección?</strong><p>Registrar una persona permite almacenar sus datos en el sistema. Crear una cuenta de acceso permite que esa persona inicie sesión y utilice las funcionalidades autorizadas según su rol.</p></aside></Show>
             <div class="admin-filters"><label for="admin-buscar">Buscar<input id="admin-buscar" type="search" placeholder="Nombre, correo, usuario o documento" value={busqueda()} onInput={e => setBusqueda(e.currentTarget.value)} /></label><label for="admin-filtro-estado">Estado<select id="admin-filtro-estado" value={estado()} onChange={e => setEstado(e.currentTarget.value)}><option value="">Todos</option><option value="ACTIVO">Activos</option><option value="INACTIVO">Inactivos</option></select></label><Show when={tipo() === "usuarios"}><label for="admin-filtro-rol">Rol<select id="admin-filtro-rol" value={rol()} onChange={e => setRol(e.currentTarget.value)}><option value="">Todos los roles</option><For each={Object.entries(roles)}>{([value,label]) => <option value={value}>{label}</option>}</For></select></label></Show></div>
             <Show when={listo() && !visibles().length}><div class="medico-empty"><h3>{tipo() === "usuarios" ? "Todavía no hay cuentas de acceso" : "No hay registros que coincidan con la búsqueda"}</h3><p>{tipo() === "usuarios" ? "Crea una cuenta para permitir que una persona ingrese al sistema con los permisos correspondientes." : "Prueba con otra búsqueda o crea un registro."}</p></div></Show>
-            <ul class="admin-list"><For each={visibles()}>{r => <li><div class="admin-record"><div><strong>{r.nombre} {r.apellido || ""}</strong><small>{tipo() === "usuarios" ? `${r.username} · ${roles[r.rol]}` : `Documento: ${r.numero_documento}`}</small><small>{r.email || "Sin correo registrado"}</small><Show when={tipo() === "usuarios" && ["MEDICO_TERAPISTA", "PACIENTE"].includes(r.rol)}><small>Perfil: {perfilNombre(r)}</small></Show></div><span class={`medico-badge ${activo(r) ? "estado-atendida" : "estado-cancelada"}`}>{activo(r) ? "Activo" : "Inactivo"}</span></div><Show when={tipo() !== "usuarios" || Number(r.id) !== Number(auth.user()?.usuarioId)} fallback={<small class="admin-help">Tu cuenta actual</small>}><div class="admin-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>{tipo() === "usuarios" ? "Editar" : "Editar / Desactivar"}</button><Show when={tipo() !== "usuarios"}><button class="medico-outline" disabled={busy()} onClick={() => eliminar(r)}>Eliminar</button></Show></div></Show></li>}</For></ul>
+            <ul class="admin-list"><For each={visibles()}>{r => <li><div class="admin-record"><div><strong>{r.nombre} {r.apellido || ""}</strong><small>{tipo() === "usuarios" ? `${r.username} · ${roles[r.rol]}` : `Documento: ${r.numero_documento}`}</small><small>{r.email || "Sin correo registrado"}</small><Show when={tipo() === "usuarios" && ["MEDICO_TERAPISTA", "PACIENTE"].includes(r.rol)}><small>Perfil: {perfilNombre(r)}</small></Show></div><span class={`medico-badge ${activo(r) ? "estado-atendida" : "estado-cancelada"}`}>{activo(r) ? "Activo" : "Inactivo"}</span></div><Show when={tipo() === "usuarios" && Number(r.id) === Number(auth.user()?.usuarioId)} fallback={<div class="admin-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>Editar</button><button class={`medico-outline ${activo(r) ? "admin-action-deactivate" : "admin-action-activate"}`} disabled={busy()} onClick={() => cambiarEstado(r)}>{activo(r) ? "Desactivar" : "Activar"}</button><button class="medico-outline" disabled={busy()} onClick={() => eliminar(r)}>Eliminar</button></div>}><div class="admin-actions"><button class="medico-outline" disabled={busy()} onClick={() => setEditor({ registro:r })}>Editar</button></div><small class="admin-help">No puedes cambiar tu propio rol, desactivar ni eliminar tu cuenta.</small></Show></li>}</For></ul>
           </div></section>
-        <Show keyed when={editor()}>{ed => <AdminEditor tipo={tipo()} keycloak={usaKeycloak} registro={ed.registro} profesionales={datos().profesionales} pacientes={datos().pacientes} busy={busy()} onSave={guardar} onClose={() => setEditor(null)} />}</Show>
+        <Show keyed when={editor()}>{ed => <AdminEditor tipo={tipo()} keycloak={usaKeycloak} esCuentaPropia={tipo() === "usuarios" && Number(ed.registro?.id) === Number(auth.user()?.usuarioId)} registro={ed.registro} profesionales={datos().profesionales} pacientes={datos().pacientes} busy={busy()} onSave={guardar} onClose={() => setEditor(null)} />}</Show>
       </div>}>
         <DisponibilidadAdmin profesionales={datos().profesionales} />
       </Show>

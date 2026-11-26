@@ -1,4 +1,4 @@
-import { onMount } from "solid-js";
+import { onCleanup, onMount } from "solid-js";
 import { Route } from "@solidjs/router";
 
 import { useAuth } from "./stores/auth.store.js";
@@ -17,6 +17,8 @@ function App() {
   onMount(() => {
     auth.restaurarSesion();
   });
+
+  onCleanup(() => auth.detenerControlInactividad());
 
   return (
     <>

@@ -299,7 +299,7 @@ export async function buildApp() {
     service: new AprovisionamientoService({ repository: aprovisionamientoRepository, keycloakClient: keycloakAdminClient })
   }));
   app.decorate("adminRepository", adminRepository);
-  app.decorate("adminService", new AdminService({ repository: adminRepository, passwordService }));
+  app.decorate("adminService", new AdminService({ repository: adminRepository, passwordService, keycloakClient: keycloakAdminClient }));
   await app.register(adminRoutes, { prefix: "/api/admin" });
   const historialRepository = new HistorialRepository(db);
   app.decorate("historialRepository", historialRepository);

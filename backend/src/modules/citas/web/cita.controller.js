@@ -1,6 +1,13 @@
 export function crearCitaController({ citaService }) {
   return {
     cancelar: async (request, reply) => reply.send(await citaService.cancelar(request.params.id, request.user.sub)),
+    cancelarPorPaciente: async (request, reply) => {
+      try {
+        return reply.send(await citaService.cancelarPorPaciente(request.params.id, request.pacienteId, request.body.justificacion));
+      } catch (error) {
+        return reply.code(error.statusCode || 500).send({ error: error.message || "No se pudo cancelar la cita" });
+      }
+    },
     reprogramar: async (request, reply) => reply.send(await citaService.reprogramar(request.params.id, request.body, request.user.sub)),
     franjasReprogramacion: async (request, reply) => reply.send(await citaService.franjasReprogramacion(request.params.id, request.query.fecha)),
     consultarPorProfesionalYFecha: async (request, reply) => {

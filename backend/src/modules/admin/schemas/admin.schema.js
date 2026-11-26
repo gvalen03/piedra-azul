@@ -11,6 +11,17 @@ export const usuarioSchema = {
     profesionalId: { type: ["integer", "null"], minimum: 1 }, pacienteId: { type: ["integer", "null"], minimum: 1 }
   }
 };
+export const editarCuentaKeycloakSchema = {
+  type: "object", additionalProperties: false,
+  required: ["username", "nombre", "apellido", "numeroDocumento", "email", "rol"],
+  properties: {
+    username: { ...texto(100), pattern: "^[a-zA-Z0-9._-]+$" }, nombre: texto(100), apellido: texto(100),
+    numeroDocumento: texto(50), email, rol: { type: "string", enum: ["ADMINISTRADOR", "AGENDADOR", "MEDICO_TERAPISTA", "PACIENTE"] },
+    password: { type: "string", minLength: 8, maxLength: 72 }, profesionalId: { type: ["integer", "null"], minimum: 1 }, pacienteId: { type: ["integer", "null"], minimum: 1 },
+    telefono: { type: ["string", "null"], maxLength: 50 }, fechaNacimiento: { type: ["string", "null"], format: "date" }, direccion: { type: ["string", "null"], maxLength: 255 },
+    eps: { type: ["string", "null"], maxLength: 150 }, genero: { type: ["string", "null"], enum: ["HOMBRE", "MUJER", "OTRO", null] }, tipoProfesional: { type: ["string", "null"], enum: ["MEDICO", "TERAPISTA", null] }
+  }
+};
 export const profesionalSchema = {
   type: "object", additionalProperties: false,
   required: ["nombre", "apellido", "numeroDocumento", "activo"],
@@ -27,3 +38,4 @@ export const pacienteSchema = {
     estado: { type: "string", enum: ["ACTIVO", "INACTIVO"] } }
 };
 export const idParams = { type: "object", required: ["id"], properties: { id: { type: "integer", minimum: 1 } } };
+export const estadoSchema = { type: "object", additionalProperties: false, required: ["activo"], properties: { activo: { type: "boolean" } } };

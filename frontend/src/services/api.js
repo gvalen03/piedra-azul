@@ -1,4 +1,5 @@
 import { renovarTokenKeycloak } from "./keycloak.service.js";
+import { actualizarToken, cerrarSesionPorSeguridad } from "../stores/auth.store.js";
 
 const API_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:3000/api"
@@ -29,12 +30,18 @@ export async function apiFetch(path, options = {}) {
   } catch (error) {
     throw new Error("No se pudo renovar la sesión con Keycloak.", { cause: error });
   }
-  if (!refreshedToken) return response;
+  if (!refreshedToken) {
+    cerrarSesionPorSeguridad();
+    return response;
+  }
+  actualizarToken(refreshedToken);
 
   const retryHeaders = new Headers(fetchOptions.headers);
   retryHeaders.set("Authorization", `Bearer ${refreshedToken}`);
   try {
-    return await fetch(`${API_URL}${path}`, { ...fetchOptions, headers: retryHeaders });
+    const reintento = await fetch(`${API_URL}${path}`, { ...fetchOptions, headers: retryHeaders });
+    if (reintento.status === 401) cerrarSesionPorSeguridad();
+    return reintento;
   } catch (error) {
     throw new Error(
       "No se pudo conectar con el servidor. Verifica que el backend esté iniciado.",

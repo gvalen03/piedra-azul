@@ -185,3 +185,19 @@ test(
     );
   }
 );
+
+test("cancelarPorPaciente exige justificación y delega una cancelación válida", async () => {
+  const llamadas = [];
+  const service = new CitaService({
+    citaRepository: { cancelarPorPaciente: async (...args) => { llamadas.push(args); return { id: args[0], estado: "CANCELADA" }; } },
+    disponibilidadService: {}, eventBus: null
+  });
+  await assert.rejects(() => service.cancelarPorPaciente(1, 2, "   "), { statusCode: 400 });
+  assert.deepEqual(await service.cancelarPorPaciente(1, 2, "  Viaje imprevisto  "), { id: 1, estado: "CANCELADA" });
+  assert.deepEqual(llamadas, [[1, 2, "Viaje imprevisto"]]);
+});
+
+test("cancelarPorPaciente rechaza citas que no cumplen la regla de dos días", async () => {
+  const service = new CitaService({ citaRepository: { cancelarPorPaciente: async () => null }, disponibilidadService: {}, eventBus: null });
+  await assert.rejects(() => service.cancelarPorPaciente(1, 2, "No podré asistir"), { statusCode: 409 });
+});

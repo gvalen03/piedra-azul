@@ -1,7 +1,7 @@
 import { createSignal, onMount, Show } from "solid-js";
 
 import { login } from "../../services/auth.service.js";
-import { completarSesionKeycloak, iniciarSesionKeycloak, isKeycloakAuthEnabled } from "../../services/keycloak.service.js";
+import { completarSesionKeycloak, iniciarSesionKeycloak, isKeycloakAuthEnabled, leerMotivoCierreKeycloak } from "../../services/keycloak.service.js";
 import { useAuth } from "../../stores/auth.store.js";
 import { A, useNavigate } from "@solidjs/router";
 
@@ -33,6 +33,8 @@ function LoginPage() {
   };
 
   onMount(async () => {
+    const motivoCierre = leerMotivoCierreKeycloak();
+    if (motivoCierre) setError(`${motivoCierre} Puedes iniciar sesión con otra cuenta.`);
     if (!keycloakMode || (!window.location.search.includes("code=") && !window.location.search.includes("error="))) return;
     try {
       setLoading(true);

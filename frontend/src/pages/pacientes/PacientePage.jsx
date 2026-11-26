@@ -26,10 +26,15 @@ export default function PacientePage() {
   const [cancelar, setCancelar] = createSignal(null);
   const [justificacionCancelacion, setJustificacionCancelacion] = createSignal("");
 
-  const [medico, setMedico] = createSignal(""), [fecha, setFecha] = createSignal(""), [franjas, setFranjas] = createSignal([]), [hora, setHora] = createSignal(""), [motivo, setMotivo] = createSignal(""), [consultado, setConsultado] = createSignal(false);
+  const [medico, setMedico] = createSignal(""), [busquedaMedico, setBusquedaMedico] = createSignal(""), [fecha, setFecha] = createSignal(""), [franjas, setFranjas] = createSignal([]), [hora, setHora] = createSignal(""), [motivo, setMotivo] = createSignal(""), [consultado, setConsultado] = createSignal(false);
   const [email, setEmail] = createSignal(""), [telefono, setTelefono] = createSignal(""), [direccion, setDireccion] = createSignal("");
   const proximas = createMemo(() => citas().filter(pendiente).sort((a,b) => `${a.fecha}${a.hora_inicio}`.localeCompare(`${b.fecha}${b.hora_inicio}`)));
   const visibles = createMemo(() => filtro() === "proximas" ? proximas() : citas().filter(c => !pendiente(c)));
+  const medicosEncontrados = createMemo(() => {
+    const termino = busquedaMedico().trim().toLocaleLowerCase();
+    if (!termino) return [];
+    return medicos().filter(medico => `${medico.nombre} ${medico.apellido}`.toLocaleLowerCase().includes(termino)).slice(0, 10);
+  });
   const api = async (url, opciones) => {
     const res = await apiFetch(url, opciones); const data = await res.json();
     if (!res.ok) throw new Error(res.status === 401 ? "Tu sesión expiró. Vuelve a iniciar sesión." : data.message || data.error || "No se pudo completar la operación");
@@ -51,6 +56,11 @@ export default function PacientePage() {
   });
   onMount(cargar);
   const limpiarFranjas = () => { setFranjas([]); setHora(""); setConsultado(false); };
+  const seleccionarMedico = seleccionado => {
+    setMedico(String(seleccionado.id));
+    setBusquedaMedico(`${seleccionado.nombre} ${seleccionado.apellido}`);
+    limpiarFranjas();
+  };
   const cambiarVista = v => { setVista(v); setError(""); setMensaje(""); setCancelar(null); };
   const cambiarEstado = (id, accion) => ejecutar(async () => {
     await api(`/citas/mis-citas/${id}/${accion}`, { method: "PATCH" });
@@ -105,7 +115,7 @@ export default function PacientePage() {
         </div></section>
       </Show>
       <Show when={vista() === "reserva"}><div class="medico-grid"><section class="medico-card"><div class="medico-card-header"><span class="medico-icon" aria-hidden="true">＋</span><div><h2>Reserva tu próxima cita</h2><p>Elige un médico y una fecha para consultar sus horarios.</p></div></div><div class="paciente-body"><fieldset disabled={ocupado() || !auth.user()?.pacienteId || perfil()?.estado !== "ACTIVO"}>
-        <form onSubmit={e => { e.preventDefault(); ejecutar(async () => { limpiarFranjas(); setFranjas(await api(`/disponibilidad/franjas?profesionalId=${medico()}&fecha=${fecha()}`)); setConsultado(true); }); }}><label for="reserva-profesional">Profesional<select id="reserva-profesional" required value={medico()} onChange={e => { setMedico(e.currentTarget.value); limpiarFranjas(); }}><option value="">Selecciona un profesional</option><For each={medicos()}>{m => <option value={m.id}>{m.nombre} {m.apellido}</option>}</For></select></label><label for="reserva-fecha">Fecha<input id="reserva-fecha" type="date" required min={hoy()} value={fecha()} onInput={e => { setFecha(e.currentTarget.value); limpiarFranjas(); }} /></label><button class="medico-outline">Consultar horarios</button></form>
+        <form onSubmit={e => { e.preventDefault(); ejecutar(async () => { if (!medico()) throw new Error("Selecciona un profesional de la lista."); limpiarFranjas(); setFranjas(await api(`/disponibilidad/franjas?profesionalId=${medico()}&fecha=${fecha()}`)); setConsultado(true); }); }}><label for="reserva-profesional">Buscar profesional<input id="reserva-profesional" type="search" autocomplete="off" required placeholder="Nombre del profesional" value={busquedaMedico()} onInput={e => { setBusquedaMedico(e.currentTarget.value); setMedico(""); limpiarFranjas(); }} /></label><Show when={medicosEncontrados().length > 0 && !medico()}><ul class="citas-search-results" aria-label="Profesionales encontrados"><For each={medicosEncontrados()}>{m => <li><button type="button" onClick={() => seleccionarMedico(m)}><strong>{m.nombre} {m.apellido}</strong><span>Profesional activo</span></button></li>}</For></ul></Show><Show when={busquedaMedico().trim().length >= 2 && !medico() && !medicosEncontrados().length}><small class="citas-search-status">No se encontraron profesionales activos.</small></Show><Show when={medico()}><small class="paciente-info">Profesional seleccionado: {busquedaMedico()}</small></Show><label for="reserva-fecha">Fecha<input id="reserva-fecha" type="date" required min={hoy()} value={fecha()} onInput={e => { setFecha(e.currentTarget.value); limpiarFranjas(); }} /></label><button class="medico-outline" disabled={!medico()}>Consultar horarios</button></form>
         <Show when={consultado()}><form onSubmit={e => { e.preventDefault(); ejecutar(async () => {
           try {
             await api("/citas/mis-citas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profesionalId: Number(medico()), fecha: fecha(), horaInicio: hora(), motivo: motivo().trim() || null }) });

@@ -18,6 +18,43 @@ test("crear usuario exige contraseña y solo entrega su hash al repositorio", as
   assert.equal(recibido.passwordHash, undefined);
   await assert.rejects(service.guardar("usuarios", 1, { ...usuario, password: "á".repeat(40) }, "admin"), { statusCode: 400 });
 });
+test("edita la cuenta propia en Keycloak sin permitir cambiar su rol", async () => {
+  const llamadas = [];
+  const service = new AdminService({
+    repository: {
+      cuentaKeycloakPropia: async () => ({ id: 1, username: "admin", keycloak_subject: "sub-admin", rol: "ADMINISTRADOR" }),
+      actualizarCuentaKeycloakPropia: async (...args) => { llamadas.push(["local", ...args]); return { id: 1 }; }
+    },
+    passwordService: {},
+    keycloakClient: { actualizarUsuario: async (...args) => llamadas.push(["keycloak", ...args]) }
+  });
+  const datos = { username: "admin", nombre: "Admin", apellido: "Piedra", numeroDocumento: "1", email: "admin@example.com", rol: "ADMINISTRADOR", password: "clave-segura" };
+  await service.guardarCuentaKeycloakPropia(1, datos, "admin");
+  assert.equal(llamadas[0][0], "keycloak");
+  await assert.rejects(() => service.guardarCuentaKeycloakPropia(1, { ...datos, rol: "AGENDADOR" }, "admin"), /propio rol/);
+});
+test("cambia el estado de una cuenta sin depender de Keycloak", async () => {
+  const llamadas = [];
+  const service = new AdminService({
+    repository: { cambiarEstadoCuentaKeycloak: async (...args) => { llamadas.push(args); return { id: 2, activo: false }; } },
+    passwordService: {}
+  });
+  assert.deepEqual(await service.cambiarEstadoCuentaKeycloak(2, false, "admin"), { id: 2, activo: false });
+  assert.deepEqual(llamadas, [[2, false, "admin"]]);
+});
+test("sincroniza los perfiles vinculados al cambiar el estado de una cuenta", async () => {
+  const llamadas = [];
+  const client = { query: async (sql, params) => {
+    llamadas.push([sql, params]);
+    if (sql.startsWith("SELECT id FROM usuarios WHERE username=")) return { rows: [{ id: 1 }] };
+    if (sql.startsWith("SELECT id, username, keycloak_subject, persona_id")) return { rows: [{ id: 2, username: "paciente1", persona_id: 30 }] };
+    return { rows: [{ id: 1 }] };
+  }, release() {} };
+  const repo = new AdminRepository({ connect: async () => client });
+  await repo.cambiarEstadoCuentaKeycloak(2, true, "admin");
+  assert.deepEqual(llamadas.find(([sql]) => sql.startsWith("UPDATE profesionales SET activo"))[1], [true, 30]);
+  assert.deepEqual(llamadas.find(([sql]) => sql.startsWith("UPDATE pacientes SET estado"))[1], ["ACTIVO", 30]);
+});
 function repositorio({
   propio = false,
   ultimo = false,
@@ -49,9 +86,14 @@ function repositorio({
   }, release: () => llamadas.push(["release"]) };
   return { repo: new AdminRepository({ connect: async () => client }), llamadas };
 }
-test("no permite editar la cuenta administradora propia", async () => {
+test("no permite que el administrador cambie su propio rol", async () => {
   const { repo, llamadas } = repositorio({ propio: true });
-  await assert.rejects(repo.guardarUsuario(1, usuario, "admin"), /propia cuenta/);
+  await assert.rejects(repo.guardarUsuario(1, usuario, "admin"), /propio rol/);
+  assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["ROLLBACK", "release"]);
+});
+test("no permite que el administrador desactive su propia cuenta", async () => {
+  const { repo, llamadas } = repositorio({ propio: true });
+  await assert.rejects(repo.guardarUsuario(1, { ...usuario, rol: "ADMINISTRADOR", activo: false }, "admin"), /desactivar tu propia cuenta/);
   assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["ROLLBACK", "release"]);
 });
 test("no permite eliminar el último administrador activo", async () => {
@@ -76,6 +118,22 @@ test("revierte cambios si falla auditoría", async () => {
   const { repo, llamadas } = repositorio({ falloAuditoria: true });
   await assert.rejects(repo.guardarPerfil("profesionales", null, { nombre: "Ana", apellido: "G", numeroDocumento: "1", activo: true }, "admin"), /Auditoría/);
   assert.deepEqual(llamadas.slice(-2).map(x => x[0]), ["ROLLBACK", "release"]);
+});
+test("sincroniza la cuenta vinculada al desactivar un perfil profesional", async () => {
+  const llamadas = [];
+  const client = { query: async (sql, params) => {
+    llamadas.push([sql, params]);
+    if (sql.startsWith("SELECT id FROM usuarios WHERE username=")) return { rows: [{ id: 1 }] };
+    if (sql.includes("FROM profesionales WHERE id=$1 FOR UPDATE")) return { rows: [{ persona_id: 30, activo: true }] };
+    if (sql.startsWith("SELECT pr.id")) return { rows: [{ id: 3, persona_id: 30, activo: false }] };
+    return { rows: [{ id: 1 }] };
+  }, release() {} };
+  const repo = new AdminRepository({ connect: async () => client });
+
+  await repo.guardarPerfil("profesionales", 3, { nombre: "Ana", apellido: "G", numeroDocumento: "1", email: null, telefono: null, activo: false }, "admin");
+
+  const sincronizacion = llamadas.find(([sql]) => sql.startsWith("UPDATE usuarios SET activo=$1"));
+  assert.deepEqual(sincronizacion[1], [false, 30]);
 });
 for (const [tipo, campos] of [
   ["profesionales", ["citas", "controles", "disponibilidad", "cuenta"]],

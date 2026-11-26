@@ -1,5 +1,5 @@
 import { createSignal, onMount, For, Show } from "solid-js";
-import { api } from "./api.js";
+import { api } from "../../api.js";
 const DIAS = ["LUNES","MARTES","MIERCOLES","JUEVES","VIERNES","SABADO","DOMINGO"];
 export default function DisponibilidadForm() {
   const [profesionales, setProfesionales] = createSignal([]), [profesional, setProfesional] = createSignal("");
