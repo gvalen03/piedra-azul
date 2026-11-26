@@ -23,3 +23,11 @@
 .paciente-contacto { max-width:540px; margin-top:28px; }
 .paciente-page form + form { margin-top:24px; border-top:1px solid #edf1ef; padding-top:24px; }
 @media(max-width:480px) { .paciente-body { padding:20px; } .paciente-profile { grid-template-columns:1fr; } }
+.paciente-confirm textarea + p[role="alert"] {
+  margin: 14px 0 16px;
+  line-height: 1.5;
+  color: #9d3732;
+}
+.paciente-confirm .paciente-actions {
+  margin-top: 28px;
+}
