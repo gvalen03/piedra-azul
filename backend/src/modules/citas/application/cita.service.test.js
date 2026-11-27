@@ -201,3 +201,31 @@ test("cancelarPorPaciente rechaza citas que no cumplen la regla de dos días", a
   const service = new CitaService({ citaRepository: { cancelarPorPaciente: async () => null }, disponibilidadService: {}, eventBus: null });
   await assert.rejects(() => service.cancelarPorPaciente(1, 2, "No podré asistir"), { statusCode: 409 });
 });
+
+test("obtenerReporteAnual valida el año y delega al repositorio", async () => {
+  const llamadas = [];
+  const service = new CitaService({
+    citaRepository: {
+      obtenerReporteAnual: async (...args) => {
+        llamadas.push(args);
+        return [];
+      }
+    },
+    disponibilidadService: {},
+    eventBus: null
+  });
+
+  assert.deepEqual(
+    await service.obtenerReporteAnual("2026", 18),
+    { anio: 2026, profesionales: [] }
+  );
+  assert.deepEqual(llamadas, [[2026, 18]]);
+
+  for (const anio of [1899, 10000, "20a6", null]) {
+    await assert.rejects(
+      () => service.obtenerReporteAnual(anio),
+      error => error.statusCode === 400
+    );
+  }
+  assert.equal(llamadas.length, 1);
+});

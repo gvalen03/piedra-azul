@@ -32,6 +32,15 @@ async function crearApp(t) {
       }];
     }
   });
+  app.decorate("citaService", {
+    obtenerReporteAnual: async (anio, profesionalId) => ({
+      anio,
+      profesionales: await (async () => {
+        const respuesta = await app.citaRepository.obtenerReporteAnual(anio, profesionalId);
+        return respuesta;
+      })()
+    })
+  });
 
   await app.register(reportesRoutes, { prefix: "/api/reportes" });
   return { app, consultas };

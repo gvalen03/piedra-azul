@@ -266,6 +266,7 @@ export async function buildApp() {
   );
 
   app.decorate("citaRepository", citaRepository);
+  app.decorate("citaService", citaService);
 
   app.decorate(
     "citaController",

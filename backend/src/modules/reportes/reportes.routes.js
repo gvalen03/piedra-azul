@@ -49,12 +49,19 @@ export async function reportesRoutes(fastify) {
       }
     }
 
-    const profesionales = await fastify.citaRepository.obtenerReporteAnual(anio, profesionalId);
+    let reporte;
+    try {
+      reporte = await fastify.citaService.obtenerReporteAnual(anio, profesionalId);
+    } catch (error) {
+      return reply.code(error.statusCode || 500).send({
+        error: error.message || "No se pudo generar el reporte anual"
+      });
+    }
 
     return {
-      anio,
+      anio: reporte.anio,
       meses: MESES.map((nombre, indice) => ({ numero: indice + 1, nombre })),
-      profesionales
+      profesionales: reporte.profesionales
     };
   });
 }

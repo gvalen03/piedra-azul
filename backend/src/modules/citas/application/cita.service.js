@@ -51,6 +51,31 @@ export class CitaService {
     };
   }
 
+  async obtenerReporteAnual(anio, profesionalId = null) {
+    const anioValido = Number(anio);
+    if (
+      !Number.isInteger(anioValido) ||
+      anioValido < 1900 ||
+      anioValido > 9999
+    ) {
+      throw Object.assign(
+        new Error("El año debe ser un número entero entre 1900 y 9999"),
+        { statusCode: 400 }
+      );
+    }
+
+    const profesionales =
+      await this.citaRepository.obtenerReporteAnual(
+        anioValido,
+        profesionalId
+      );
+
+    return {
+      anio: anioValido,
+      profesionales
+    };
+  }
+
   async exportarCsv(profesionalId, fecha) {
     const id = Number(profesionalId);
 
