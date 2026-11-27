@@ -200,6 +200,51 @@ export class CitaRepository {
     return result.rows;
   }
 
+  async obtenerReporteAnual(anio, profesionalId = null) {
+    const result = await this.db.query(
+      `
+      SELECT
+        pr.id AS profesional_id,
+        pe.nombre,
+        pe.apellido,
+        EXTRACT(MONTH FROM c.fecha)::integer AS mes,
+        COUNT(c.id)::integer AS cantidad
+      FROM citas c
+      JOIN profesionales pr ON pr.id = c.profesional_id
+      JOIN personas pe ON pe.id = pr.persona_id
+      WHERE c.fecha >= make_date($1::integer, 1, 1)
+        AND c.fecha < make_date($1::integer + 1, 1, 1)
+        AND ($2::bigint IS NULL OR c.profesional_id = $2)
+      GROUP BY pr.id, pe.nombre, pe.apellido, EXTRACT(MONTH FROM c.fecha)
+      ORDER BY pr.id ASC, mes ASC
+      `,
+      [anio, profesionalId]
+    );
+
+    const profesionales = new Map();
+    for (const row of result.rows) {
+      const profesionalId = Number(row.profesional_id);
+      let profesional = profesionales.get(profesionalId);
+
+      if (!profesional) {
+        profesional = {
+          profesionalId,
+          nombre: row.nombre,
+          apellido: row.apellido,
+          citasPorMes: Array(12).fill(0),
+          totalAnual: 0
+        };
+        profesionales.set(profesionalId, profesional);
+      }
+
+      const cantidad = Number(row.cantidad);
+      profesional.citasPorMes[Number(row.mes) - 1] = cantidad;
+      profesional.totalAnual += cantidad;
+    }
+
+    return [...profesionales.values()];
+  }
+
   // =========================
   // Verificar horario ocupado
   // =========================
