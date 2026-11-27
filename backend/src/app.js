@@ -82,6 +82,9 @@ import { crearDisponibilidadController }
 import { citaRoutes }
   from "./modules/citas/web/cita.routes.js";
 
+import { reportesRoutes }
+  from "./modules/reportes/reportes.routes.js";
+
 import { CitaRepository }
   from "./modules/citas/infrastructure/cita.repository.js";
 
@@ -334,6 +337,10 @@ export async function buildApp() {
 
   await app.register(citaRoutes, {
     prefix: "/api/citas"
+  });
+
+  await app.register(reportesRoutes, {
+    prefix: "/api/reportes"
   });
 
   await app.register(pacienteRoutes, {
