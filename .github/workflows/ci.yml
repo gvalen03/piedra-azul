@@ -1,0 +1,64 @@
+name: Validar aplicacion
+
+on:
+  pull_request:
+    branches: ["dev"]
+  push:
+    branches: ["dev"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: piedra_azul_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d piedra_azul_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: piedra_azul_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Instalar backend
+        run: npm ci
+        working-directory: backend
+      - name: Probar backend
+        run: npm test
+        working-directory: backend
+      - name: Probar integracion del reporte con PostgreSQL
+        run: node --test test/reportes.integration.test.js
+        working-directory: backend
+        env:
+          RUN_POSTGRES_INTEGRATION_TESTS: "1"
+      - name: Instalar frontend
+        run: npm ci
+        working-directory: frontend
+      - name: Compilar frontend
+        run: npm run build
+        working-directory: frontend
